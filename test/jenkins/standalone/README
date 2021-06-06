@@ -1,0 +1,47 @@
+This series test contains fifteen projects in Jenkins. 
+    je_standalone_cleanwsc
+    je_standalone_closedbevi
+    je_standalone_envsharedcache
+    je_standalone_failoverhybrid
+    je_standalone_failovermaster
+    je_standalone_failoverrep
+    je_standalone_ioerror
+    je_standalone_memstress
+    je_standalone_openenv
+    je_standalone_remdb
+    je_standalone_repclean
+    je_standalone_repdbops
+    je_standalone_repread
+    je_standalone_tempdb
+    je_standalone_txinmthd
+        
+
+Jenkins Machine: slc04ark
+Emails: adam.qian@oracle.com, mark.hayes@oracle.com, dwayne.chung@oracle.com, dave.rubin@oracle.com, sam.haradhvala@oracle.com, linda.q.lee@oracle.com, tim.blackman@oracle.com, nosql_eng_cn_grp@oracle.com, markos.zaharioudakis@oracle.com, junyi.xie@oracle.com
+
+The running methods of these tests are similar. They all use je_standalone.sh to drive the test only with one difference, i.e. the project name which is provided to je_standalone.sh as an argument. They all use error_extract_je.sh and gen_xml.sh to check the test result and generate the final report.
+
+The usage example looks like:
+    scp /scratch/jenkins/bin/je_standalone.sh tests@slc04arq:~/
+    ssh -l tests slc04arq "bash je_standalone.sh -t je_standalone_failoverhybrid -R ${je_repo} -b ${je_branch} -r ${je_version}"
+where slc04arq is the test machine where this standalone test runs and je_standalone_failoverhybrid is the project name which is just one of the above 15 project names.
+
+So in the following, we just give the test machine, issued time, duration time of each standalone test.
+
+                                                  Test Machine                Issued Time             Duration Time
+    je_standalone_cleanwsc                        slc04arq                    22:00 UTC Saturday      1hours 
+    je_standalone_closedbevi                      slc00arq                    00:00 UTC Sunday        10hours 
+    je_standalone_envsharedcache                  slc00arq                    16:00 UTC Sunday        1hours 
+    je_standalone_failoverhybrid                  slc00arq                    06:00 UTC Monday        5hours 
+    je_standalone_failovermaster                  slc00arq                    14:00 UTC Monday        5.5hours 
+    je_standalone_failoverrep                     slc00arq                    22:00 UTC Monday        4hours 
+    je_standalone_ioerror                         slc00brg                    03:00 UTC Tuesday       4hours 
+    je_standalone_memstress                       slc00arq                    08:00 UTC Tuesday       1hours 
+    je_standalone_openenv                         slc00arq                    10:00 UTC Tuesday       1hours 
+    je_standalone_remdb                           slc00arq                    12:00 UTC Tuesday       2.5hours 
+    je_standalone_repclean                        slc00arq                    15:00 UTC Tuesday       3hours 
+    je_standalone_repdbops                        slc00arq                    00:00 UTC Thursday      1hours 
+    je_standalone_repread                         slc00arq                    02:00 UTC Thursday      12.5hours 
+    je_standalone_tempdb                          slc00arq                    15:00 UTC Thursday      4.5hours 
+    je_standalone_txinmthd                        slc00arq                    00:00 UTC Friday        1hours 
+

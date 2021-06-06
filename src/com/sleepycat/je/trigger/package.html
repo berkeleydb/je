@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> 
+<head>
+<!--
+
+ See the file LICENSE for redistribution information.
+
+ Copyright (c) 2002, 2014 Oracle and/or its affiliates.  All rights reserved.
+
+ $Id$
+
+-->
+<title>Triggers</title>
+
+</head>
+
+<body>
+<p>
+NOT YET RELEASED: Triggers provide a mechanism for automatically executing one
+or more application defined trigger methods whenever a certain type of
+operation is performed. The mechanism is automatic in that the method is
+invoked automatically by JE and not the application.
+</p>
+<p>
+All the trigger methods are, in the terminology generally associated
+with RDBMS triggers, <em>after</em> triggers. An <em>after</em> trigger
+method is only invoked after the successful completion of the
+associated operation. It is not invoked if the operation associated
+with the trigger method fails.
+</p>
+<p>
+The trigger interfaces are organized so that the application can easily choose
+to implement the minimal set of methods that meet their needs. 
+</p>
+<ul>
+<li>
+Trigger defines the methods that must be implemented by simple 
+trigger applications in a standalone JE environment that only make changes to 
+the JE environment in the scope of the transaction supplied to the trigger 
+method.
+</li>
+<li>ReplicatedDatabaseTrigger introduces additional methods that must be
+implemented by the application so that it can deal correctly with
+multiple invocations of a trigger per operation as a result of <em>Syncup</em>
+operations on a Replica.</li>
+<li>
+Finally, TransactionTrigger defines trigger methods for transaction commit and
+abort operations. They are intended for use by sophisticated applications that 
+maintain state outside of JE, for example, in a transient cache, or in an RDBMS.
+</li>
+</ul>
+<p>
+Each of the interfaces described above defines a set of trigger
+methods that must all work together to achieve a common purpose. The
+application must typically supply non-null implementations for all the
+methods in an interface or the application will likely be incomplete.
+</p>
+<h3>Configuring Triggers</h3>
+<p>
+Triggers are configured via the get/set methods defined on
+<em>DatabaseConfig</em>. They are stored persistently in the
+database. If the database is replicated, the association is replicated
+at each node, so that the triggers can be run there as well.
+</p>
+
+<h3>Trigger Invocation</h3>
+
+<p>
+Multiple uniquely named Trigger instances may be associated with the
+same database. In such cases, the triggers are
+invoked in the order specified by the list argument to the trigger
+setting methods defined by <em>DatabaseConfig</em>.
+</p>
+<p>
+If the invocation of a trigger results in a runtime exception, the
+transaction (if one was associated with the method) is invalidated and any
+subsequent triggers also associated with the operation are skipped. It's the
+caller's responsibility to handle the exception and abort the invalidated
+transaction.
+</p>
+The implementation of a trigger method may result in the invocation of
+additional trigger methods. It's the application's responsibility to
+ensure that the use of cascading triggers does not create an infinite
+recursion.
+<p>
+Trigger methods are not synchronized. It's up to the application to
+make any necessary provisions for synchronization. On a related note,
+a trigger method should not make any assumptions about the thread of
+control in which it is invoked. That is, it may be invoked in the same
+thread of control as the triggering operation, or it may be invoked in
+a different thread.
+</p>
+Trigger methods are expected to be lightweight. If they are required
+to do substantial work, it may be best to queue the work so that the
+method returns quickly and the bulk of the work is accomplished
+asynchronously.
+
+<h3>Trigger Methods and Transactions</h3>
+
+<p>
+A trigger method takes a transaction as its first argument. The
+argument is not null if the environment is transactional. The non-null
+transaction argument to trigger methods defined by Trigger is always
+valid and can be used by the method to make transactional changes. The
+non-null transaction argument passed to the commit and abort triggers
+associated with TransactionTrigger is no longer valid and cannot be
+used to make transactional changes.
+</p>
+<p>
+The transactional context associated with the code executing in a
+trigger is exactly the same as that associated with any JE application
+code; it is subject to exactly the same restrictions. For example, a
+trigger method associated with a DatabaseTrigger executed on a replica
+cannot make any modifications to a replicated database using the
+transaction supplied to it. It can however modify local databases.
+</p>
+</body> 
+</html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>JE Backup and Restore</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction to Berkeley DB Java Edition" />
+    <link rel="prev" href="applicationoverview.html" title="The JE Application" />
+    <link rel="next" href="jca.html" title="JCA Support" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">JE Backup and Restore</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="applicationoverview.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction to Berkeley DB Java Edition </th>
+          <td width="20%" align="right"> <a accesskey="n" href="jca.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="restore"></a>JE Backup and Restore</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            To backup your database, copy the log files (the
+            <code class="literal">.jdb</code> files) starting from the lowest
+            numbered log file to the highest numbered log file to your
+            backup media. Be sure to copy the bytes of the individual
+            database files in order from the lowest to the highest.  You do
+            not have to close your database or otherwise cease database
+            operations when you do this.  
+       </p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+               Note that if you are using subdirectories to store your log
+               files, then you should copy those subdirectories and their
+               contents instead of simply copying individual files.
+               Multiple subdirectories can be used to improve JE
+               throughput, but this feature is not turned on by default. 
+               See <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a> 
+               for information on how to configure this feature.
+           </p>
+      </div>
+      <p>
+        Restoring a JE database from a backup consists of closing your
+        JE environment, copying archived log files back into your
+        environment directory and then opening your JE environment
+        again. If you are using subdirectories to store your log files,
+        then make sure to copy those subdirectories back into the
+        environment home directory, and make sure the same log files are in
+        each subdirectory as was there when you took the backup.
+      </p>
+      <p>
+        Note that whenever a JE environment is opened, JE runs
+        <span class="emphasis"><em>normal recovery</em></span>. This involves bringing your
+        database into a consistent state given the changed data found in the
+        database. If you are using transactions during normal operations, then
+        JE automatically runs checkpoints for you so as to limit the time
+        required to run this recovery. In any case, running normal recovery is a
+        routine operation, while performing database restores is not.
+      </p>
+      <p>
+        For more information on JE backup and restores, and on checkpoints, see 
+        <a class="xref" href="backuprestore.html" title="Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications">Backing up and Restoring Berkeley DB Java Edition Applications</a>.
+    </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="applicationoverview.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="jca.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">The JE Application </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> JCA Support</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Appendix A. Concurrent Processing in Berkeley DB Java Edition</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="prev" href="managelogging.html" title="Logging" />
+    <link rel="next" href="multiprocess.html" title="Multiprocess Applications" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Appendix A. Concurrent Processing in Berkeley DB Java Edition</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="managelogging.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="multiprocess.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="appendix" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="concurrentProcessing"></a>Appendix A. Concurrent Processing in Berkeley DB Java Edition</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        An in-depth description of concurrent processing in JE is beyond the scope of this manual. However, there are
+        a few things that you should be aware of as you explore JE. Note that many of these topics are described in
+        greater detail in other parts of this book. This section is intended only to summarize JE concurrent
+        processing.
+    </p>
+      <p>
+            Also, this appendix touches on a topic not
+            discussed in any detail in this manual: transactions. Transactional usage is
+            optional but nevertheless very commonly used for JE
+            applications, especially when writing multi-threaded or
+            multi-process applications. However, transactions also
+            represent a topic that is too large for this book. To read a
+            thorough description of JE and transactional processing,
+            see the <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide.
+    </p>
+      <p>
+		This appendix first describes concurrency with multithreaded applications. It then goes on to describe 
+		<a class="xref" href="multiprocess.html" title="Multiprocess Applications">Multiprocess Applications</a>.
+	</p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="multithreaded"></a>Multithreaded Applications</h2>
+            </div>
+          </div>
+        </div>
+        <p>
+            Note the following if you are writing an application that will use multiple threads for reading and writing
+            JE databases:
+        </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                    JE database and environment handles are free-threaded (that is, are thread safe), so from a mechanical perspective you 
+					do not have to synchronize access to them when they are used by multiple threads of control.
+                </p>
+            </li>
+            <li>
+              <p>
+                    It is dangerous to close environments and databases when other database operations are in
+                    progress. So if you are going to share handles for these objects across threads, you should
+                    architect your application such that there is no possibility of a thread closing a handle when
+                    another thread is using that handle.
+                </p>
+            </li>
+            <li>
+              <p>
+                    If a transaction is shared across threads, it is safe to call <code class="methodname">transaction.abort()</code> from
+                    any thread. However, be aware that any thread that attempts a database operation using an aborted
+					transaction will throw a <code class="classname">DatabaseException</code>. You should architect your
+					application such that your threads are able to gracefully deal with some other thread aborting the
+					current transaction.
+                </p>
+            </li>
+            <li>
+              <p>
+                    If a transaction is shared across threads, make sure that
+                    <code class="methodname">transaction.commit()</code> can never be called until all threads participating in
+                    the transaction have completed their database operations.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Locking is performed at the database record level.
+                    JE always checks for lock conflicts, which can be caused either by operations that run for 
+                    too long a period of time, or by deadlocks.  JE decides that a lock conflict has occured when
+                    the lock cannot be obtained within a set timeout
+                    period.  If it cannot, regardless of why the lock could
+                    not be obtained, then <code class="classname">LockConflictException</code> is thrown.
+                </p>
+            </li>
+            <li>
+              <p>
+                    A non-transactional operation that reads a record locks it for the duration of the read. 
+                    While locked for read, a write lock can not be obtained on that record. However, another read lock
+                    can be obtained for that record. This means that for threaded applications, multiple threads can
+                    simultaneously read a record, but no thread can write to the record while a read is in progress.
+                </p>
+              <p>
+					Note that if you are performing uncommitted reads, then no locking is performed for that read. Instead,
+					JE uses internal mechanisms to ensure that the data you are reading is consistent (that is, it
+					will not change mid-read).
+				</p>
+              <p>
+					Finally, it is possible to specify that you want a write lock for your read operation. You do this
+					using <code class="literal">LockMode.RMW</code>. Use <code class="literal">RMW</code> when you know that your read will
+					subsequently be followed up with a write operation. Doing so can help to avoid lock conflicts.
+				</p>
+            </li>
+            <li>
+              <p>
+                    An operation that writes to a record obtains a write lock on that record. While the write lock is in
+                    progress, no other locks can be obtained for that record (either read or write).
+                </p>
+            </li>
+            <li>
+              <p>
+                    All locks, read or write,  obtained from within a transaction are held until the transaction is either 
+					committed or aborted.
+                    This means that the longer a transaction lives, the more likely other threads in your application
+                    are to run into lock conflicts. That is, write operations
+                    performed outside of the scope of the transaction will not be able to obtain a lock on those records
+                    while the transaction is in progress. Also, by default, reads performed outside the scope of the
+                    transaction will not be able to lock records written by the transaction. However, this behavior can be
+                    overridden by configuring your reader to perform uncommitted reads.
+                </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="managelogging.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="multiprocess.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Logging </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Multiprocess Applications</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

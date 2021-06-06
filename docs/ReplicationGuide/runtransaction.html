@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Example Run Transaction Class</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="txn-management.html" title="Chapter 3. Transaction Management" />
+    <link rel="prev" href="txnrollback.html" title="Managing Transaction Rollbacks" />
+    <link rel="next" href="utilities.html" title="Chapter 4. Utilities" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Example Run Transaction Class</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="txnrollback.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Transaction Management</th>
+          <td width="20%" align="right"> <a accesskey="n" href="utilities.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="runtransaction"></a>Example Run Transaction Class</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="runtransaction.html#exruntransaction">RunTransaction Class</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="runtransaction.html#usingruntransaction">Using RunTransaction</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            Usage of JE HA requires you to handle many different
+            HA-specific exceptions. While some of these are Master-specific
+            and others are Replica-specific, your code may still need to
+            handle both. The reason why is that it is not uncommon for HA
+            applications to have standard classes that perform database
+            access, regardless of whether the class is used for a node in
+            the Master state or a node in the Replica state.
+        </p>
+      <p>
+            The following class is an example class that can be used to
+            perform transactional reads and writes in an HA application.
+            This class is used by the on-disk HA examples that you can find
+            in your JE distribution (see <a class="xref" href="repexample.html" title="Chapter 6. Replication Examples">Replication Examples</a> for more information). However, we
+            think this particular example class is important enough that we
+            also describe it here.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="exruntransaction"></a>RunTransaction Class</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                The <code class="classname">RunTransaction</code> abstract class is
+                used to implement a utility class that performs database access
+                for HA applications.  It provides all the
+                transaction error handling and retry framework that
+                is required for database access in an HA environment.
+            </p>
+        <p>
+                Because <code class="classname">RunTransaction</code> is a class that
+                is meant to be used by different example HA applications, it
+                does not actually implement the database operations. Instead,
+                it provides an abstract method that must be implemented by the
+                HA application that uses <code class="classname">RunTransaction</code>.
+            </p>
+        <p>
+                We begin by importing the classes that
+                <code class="classname">RunTransaction</code> uses.
+            </p>
+        <pre class="programlisting">package je.rep.quote;
+
+import java.io.PrintStream;
+
+import com.sleepycat.je.EnvironmentFailureException;
+import com.sleepycat.je.LockConflictException;
+import com.sleepycat.je.OperationFailureException;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.rep.InsufficientAcksException;
+import com.sleepycat.je.rep.InsufficientReplicasException;
+import com.sleepycat.je.rep.ReplicaConsistencyException;
+import com.sleepycat.je.rep.ReplicaWriteException;
+import com.sleepycat.je.rep.ReplicatedEnvironment;</pre>
+        <p>
+            Then we define a series of private data members that identify how
+            our HA transactions are going to behave in the event of an error
+            condition.
+        </p>
+        <pre class="programlisting">abstract class RunTransaction {
+
+    /* The maximum number of times to retry the transaction. */
+    private static final int TRANSACTION_RETRY_MAX = 10;
+
+    /*
+     * The number of seconds to wait between retries when a sufficient
+     * number of replicas are not available for a transaction.
+     */
+    private static final int INSUFFICIENT_REPLICA_RETRY_SEC = 1;
+
+    /* Amount of time to wait to let a replica catch up before 
+     * retrying. 
+     */
+    private static final int CONSISTENCY_RETRY_SEC = 1;
+
+    /* Amount of time to wait after a lock conflict. */
+    private static final int LOCK_CONFLICT_RETRY_SEC = 1;
+
+    private final ReplicatedEnvironment env;
+    private final PrintStream out; </pre>
+        <p>
+            Then we implement our class constructor, which is very simple
+            because all the heavy lifting is done by whatever application calls
+            this utility class.
+        </p>
+        <pre class="programlisting">    RunTransaction(ReplicatedEnvironment repEnv, 
+                   PrintStream printStream) {
+        env = repEnv;
+        out = printStream;
+    } </pre>
+        <p>
+            Now we implement our <code class="methodname">run()</code>
+            method. This is what actually performs all the error checking and
+            retry work for the class.
+        </p>
+        <p>
+            The <code class="methodname">run()</code> method catches the exceptions
+            most likely to occur as we are reading and writing the database,
+            and then handles them, but it will also throw
+            <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/InterruptedException.html" target="_top">InterruptedException</a> and <a class="ulink" href="../java/com/sleepycat/je/EnvironmentFailureException.html" target="_top">EnvironmentFailureException</a>.
+        </p>
+        <p>
+            <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/InterruptedException.html" target="_top">InterruptedException</a> can be thrown if the thread calling this
+            method is sleeping and some other thread interrupts it. The
+            exception is possible because this method calls <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/Thread.html#sleep(long)" target="_top">Thread.sleep</a> in
+            the retry cycle.
+        </p>
+        <p>
+            <a class="ulink" href="../java/com/sleepycat/je/EnvironmentFailureException.html" target="_top">EnvironmentFailureException</a> can occur both when beginning a
+            transaction and also when committing a transaction. It means that
+            there is something significantly wrong with the node's environment.
+        </p>
+        <p>
+            The <code class="literal">readOnly</code> parameter for this method is
+            used to indicate that the transaction will only perform
+            database reads. When that happens, the durability guarantee for
+            the transaction is changed to <a class="ulink" href="../java/com/sleepycat/je/Durability.html#READ_ONLY_TXN" target="_top">Durability.READ_ONLY_TXN</a>
+            because that policy does not call for any acknowledgements.
+            This eliminates the possibility of an
+            <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a> being thrown from the
+            <a class="ulink" href="../java/com/sleepycat/je/Environment.html#beginTransaction(com.sleepycat.je.Transaction, com.sleepycat.je.TransactionConfig)" target="_top">Environment.beginTransaction()</a> operation.
+        </p>
+        <pre class="programlisting">
+    public void run(boolean readOnly)
+        throws InterruptedException, EnvironmentFailureException { </pre>
+        <p>
+            Now we begin our retry loop and define our sleep cycle between
+            retries. Initially, we do not actually sleep before
+            retrying the transaction. However, some of the 
+            error conditions caught by this method will cause the thread to
+            sleep before the operation is retried. After every sleep operation,
+            the sleep time is returned to 0 because usually putting the thread
+            to sleep is of no benefit.
+        </p>
+        <pre class="programlisting">        OperationFailureException exception = null;
+        boolean success = false;
+        long sleepMillis = 0;
+        final TransactionConfig txnConfig = readOnly ?
+         new TransactionConfig().setDurability(Durability.READ_ONLY_TXN) :
+         null;
+
+        for (int i = 0; i &lt; TRANSACTION_RETRY_MAX; i++) {
+            /* Sleep before retrying. */
+            if (sleepMillis != 0) {
+                Thread.sleep(sleepMillis);
+                sleepMillis = 0;
+             } </pre>
+        <p>
+            Now we create our transaction, perform the database operations, and
+            then do the work. The <code class="methodname">doTransactionWork()</code>
+            method is an abstract method that must be implemented by the
+            application using this class. Otherwise, this is standard
+            transaction begin/commit code that should hold no surprises for
+            you.
+        </p>
+        <pre class="programlisting">            Transaction txn = null;
+            try {
+                txn = env.beginTransaction(null, null);
+                doTransactionWork(txn); /* CALL APP-SPECIFIC CODE */
+                txn.commit();
+                success = true;
+                return; </pre>
+        <p>
+             The first error case that we check for is
+             <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a>. This exception means that the
+             Master is not in contact with enough Electable Replicas to successfully
+             commit the transaction. It is possible that Replicas are still
+             starting up after an application restart, so we put the thread to
+             sleep before attempting the transaction again.
+         </p>
+        <p>
+             <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a> is thrown by <a class="ulink" href="../java/com/sleepycat/je/Transaction.html#commit()" target="_top">Transaction.commit()</a>,
+             so we do have to perform the transaction all over again.
+         </p>
+        <pre class="programlisting">            } catch (InsufficientReplicasException insufficientReplicas) {
+
+                /*
+                 * Retry the transaction.  Give replicas a chance to 
+                 * contact this master, in case they have not had a 
+                 * chance to do so following an election.
+                 */
+                exception = insufficientReplicas;
+                out.printf(insufficientReplicas.toString());
+                sleepMillis = INSUFFICIENT_REPLICA_RETRY_SEC * 1000;
+                continue; </pre>
+        <p>
+              Next we check for <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a>. This exception
+              means that the transaction has successfully committed on the
+              Master, but not enough Electable Replicas have acknowledged the commit
+              within the allowed period of time. Whether you consider this to
+              be a successful commit depends on your durability policy.
+          </p>
+        <p>
+              As provided here, the code considers this situation to be
+              an unsuccessful commit. But if you have a lot of Electable Replicas and you
+              have a strong durability guarantee on the Master, then you might
+              be able to still consider this to be a successful commit. If so,
+              you should set <code class="literal">success = true;</code> before
+              returning from the method.
+          </p>
+        <p>
+             For more information on this error case, see 
+             <a class="xref" href="txn-management.html#replicaacktimeout" title="Managing Acknowledgement Timeouts">Managing Acknowledgement Timeouts</a>.
+         </p>
+        <pre class="programlisting">             } catch (InsufficientAcksException insufficientReplicas) {
+
+                /*
+                 * Transaction has been committed at this node. The 
+                 * other acknowledgments may be late in arriving, 
+                 * or may never arrive because the replica just 
+                 * went down.
+                 */
+
+                /*
+                 * INSERT APP-SPECIFIC CODE HERE: For example, repeat
+                 * idempotent changes to ensure they went through.
+                 *
+                 * Note that 'success' is false at this point, although
+                 * some applications may consider the transaction to be 
+                 * complete.
+                 */
+                out.println(insufficientReplicas.toString());
+                txn = null;
+                return; </pre>
+        <p>
+            Next we check for <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a>. This happens when a
+            write operation is attempted on a Replica. In response to this, any
+            number of things can be done, including reporting the problem to
+            the application attempting the write operation and then aborting,
+            to forwarding the write request to the Master. This particular
+            method responds to this condition based on how the 
+            <code class="methodname">onReplicaWrite()</code> method is implemented.
+        </p>
+        <p>
+            For more information on how to handle this exception, see
+            <a class="xref" href="replicawrites.html" title="Managing Write Requests at a Replica">Managing Write Requests at a Replica</a>.
+        </p>
+        <pre class="programlisting">            } catch (ReplicaWriteException replicaWrite) {
+
+                /*
+                 * Attempted a modification while in the Replica 
+                 * state.
+                 *
+                 * CALL APP-SPECIFIC CODE HERE: Cannot accomplish 
+                 * the changes on this node, redirect the write to 
+                 * the new master and retry the transaction there.  
+                 * This could be done by forwarding the request to 
+                 * the master here, or by returning an error to the
+                 * requester and retrying the request at a higher 
+                 * level.
+                 */
+                onReplicaWrite(replicaWrite);
+                return; </pre>
+        <p>
+            Now we check for <a class="ulink" href="../java/com/sleepycat/je/LockConflictException.html" target="_top">LockConflictException</a>, which is thrown whenever
+            a transaction experiences a lock conflict with another thread. Note
+            that by catching this exception, we are also catching the
+            <a class="ulink" href="../java/com/sleepycat/je/rep/LockPreemptedException.html" target="_top">LockPreemptedException</a>, which happens whenever the underlying HA
+            code "steals" a lock from an application transaction. The most
+            common cause of this is when the HA replication stream is updating
+            a Replica, and the Replica is holding a read lock that the
+            replication stream requires.
+        </p>
+        <p>
+            Here, it is useful to sleep for a period of time before retrying
+            the transaction.
+        </p>
+        <pre class="programlisting">            } catch (LockConflictException lockConflict) {
+
+                /*
+                 * Retry the transaction.  Note that LockConflictException
+                 * covers the HA LockPreemptedException.
+                 */
+                exception = lockConflict;
+                out.println(lockConflict.toString());
+                sleepMillis = LOCK_CONFLICT_RETRY_SEC * 1000;
+                continue; </pre>
+        <p>
+            The last error we check for is <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaConsistencyException.html" target="_top">ReplicaConsistencyException</a>. This
+            exception can be thrown when the transaction begins. It means that
+            the <code class="methodname">beginTransaction()</code> method has waited
+            too long for the Replica to catch up relative to the Master. This
+            situation does not really represent a failed transaction because
+            the transaction never had a chance to proceed in the first place.
+        </p>
+        <p>
+            In any case, the proper thing to do is to put the thread to sleep
+            for a period of time so that the Replica has the chance to meet its
+            consistency requirements. Then we retry the transaction.
+        </p>
+        <p>
+            Note that at this point in time, the transaction handle is in
+            whatever state it was in when <code class="methodname">beginTransaction()</code>
+            was called. If the handle was in the null state before
+            attempting the operation, then it will still be in the null
+            state. The important thing to realize here is that the
+            transaction does not have to be aborted, because the
+            transaction never began in the first place.
+        </p>
+        <p>
+            For more information on consistency policies, see
+            <a class="xref" href="consistency.html" title="Managing Consistency">Managing Consistency</a>.
+        </p>
+        <pre class="programlisting">            } catch (ReplicaConsistencyException replicaConsistency) {
+
+                /*
+                 * Retry the transaction. The timeout associated with 
+                 * the ReplicaConsistencyPolicy may need to be 
+                 * relaxed if it's too stringent.
+                 */
+                exception = replicaConsistency;
+                out.println(replicaConsistency.toString());
+                sleepMillis = CONSISTENCY_RETRY_SEC * 1000;
+                continue; </pre>
+        <p>
+            Finally, we abort our transaction and loop again as needed.
+            <code class="methodname">onRetryFailure()</code> is called if the
+            transaction has been retried too many times (as defined by 
+            <code class="literal">TRANSACTION_RETRY_MAX</code>. It provides the option to
+            log the situation.
+        </p>
+        <pre class="programlisting">            } finally {
+
+                if (!success) {
+                    if (txn != null) {
+                        txn.abort();
+                    }
+
+                    /*
+                     * INSERT APP-SPECIFIC CODE HERE: Perform any 
+                     * app-specific cleanup.
+                     */
+                }
+            }
+        }
+
+        /*
+         * CALL APP-SPECIFIC CODE HERE: 
+         * Transaction failed, despite retries.
+         */
+        onRetryFailure(exception);
+    } </pre>
+        <p>
+            Having done that, the class is almost completed. Left to do is to
+            define a couple of methods, one of which is an abstract method
+            that must be implemented by the application that uses this
+            class.
+        </p>
+        <p>
+            <code class="methodname">doTransactionWork()</code> is an abstract method
+            where the actual database operations are performed.
+        </p>
+        <p>
+            <code class="methodname">onReplicaWrite()</code> is a method that should be
+            implemented by the HA application that uses this class. It is used to 
+            define whatever action the Replica should
+            take if a write is attempted on it. For examples of how this is
+            used, see the next section.
+        </p>
+        <p>
+            For this implementation of the class, we simply throw
+            the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a> that got us here in the first place.
+        </p>
+        <pre class="programlisting">    abstract void doTransactionWork(Transaction txn);
+
+    void onReplicaWrite(ReplicaWriteException replicaWrite) {
+        throw replicaWrite;
+    } </pre>
+        <p>
+            Finally, we implement <code class="methodname">onRetryFailure()</code>,
+            which is what this class does if the transaction retry loop 
+            goes through too many iterations. Here, we simply print the error
+            to the console. A more robust application should probably write the
+            error to the application logs.
+        </p>
+        <pre class="programlisting">    void onRetryFailure(OperationFailureException lastException) {
+            out.println("Failed despite retries." +
+                                ((lastException == null) ?
+                                  "" :
+                                  " Encountered exception:" + 
+                                  lastException));
+        }
+    } </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="usingruntransaction"></a>Using RunTransaction</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                Having implemented the <code class="classname">RunTransaction</code> class, it is fairly easy to use. 
+                Essentially, you only have to implement the
+                <code class="methodname">RunTransaction.doTransactionWork()</code>
+                method so that it performs whatever database access you
+                want.
+            </p>
+        <p>
+                For example, the following method performs a read on an
+                <a class="ulink" href="../java/com/sleepycat/persist/EntityStore.html" target="_top">EntityStore</a> used by the <a class="ulink" href="../examples/je/rep/quote/StockQuotes.html" target="_top">StockQuotes</a> example HA
+                application. Notice that the class is instantiated,
+                <code class="methodname">doTransactionWork()</code> is
+                implemented, and the <code class="methodname">RunTransaction.run()</code>
+                method are all called in one place. This makes for fairly
+                easy maintenance of the code.
+            </p>
+        <pre class="programlisting">    private void printStocks(final PrintStream out)
+        throws InterruptedException {
+
+        new RunTransaction(repEnv, out) {
+
+            @Override
+            void doTransactionWork(Transaction txn) {
+
+                // dao is a DataAccessor class used to access
+                // an entity store.
+                final EntityCursor&lt;Quote&gt; quotes =
+                    dao.quoteById.entities(txn, null);
+                try {
+                    out.println("\tSymbol\tPrice");
+                    out.println("\t======\t=====");
+
+                    int count = 0;
+                    for (Quote quote : quotes) {
+                        out.println("\t" +  quote.stockSymbol +
+                                    "\t" + quote.lastTrade);
+                        count++;
+                    }
+                    out.println("\n\t" + count + " stock"
+                                + ((count == 1) ? "" : "s") +
+                                " listed.\n");
+                } finally {
+                    quotes.close();
+                }
+            }
+            }.run(true /*readOnly*/);
+
+        /* Output local indication of processing. */
+        System.out.println("Processed print request");
+    } </pre>
+        <p>
+                In the previous example, we do not bother to override the 
+                <code class="methodname">RunTransaction.onReplicaWrite()</code>
+                method because this transaction is performing read-only
+                access to the database. Regardless of whether the
+                transaction is run on a Master or a Replica,
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a> can not be raised here, so we can
+                safely use the default implementation.
+            </p>
+        <p>
+                However, if we were running a transaction that performs a
+                database write, then we should probably do something with 
+                <code class="methodname">onReplicaWrite()</code> other than merely
+                re-throwing the exception.
+            </p>
+        <p>
+                The following is an example usage of
+                <code class="classname">RunTransaction</code> that is also used in
+                the <a class="ulink" href="../examples/je/rep/quote/StockQuotes.html" target="_top">StockQuotes</a> example. 
+            </p>
+        <pre class="programlisting">    void updateStock(final String line, final PrintStream printStream)
+        throws InterruptedException {
+
+        // Quote is a utility class used to parse a line of input
+        // obtained from the console.
+        final Quote quote = QuoteUtil.parseQuote(line);
+        if (quote == null) {
+            return;
+        }
+
+        new RunTransaction(repEnv, printStream) {
+
+            void doTransactionWork(Transaction txn) {
+                // dao is a Data Accessor class used to perform access
+                // to the entity store.
+                dao.quoteById.put(txn, quote);
+                /* Output local indication of processing. */
+                System.out.println("Processed update request: " + line);
+            }
+
+            // For this example, we simply log the error condition.
+            // For a more robust example, so other action might be
+            // taken; for example, log the situation and then route
+            // the write request to the Master.
+            void onReplicaWrite(ReplicaWriteException replicaWrite) {
+                /* Attempted a modification while in the replica state. */
+                printStream.println
+                    (repEnv.getNodeName() +
+                     " is not currently the master.  Perform the update" +
+                     " at the node that's currently the master.");
+            }
+            }.run(false /*not readOnly */);
+    } </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="txnrollback.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txn-management.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="utilities.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Managing Transaction Rollbacks </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 4. Utilities</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Opening Foreign Key Indices</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Berkeley DB Java Edition Collections Tutorial" />
+    <link rel="up" href="UsingSecondaries.html" title="Chapter 3.  Using Secondary Indices and Foreign keys" />
+    <link rel="prev" href="UsingSecondaries.html" title="Chapter 3.  Using Secondary Indices and Foreign keys" />
+    <link rel="next" href="indexedcollections.html" title="Creating Indexed Collections" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">
+		<span xmlns="http://www.w3.org/1999/xhtml">Opening Foreign Key Indices</span>
+		
+	</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="UsingSecondaries.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. 
+		Using Secondary Indices<span xmlns="http://www.w3.org/1999/xhtml"> and Foreign keys</span>
+	</th>
+          <td width="20%" align="right"> <a accesskey="n" href="indexedcollections.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="openingforeignkeys"></a>
+		<span>Opening Foreign Key Indices</span>
+		
+	</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+    This section builds on the prior section describing secondary
+	key indices to show how to open foreign key indices. A <span class="emphasis"><em>foreign
+	key index</em></span> is a secondary key index that also provides integrity
+	constraints. When the primary key of a record in one database is
+	embedded in the value of a record in another database, integrity
+	constraints ensure that the record in the first database exists,
+	i.e, that there are no "dangling pointers". In this example the
+	Shipment's PartNumber and SupplierNumber fields will be used as
+	foreign keys.
+</p>
+      <p>
+    When a foreign key index is defined, an "delete action"
+	parameter is specified. This parameter determines what action is
+	taken by the 
+        <span>Berkeley DB Java Edition</span>
+        
+    API when the record is deleted to
+	which a foreign key refers. For example, consider what happens to a
+	Shipment record when a Part or Supplier record that is referred to
+	by that Shipment is deleted. There are three possibilities.
+</p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+            <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyDeleteAction.html#ABORT" target="_top">ForeignKeyDeleteAction.ABORT</a>
+            
+            specifies that the transaction should be aborted by throwing an
+            exception. The effect is that deleting a Part or Supplier that is
+            referred to by one or more Shipments will not be possible. The 
+                <span>Berkeley DB Java Edition</span>
+                
+            will automatically throw a 
+                <a class="ulink" href="../../java/com/sleepycat/je/DatabaseException.html" target="_top">DatabaseException</a>,
+            which should normally cause the transaction to be aborted during
+            exception processing. This is the default delete action if none is
+            specified.
+        </p>
+          </li>
+          <li>
+            <p>
+            <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyDeleteAction.html#NULLIFY" target="_top">ForeignKeyDeleteAction.NULLIFY</a>
+            
+            specifies that the Part or Supplier Number field in the Shipment
+            record should be cleared, or set to a null or empty value. The
+            effect is that the deleted Part or Supplier will no longer be
+            referenced by any Shipment record. This option applies when the
+            foreign key field is optional, i.e, when the application allows it
+            to be set to a null or empty value. When using this option, the
+            application must implement the <code class="methodname">nullifyForeignKey()</code> 
+            method of the 
+            <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyNullifier.html" target="_top">ForeignKeyNullifier</a>
+            
+            interface.
+        </p>
+          </li>
+          <li>
+            <p>
+            <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyDeleteAction.html#CASCADE" target="_top">ForeignKeyDeleteAction.CASCADE</a>
+            
+            specifies that the Shipment record should be deleted also. The
+            effect is that deleting a Part or Supplier will delete all
+            Shipments for that Part or Supplier. This option applies when the
+            deleted record is considered the "parent" or "owner" of the record
+            containing the foreign key, and is used in this example. Since
+            deleting the Shipment record could cause other deletions if other
+            records contain the foreign key of the Shipment, and so on, the
+            term "cascade" is used to describe the effect.
+        </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+    The <code class="classname">SampleDatabase</code> class is extended to open the
+	Shipment-by-Part and Shipment-by-Supplier secondary key
+	indices.
+</p>
+      <a id="index_je_sampledatabase1"></a>
+      <pre class="programlisting"><strong class="userinput"><code>import com.sleepycat.bind.serial.SerialSerialKeyCreator;
+import com.sleepycat.je.ForeignKeyDeleteAction;
+import com.sleepycat.je.SecondaryConfig;
+import com.sleepycat.je.SecondaryDatabase;</code></strong>
+...
+public class SampleDatabase
+{
+    ...
+<strong class="userinput"><code>    private static final String SHIPMENT_PART_INDEX = 
+        "shipment_part_index";
+    private static final String SHIPMENT_SUPPLIER_INDEX = 
+        "shipment_supplier_index";
+    ...
+    private SecondaryDatabase shipmentByPartDb;
+    private SecondaryDatabase shipmentBySupplierDb;
+    ...</code></strong>
+    public SampleDatabase(String homeDirectory)
+        throws DatabaseException, FileNotFoundException
+    {
+        ...
+        SecondaryConfig secConfig = new SecondaryConfig();
+        secConfig.setTransactional(true);
+        secConfig.setAllowCreate(true);
+        secConfig.setSortedDuplicates(true);
+        ...
+<strong class="userinput"><code>        secConfig.setForeignKeyDatabase(partDb);
+            secConfig.setForeignKeyDeleteAction(
+                                         ForeignKeyDeleteAction.CASCADE);
+        secConfig.setKeyCreator(
+            new ShipmentByPartKeyCreator(javaCatalog,
+                                         ShipmentKey.class,
+                                         ShipmentData.class,
+                                         PartKey.class));
+        shipmentByPartDb = env.openSecondaryDatabase(null, 
+                                                     SHIPMENT_PART_INDEX,
+                                                     shipmentDb,
+                                                     secConfig);
+
+        secConfig.setForeignKeyDatabase(supplierDb);
+        secConfig.setForeignKeyDeleteAction(
+                                         ForeignKeyDeleteAction.CASCADE);
+        secConfig.setKeyCreator(
+            new ShipmentBySupplierKeyCreator(javaCatalog,
+                                             ShipmentKey.class,
+                                             ShipmentData.class,
+                                             SupplierKey.class));
+        shipmentBySupplierDb = env.openSecondaryDatabase(null,
+                                                SHIPMENT_SUPPLIER_INDEX,
+                                                shipmentDb,
+                                                secConfig);</code></strong>
+    ...
+    }
+} </pre>
+      <p>
+    If you compare these statements for opening foreign key indices
+	to the statements used in the previous section for opening a
+	secondary index, you'll notice that the only significant difference
+	is that the <code class="methodname">setForeignKeyDatabase()</code>
+    and
+	<code class="methodname">setForeignKeyDeleteAction()</code> methods are called.
+	<code class="methodname">setForeignKeyDatabase()</code> specifies the foreign database that
+	contains the records to which the foreign keys refer; this
+	configures the secondary database as a foreign key index.
+	<code class="methodname">setForeignKeyDeleteAction()</code> specifies the delete action.
+</p>
+      <p>
+    The application-defined <code class="classname">ShipmentByPartKeyCreator</code>
+    and <code class="classname">ShipmentBySupplierKeyCreator</code> classes are shown below. They
+	were used above to configure the secondary database objects.
+</p>
+      <a id="index_shipmentbypartkeycreator"></a>
+      <pre class="programlisting">public class SampleDatabase
+{
+...
+<strong class="userinput"><code>    private static class ShipmentByPartKeyCreator
+        extends SerialSerialKeyCreator
+    {
+        private ShipmentByPartKeyCreator(ClassCatalog catalog,
+                                         Class primaryKeyClass,
+                                         Class valueClass,
+                                         Class indexKeyClass)
+        {
+            super(catalog, primaryKeyClass, valueClass, indexKeyClass);
+        }
+
+        public Object createSecondaryKey(Object primaryKeyInput,
+                                         Object valueInput)
+        {
+            ShipmentKey shipmentKey = (ShipmentKey) primaryKeyInput;
+            return new PartKey(shipmentKey.getPartNumber());
+        }
+    }
+
+    private static class ShipmentBySupplierKeyCreator
+        extends SerialSerialKeyCreator
+    {
+        private ShipmentBySupplierKeyCreator(ClassCatalog catalog,
+                                             Class primaryKeyClass,
+                                             Class valueClass,
+                                             Class indexKeyClass)
+        {
+            super(catalog, primaryKeyClass, valueClass, indexKeyClass);
+        }
+
+        public Object createSecondaryKey(Object primaryKeyInput,
+                                         Object valueInput)
+        {
+            ShipmentKey shipmentKey = (ShipmentKey) primaryKeyInput;
+            return new SupplierKey(shipmentKey.getSupplierNumber());
+        }
+    }</code></strong>
+    ...
+} </pre>
+      <p>
+    The key creator classes above are almost identical to the one
+	defined in the previous section for use with a secondary index. The
+	index key fields are different, of course, but the interesting
+	difference is that the index keys are extracted from the key, not
+	the value, of the Shipment record. This illustrates that an index
+	key may be derived from the primary database record key, value, or
+	both.
+</p>
+      <p>
+    Note that the 
+    <a class="ulink" href="../../java/com/sleepycat/bind/serial/SerialSerialKeyCreator.html#nullifyForeignKey" target="_top">SerialSerialKeyCreator.nullifyForeignKey</a>
+    
+    method is not
+	overridden above. This is because 
+    <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyDeleteAction.html#NULLIFY" target="_top">ForeignKeyDeleteAction.NULLIFY</a>
+    
+	was not used when creating the 
+    <a class="ulink" href="../../java/com/sleepycat/je/SecondaryDatabase.html" target="_top">SecondaryDatabase</a>
+    
+	objects. If it were used, implementing the <code class="methodname">nullifyForeignKey()</code>
+	methods would be needed to set the part number and supplier number
+	to null in the Shipment key. But record keys cannot be changed! And
+	in fact, the primary key is not passed to the
+	<code class="methodname">SerialSerialKeyCreator.nullifyForeignKey()</code> method, only the
+	primary value is passed. Therefore, if a foreign index key is
+	derived from the primary key, 
+    <a class="ulink" href="../../java/com/sleepycat/je/ForeignKeyDeleteAction.html#NULLIFY" target="_top">ForeignKeyDeleteAction.NULLIFY</a>
+    
+	may not be used.
+</p>
+      <p>
+    The following getter methods return the secondary database
+	objects for use by other classes in the example program.
+</p>
+      <a id="index_sampledatabasegetters"></a>
+      <pre class="programlisting">public class SampleDatabase
+{
+    ...
+<strong class="userinput"><code>    public final SecondaryDatabase getShipmentByPartDatabase()
+    {
+        return shipmentByPartDb;
+    }
+
+    public final SecondaryDatabase getShipmentBySupplierDatabase()
+    {
+        return shipmentBySupplierDb;
+    }</code></strong>
+    ...
+} </pre>
+      <p>
+    The following statements close the secondary databases.
+</p>
+      <a id="index_close2"></a>
+      <pre class="programlisting">public class SampleDatabase
+{
+    ...
+    public void close()
+        throws DatabaseException {
+
+        supplierByCityDb.close();
+<strong class="userinput"><code>        shipmentByPartDb.close();
+        shipmentBySupplierDb.close();</code></strong>
+        partDb.close();
+        supplierDb.close();
+        shipmentDb.close();
+        javaCatalog.close();
+        env.close();
+    }
+    ...
+} </pre>
+      <p>
+    Secondary databases must be closed before closing their
+	associated primary database.
+</p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="UsingSecondaries.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="UsingSecondaries.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="indexedcollections.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 3. 
+		Using Secondary Indices<span> and Foreign keys</span>
+	 </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> 
+		Creating Indexed Collections
+	</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

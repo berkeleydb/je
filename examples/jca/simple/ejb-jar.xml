@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE ejb-jar
+   PUBLIC "-//Sun Microsystems, Inc.//DTD Enterprise JavaBeans 2.0//EN"
+   "http://java.sun.com/dtd/ejb-jar_2_0.dtd"
+>
+
+<ejb-jar>
+   <enterprise-beans>
+      <session>
+        <display-name>SimpleBean</display-name>
+	<ejb-name>SimpleBean</ejb-name>
+	<home>jca.simple.SimpleHome</home>
+	<remote>jca.simple.Simple</remote>
+	<ejb-class>jca.simple.SimpleBean</ejb-class>
+        <session-type>Stateless</session-type>
+        <transaction-type>Container</transaction-type>
+        <resource-ref>
+         <res-ref-name>ra/JEConnectionFactory</res-ref-name>
+         <res-type>com.sleepycat.je.jca.ra.JEConnectionFactory</res-type>
+         <res-auth>Container</res-auth>
+	 <res-sharing-scope>Shareable</res-sharing-scope>
+        </resource-ref>
+      </session>
+
+   </enterprise-beans>
+   <!--
+   <assembly-descriptor>
+     <container-transaction>
+       <method>
+         <ejb-name>SimpleBean</ejb-name>
+         <method-name>*</method-name>
+       </method>
+       <trans-attribute>Supports</trans-attribute>
+     </container-transaction>
+   </assembly-descriptor>
+   -->
+</ejb-jar>

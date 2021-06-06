@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Secondary Nodes</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="prev" href="replicawrites.html" title="Managing Write Requests at a Replica" />
+    <link rel="next" href="timesync.html" title="Time Synchronization" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Secondary Nodes</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="replicawrites.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Replication API First Steps</th>
+          <td width="20%" align="right"> <a accesskey="n" href="timesync.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="secondary"></a>Secondary Nodes</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            If you are creating a replication group where there will be higher
+            latency network connections between some nodes and the rest of the
+            replication group, typically because the nodes are located in
+            distant geographical regions, then it may be useful to create
+            those distant nodes nodes as Secondary nodes. Secondary nodes are
+            nodes that only serve as read-only Replicas. They cannot become
+            Masters, participate in elections, or provide acknowledgements for
+            commit operations. Secondary nodes can be used to provide a
+            distant location with quick access to read-only data, although the
+            data may be somewhat out of date due to replication delays over
+            the high latency link. By using Secondary nodes for the nodes at a
+            distance, the Electable nodes will be able to perform elections
+            and provide acknowledgments without experiencing network delays
+            associated with higher latency connections to the Secondary nodes.
+        </p>
+      <p>
+            Here is an example of how to create a Secondary node that can join
+            an existing group of Electable nodes:
+        </p>
+      <pre class="programlisting">EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setTransactional(true);
+
+// Identify the secondary node
+ReplicationConfig electableRepConfig =
+    new ReplicationConfig("PlanetaryRepGroup",
+                          "Mars",
+                          "mars.example.com:500");
+
+// Configure the node to be a secondary node
+repConfig.setNodeType(NodeType.SECONDARY);
+
+// Specify one of the electable nodes as a helper
+repConfig.setHelperHosts("jupiter.example.com:5002");
+
+ReplicatedEnvironment repEnv =
+   new ReplicatedEnvironment(envHome, repConfig, envConfig);</pre>
+      <p>
+            Note that, if you have created an environment with
+            NodeType.SECONDARY, it is possible to convert the node from a
+            Secondary node to an Electable node by restarting the environment
+            with NodeType.ELECTABLE. Once an environment has been used as an
+            Electable node, though, it is not possible to convert to be a
+            Secondary node.
+        </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="replicawrites.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="progoverview.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="timesync.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Managing Write Requests at a Replica </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Time Synchronization</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

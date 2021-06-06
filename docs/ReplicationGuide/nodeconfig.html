@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Node Configuration</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="administration.html" title="Chapter 7. Administration" />
+    <link rel="prev" href="admintimesync.html" title="Time Synchronization" />
+    <link rel="next" href="backups.html" title="Running Backups" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Node Configuration</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="admintimesync.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Administration</th>
+          <td width="20%" align="right"> <a accesskey="n" href="backups.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="nodeconfig"></a>Node Configuration</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+          When you place a node into service, there is a set of information
+          that you must provide which will be unique to each and every
+          node. The application development team may or may not have provided
+          defaults for some or all of these values, so you should check
+          with them to see exactly what you need to override. 
+      </p>
+      <p>
+          This information can be provided to the application in two
+          different ways. One is by using JE API calls. Typically you
+          will pass the information to those calls using command line
+          parameters. Again, how you do this is specific to your
+          application.
+      </p>
+      <p>
+          In addition, you can provide this information to the application
+          using the <code class="filename">je.properties</code> file. Note that the
+          information provided in this file is handled as if it is a
+          <span class="emphasis"><em>default</em></span> setting. Therefore, if you also
+          provide conflicting information using the JE APIs (again,
+          usually passed to a production application using command line
+          parameters), then the information provided directly to the APIs
+          takes priority over whatever might be found in the
+          <code class="filename">je.properties</code> file.
+      </p>
+      <p>
+          No matter how it is done, there are three pieces of information
+          that you must provide every JE replicated application:
+      </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                  Group Name
+              </p>
+            <p>
+                  This is the replication's group name. This value must be
+                  the same for every node in a given
+                  replication group. This name must be made up of 
+                  alpha numeric characters and must not be zero length. 
+              </p>
+            <p>
+                  JE developers can provide this information to the
+                  application using the
+                  <code class="literal">ReplicationConfig.GROUP_NAME</code>
+                  field.  In the <code class="filename">je.properties</code> file,
+                  it is defined using the
+                  <code class="literal">je.rep.group.name</code> parameter.
+              </p>
+          </li>
+          <li>
+            <p>
+                  Node Name
+              </p>
+            <p>
+                  This is the name of the node. This name must be unique
+                  within the group. This name combined with the group name
+                  uniquely identifies the node.
+              </p>
+            <p>
+                  JE developers can provide this information to the
+                  application using the
+                  <code class="literal">ReplicationConfig.NODE_NAME</code>
+                  field.  In the <code class="filename">je.properties</code> file,
+                  it is defined using the
+                  <code class="literal">je.rep.node.name</code> parameter.
+              </p>
+          </li>
+          <li>
+            <p>
+                  Node Host
+              </p>
+            <p>
+                  This is the hostname and port pair that is used by other
+                  nodes in the replication group to communicate with this
+                  node. The node uses this property to establish a TCP/IP
+                  socket for communication with other members of the group.
+              </p>
+            <p>
+                  The string that you provide to this property takes the
+                  form:
+              </p>
+            <pre class="programlisting">hostname[:port]</pre>
+            <p>
+                  The hostname provided to this property must be reachable
+                  by the other nodes in the replication group.
+              </p>
+            <p>
+                  The port number is optional for this property because a
+                  default port can be defined using the
+                  <code class="filename">je.properties</code> file (you use the
+                  <code class="literal">je.rep.defaultPort</code> property to do
+                  this). However, if a port is provided explicitly to this
+                  property, then <code class="literal">je.rep.defaultPort</code> is
+                  ignored.
+              </p>
+            <p>
+                  Be careful to ensure that the port you identify for the
+                  node does not conflict with ports used by other applications
+                  (including other nodes, if any) currently running on the local machine.
+              </p>
+            <p>
+                  Note that monitor nodes will use the socket identified by
+                  this property so that they can be kept informed of the
+                  results of elections, and so they can keep track of
+                  changes in group composition.
+              </p>
+            <p>
+                  Electable nodes use this socket to:
+              </p>
+            <div class="itemizedlist">
+              <ul type="circle">
+                <li>
+                  <p>
+                          Hold elections
+                      </p>
+                </li>
+                <li>
+                  <p>
+                          Supply commit acknowledgements
+                      </p>
+                </li>
+              </ul>
+            </div>
+            <p>
+                  Both electable and secondary nodes use this socket to:
+              </p>
+            <div class="itemizedlist">
+              <ul type="circle">
+                <li>
+                  <p>
+                          Establish replication streams between the Master
+                          and its Replicas
+                      </p>
+                </li>
+                <li>
+                  <p>
+                          Support network-based JE HA utility services,
+                          such as JE's network restore utility. (See
+                          <a class="xref" href="logfile-restore.html" title="Restoring Log Files">Restoring Log Files</a>
+                          for details on this utility.)
+                      </p>
+                </li>
+              </ul>
+            </div>
+            <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+              <h3 class="title">Note</h3>
+              <p>
+                      You can change the hostname and/or port number for
+                      an existing electable or monitor node using the
+                      <a class="ulink" href="../java/com/sleepycat/je/rep/util/DbGroupAdmin.html#updateAddress(java.lang.String, java.lang.String, int)" target="_top">DbGroupAdmin.updateAddress()</a> or
+                      <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#updateAddress(java.lang.String, java.lang.String, int)" target="_top">ReplicationGroupAdmin.updateAddress()</a> methods.
+                      Hostnames and port numbers for secondary nodes can
+                      be changed by restarting the nodes with the
+                      desired values.
+                  </p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <p>
+          The properties discussed here are simply the bare-bones minimum
+          properties required to configure a JE node. For a complete
+          description of all the replication properties available to a
+          JE application, see the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html" target="_top">ReplicationConfig</a> and
+          <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html" target="_top">ReplicationMutableConfig</a> class descriptions.
+      </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="admintimesync.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="backups.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Time Synchronization </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Running Backups</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

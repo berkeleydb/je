@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Managing Data Guarantees</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction" />
+    <link rel="prev" href="introduction.html" title="Chapter 1. Introduction" />
+    <link rel="next" href="lifecycle.html" title="Replication Group Life Cycle" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Managing Data Guarantees</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="introduction.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction</th>
+          <td width="20%" align="right"> <a accesskey="n" href="lifecycle.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="datamanagement"></a>Managing Data Guarantees</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="datamanagement.html#durability-intro">Durability</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="datamanagement.html#consistency-intro">Managing Data Consistency</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+              All replicated applications are first transactional
+              applications. This means that you have the standard data
+              guarantee issues to consider, all of which have to do with
+              how durable and consistent you want your data to be. Of
+              course, considerations of this nature also play a role in
+              your application's performance.  These issues are even more
+              important for replicated applications because replication
+              adds additional dimensions to them.
+          </p>
+      <p>
+              Notably, in a replicated application you must decide how
+              durable your data is, by deciding how careful the Master will
+              be to make sure a data write has been written to disk on its
+              various Replica nodes before completing the transaction.
+          </p>
+      <p>
+              Consistency also adds an additional dimension in a replicated
+              application, because now you must decide how consistent the
+              various nodes in the replication group will be relative to
+              the Master at any given time. If no writes are being
+              performed on the Master, all Replicas will eventually catch
+              up to the Master and so be completely consistent with it. 
+              But for most HA applications, writes are occurring on the
+              Master, and so it is possible for some number of your
+              Replicas to lag behind the Master. What you have to decide,
+              then, is how sensitive your application is to this kind of
+              temporary inconsistency.
+          </p>
+      <p>
+              Note that your consistency requirements can be gated by your
+              durability requirements. Durability, in turn, can be gated by
+              any concerns you might have on write throughput. At the same
+              time, your consistency requirement can have an affect on the
+              read performance of your Replicas. It is
+              therefore a mistake to think about any one of these
+              requirements in the absence of the others.
+          </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="durability-intro"></a>Durability</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  One of the reasons you might be writing a replicated
+                  application is to achieve a higher durability guarantee
+                  than you can get with a traditional transactional
+                  application. In a traditional application, your data's
+                  durability is a function of how you perform your
+                  transactional commits, and how frequently you perform
+                  your backups. For this class of application, the
+                  strongest durability guarantee you can have is to use
+                  synchronous commits (the commit does not
+                  complete until the data is written to disk), coupled with
+                  very frequent backups of your environment.
+              </p>
+        <p>
+                  The problem with a stand-alone application in which you
+                  are seeking a very high durability guarantee is that your
+                  write throughput will suffer. Synchronous commits
+                  require disk writes, and disk I/O is one of the most
+                  expensive operations you can ask a database to perform. 
+              </p>
+        <p>
+                  In order to increase write throughput in your
+                  transactional application, you may decide to use
+                  asynchronous commits that do not require the disk I/O to
+                  complete before the transaction commit completes. 
+                  The problem with this is that your application can
+                  potentially crash before a transaction has been
+                  completely written to disk. This represents a loss of
+                  data, which is to say the data is not durable.
+              </p>
+        <p>
+                  Replication can help with your data durability in a
+                  couple of ways. Most importantly, replication allows you to
+                  <span class="emphasis"><em>commit to the network</em></span>. This means
+                  that when your Master commits a transaction, the results
+                  of that commit are sent to one or more nodes available
+                  over the network. Consequently, multiple disks, disk
+                  controllers, power supplies, and CPUs are used to ensure
+                  the data modification makes it to stable storage.
+              </p>
+        <p>
+                  Usually JE makes the commit operation on the Master
+                  wait until it receives acknowledgements from some number
+                  of electable nodes before returning from the
+                  operation. However, if you want to increase write
+                  throughput, you can configure your Master to proceed
+                  without acknowledgements, and so return immediately from
+                  the commit operation (once the commit operation has met
+                  the local durability requirement). The price that you pay
+                  for this is a reduced durability guarantee.  How reduced
+                  the guarantee is, is a function of the number of electable
+                  nodes in your replication group (the more you have, the
+                  higher your durability guarantee is) and the quality and
+                  stability of your network.
+              </p>
+        <p>
+                  Alternatively, you can obtain an
+                  extremely high durability guarantee by configuring the Master
+                  to wait for all electable nodes to acknowledge a commit
+                  operation before returning from the operation. The price
+                  you pay for this very high guarantee is greatly reduced
+                  write throughput.
+              </p>
+        <p>
+                  For information on configuring and managing durability
+                  guarantees for your replicated application, see 
+                  <a class="xref" href="txn-management.html#durability" title="Managing Durability">Managing Durability</a>.
+              </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="consistency-intro"></a>Managing Data Consistency</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  Data consistency means that the data you thought you
+                  wrote to your environment is in fact written to your
+                  environment. It also means that you will never find
+                  partial records written to your environment. 
+              </p>
+        <p>
+                  In a replicated application, consistency also means that
+                  data which is available on the Master is also available
+                  on the Replicas.
+              </p>
+        <p>
+                  A simple transactional application offers consistency
+                  guarantees that are enforced when you commit a
+                  transaction. Your replicated application also offers this
+                  consistency guarantee (because it is also a transactional
+                  application). For this reason, the environment on the
+                  Master is always absolutely consistent. But beyond that, you need to manage
+                  consistency for data across all the nodes in your
+                  replication group.
+              </p>
+        <p>
+                    When you commit a transaction on the Master, your
+                    Replica nodes may or may not have the data changes
+                    performed by that transaction at the end of the commit.
+                    Whether they do depends on how high a durability
+                    guarantee you implemented for your Master (see the
+                    previous section). If, for example, you configured your
+                    Master to require acknowledgements from all electable
+                    nodes before returning from the commit, then the data
+                    will be consistently available across all of those nodes
+                    in the replication group, although not necessarily by
+                    secondary nodes. However, if you configured the Master
+                    such that no acknowledgements are necessary, then your
+                    data is probably not consistent across the replication
+                    group.
+              </p>
+        <p>
+                  To ensure that read transactions on the Replicas see a
+                  sufficiently consistent view of the environment, you can
+                  set a consistency policy for each transaction. This
+                  policy describes how current the Replica must be before a
+                  transaction can be initiated on it. If the Replica is not
+                  current enough, the start of the transaction is delayed
+                  until the Replica has caught up.
+              </p>
+        <p>
+                  There are two possible consistency policies. First, there
+                  is a time-based policy that describes how far back in
+                  time the Replica is allowed to lag behind the Master.
+                  Secondly, you can use a commit-based consistency
+                  policy that is based on the commit of a specified
+                  transaction. This policy is used to ensure the Replica is
+                  at least current enough to have the changes made by a
+                  specific transaction, and by all transactions committed
+                  prior to the specified transaction. The start of a
+                  transaction on a Replica can be delayed until the Replica
+                  can meet the consistency policy defined for that transaction.
+              </p>
+        <p>
+                  This means that a stringent consistency policy can affect
+                  your Replica's read throughput.  Transactions, even
+                  read-only transactions, cannot begin until the Replica is
+                  consistent <span class="emphasis"><em>enough</em></span>. So if you have a
+                  Replica that has lagged far behind the Master, and which
+                  is having trouble catching up due to network latency or
+                  other issues, then read requests may stall, and perhaps
+                  even time out, which will affect the latency of your
+                  Replica's read requests, and perhaps even its
+                  overall availability for read requests.  For this reason,
+                  give careful consideration to how well you want your
+                  Replica to perform on reads, versus how consistent you
+                  want the Replica to be with other nodes in the
+                  replication group.
+              </p>
+        <p>
+                  For more information on managing consistency in your
+                  replicated application, see 
+                  <a class="xref" href="consistency.html" title="Managing Consistency">Managing Consistency</a>.
+              </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="introduction.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="lifecycle.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 1. Introduction </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Replication Group Life Cycle</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

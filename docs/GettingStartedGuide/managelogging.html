@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Logging</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="commandlinetools.html" title="The Command Line Tools" />
+    <link rel="next" href="concurrentProcessing.html" title="Appendix A. Concurrent Processing in Berkeley DB Java Edition" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Logging</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="commandlinetools.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 12. Administering Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="concurrentProcessing.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="managelogging"></a>Logging</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="managelogging.html#logginglevels">Managing Logging Levels</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="managelogging.html#handlerlevels">Managing Handler Levels</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+          JE uses the <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/package-summary.html" target="_top">java.util.logging</a> package to
+          log operations and trace messages.  A distinct logger is defined for 
+          each significant component of the system. The use of distinct loggers, along with
+          controllable logging levels, allows the logging output to be
+          tuned to tell you exactly what you need to know (while avoiding a lot of
+          extra information that only gets in the way) in order to monitor
+          your application's activities and/or debug runtime problems.
+      </p>
+      <p>
+          Logging output can be displayed to the console and the
+          <code class="filename">je.info</code> file in your application's 
+          environment directory. Setting the logger level controls the
+          types of messages that are published to the handlers. Setting the handler level
+          determines if and where the published messages are displayed.
+      </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="logginglevels"></a>Managing Logging Levels</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+              The default logging level for JE loggers is
+              <code class="literal">INFO</code>. At that level, a non-replicated
+              environment issues messages only when critical exceptions are
+              encountered. A replicated environment issues node transition
+              messages which should be comprehensible to the user familiar with
+              the replication group life cycle and can be extremely useful when
+              monitoring your application's activities. The output at the
+              <code class="literal">INFO</code> is not verbose; it simply details the
+              node start up and shutdown operations. Initial configuration
+              problems, if any, should show up during the startup operation.
+              You are strongly advised to run your production application with
+              this level of logging.
+          </p>
+        <p>
+              Finer levels of logging are available for debugging purposes.
+              These will generate verbose output that is rich in implementation
+              detail. The output at these levels is only likely to be helpful
+              to people familiar with JE's implementation and the
+              application's use of JE, so you should only configure your logging 
+              for these more verbose levels if you are involved in a detailed
+              debugging effort.
+          </p>
+        <p>
+              To set or change the logger level <span class="emphasis"><em>before</em></span> the environment is
+              opened, do one of the following:
+          </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                      Set logging levels using the standard Java <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/LogManager.html" target="_top">LogManager</a>
+                      properties file. For example, you can set:
+                  </p>
+              <pre class="programlisting">com.sleepycat.je.level=INFO</pre>
+              <p>
+                      in the <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/LogManager.html" target="_top">LogManager</a> properties file to set the logger
+                      level for all JE loggers.
+                  </p>
+            </li>
+            <li>
+              <p>
+                      Set logging levels programmatically using the
+                      <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/package-summary.html" target="_top">java.util.logging</a> API. For example:
+                  </p>
+              <pre class="programlisting">...
+// All other imports are omitted for brevity
+import java.util.logging.Logger;
+...
+
+Logger parent = Logger.getLogger("com.sleepycat.je");
+parent.setLevel(Level.FINE);  // Loggers will now publish more 
+                              // detailed messages.   </pre>
+            </li>
+          </ol>
+        </div>
+        <p>
+              To set or change the logger level <span class="emphasis"><em>after</em></span> the environment is
+              opened, do one of the following:
+          </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                      Use the standard java.util.logging MBean to set a
+                      concrete JE logger.
+                  </p>
+            </li>
+            <li>
+              <p>
+                      Use the JEDiagnostic MBean to set the parent
+                      <code class="literal">com.sleepycat.je</code> logger.
+                      See the <a class="ulink" href="..//jconsole/JConsole-plugin.html" target="_top">JConsole Plugin</a> page for information on
+                      this MBean.
+                  </p>
+            </li>
+            <li>
+              <p>
+                      Use the programmatic <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/package-summary.html" target="_top">java.util.logging</a> API described
+                      above to change the logger.
+                  </p>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="handlerlevels"></a>Managing Handler Levels</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+              Output to the <code class="filename">je.info</code> file is managed by
+              the JE <a class="ulink" href="../java/com/sleepycat/je/util/FileHandler.html" target="_top">FileHandler</a>, while output to the console is managed
+              by the JE <a class="ulink" href="../java/com/sleepycat/je/util/ConsoleHandler.html" target="_top">ConsoleHandler</a>. By default, no output is shown on
+              the console, and only <code class="literal">INFO</code> level messages are
+              sent to <code class="filename">je.info</code>.
+          </p>
+        <p>
+              To set or change the handler level <span class="emphasis"><em>before</em></span> the environment is
+              opened, do one of the following:
+          </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                      Set logging levels using the standard Java
+                      <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/LogManager.html" target="_top">LogManager</a> properties file. For example, you can
+                      set:
+                  </p>
+              <pre class="programlisting">com.sleepycat.je.util.FileHandler.level=ALL
+com.sleepycat.je.util.ConsoleHandler.level=ALL</pre>
+              <p>
+                     in the <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/LogManager.html" target="_top">LogManager</a> properties file to display all
+                     logging output to the console and
+                     <code class="filename">je.info</code> files.
+                 </p>
+            </li>
+            <li>
+              <p>
+                      The <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/logging/package-summary.html" target="_top">java.util.logging</a> package does not supply an
+                      API for setting handler levels. Instead, use the
+                      following JE environment parameter:
+                  </p>
+              <pre class="programlisting">...
+EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setConfigParam(EnvironmentConfig.FILE_LOGGING_LEVEL, "ALL");
+envConfig.setConfigParam(EnvironmentConfig.CONSOLE_LOGGING_LEVEL, 
+                         "ALL");
+
+...
+// Open your environment as normal here
+...   </pre>
+            </li>
+          </ol>
+        </div>
+        <p>
+              To set or change the handler level <span class="emphasis"><em>after</em></span> the environment is
+              opened, do one of the following:
+          </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                      Use <a class="ulink" href="../java/com/sleepycat/je/EnvironmentMutableConfig.html#setConfigParam(java.lang.String, java.lang.String)" target="_top">EnvironmentMutableConfig.setConfigParam()</a> to change the
+                      handler levels using the JE properties described
+                      above.
+                  </p>
+            </li>
+            <li>
+              <p>
+                      Use the JEDiagnostic MBean to change handler levels.
+                      See the <a class="ulink" href="..//jconsole/JConsole-plugin.html" target="_top">JConsole Plugin</a> page for information on
+                      this MBean.
+                  </p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="commandlinetools.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="concurrentProcessing.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">The Command Line Tools </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Appendix A. Concurrent Processing in Berkeley DB Java Edition</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

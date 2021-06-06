@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>HA Exceptions</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="prev" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="next" href="repenvironmentopen.html" title="Opening a Replicated Environment" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">HA Exceptions</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="progoverview.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Replication API First Steps</th>
+          <td width="20%" align="right"> <a accesskey="n" href="repenvironmentopen.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="exceptions"></a>HA Exceptions</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="exceptions.html#master-exceptions">Master-Specific HA Exceptions</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="exceptions.html#replica-exceptions">Replica-Specific HA Exceptions</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="exceptions.html#handleexception">Replicated Environment Handle-Specific Exceptions</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            JE HA requires you to manage more error situations that you
+            would have to if you were writing a non-replicated application.
+            These error situations translate to additional exceptions that
+            you must contend with in your code.  Before continuing with our
+            description of how to write a replicated application, it is
+            useful to review the HA-specific exceptions that your
+            application must manage.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="master-exceptions"></a>Master-Specific HA Exceptions</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                There are two exceptions that you can see on a Master node,
+                and which you will not see anywhere else. They are:
+            </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a>
+                    </p>
+              <p>
+                        This exception can be raised on a transaction begin or commit. It means that the
+                        Master cannot successfully commit a transaction, or begin one,  because it is not in contact
+                        with enough Electable Replicas. The number of Electable Replicas required to successfully commit
+                        the transaction is a function of the durability policy that
+                        you have set for the transaction. See
+                        <a class="xref" href="txn-management.html#durability" title="Managing Durability">Managing Durability</a>
+                        for more information.
+                    </p>
+              <p>
+                        If raised on a transaction commit operation, this
+                        exception means that the transaction has not been
+                        committed. Instead, it has been marked as invalid.
+                        In response to this exception, your application
+                        must at a minimum abort the transaction. It is up
+                        to you whether you want to retry the transaction at
+                        some later time when more Replicas are in contact
+                        with the Master.
+                    </p>
+              <p>
+                        If raised on a transaction begin operation, this
+                        exception means that the transaction has not begun.
+                        If the application intended to initiate a read-only
+                        transaction on a Master, it can avoid this
+                        exception by ensuring that the transaction is
+                        configured to not require any acknowledgments. For
+                        information on configuring acknowledgments, see 
+                        <a class="xref" href="txn-management.html#managingacks" title="Managing Acknowledgements">Managing Acknowledgements</a>.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a>
+                    </p>
+              <p>
+                        This exception can be raised on a transaction commit. It means that the
+                        Master has successfully committed the transaction locally, but it has not
+                        received enough acknowledgements from its Electable Replicas in the timeframe
+                        allocated for acknowledgements to be received.
+                    </p>
+              <p>
+                        The application should respond to this exception in such a way as to alert
+                        the administrator that there might be a problem with the health of the
+                        network or the nodes participating in the replication group.
+                    </p>
+              <p>
+                        For information on how to manage acknowledgement policies, see 
+                        <a class="xref" href="txn-management.html#managingacks" title="Managing Acknowledgements">Managing Acknowledgements</a>.
+                    </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="replica-exceptions"></a>Replica-Specific HA Exceptions</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                The exceptions that you can see on a Replica, and nowhere else, are:
+            </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaConsistencyException.html" target="_top">ReplicaConsistencyException</a>
+                    </p>
+              <p>
+                        Indicates that the Replica was unable to meet the defined consistency
+                        requirements in the allocated period of time. 
+                    </p>
+              <p>
+                        If this exception is encountered frequently, it indicates that the
+                        consistency policy requirements are too strict and cannot be met routinely
+                        given the load being placed on the system and the hardware resources that
+                        are available to service the load. The exception may also indicate that
+                        there is a network related issue that is preventing the Replica from
+                        communicating with the Master and keeping up with the replication stream. 
+                    </p>
+              <p>
+                        In response to this exception, your application can either attempt to retry
+                        the transaction, or you can relax your application's consistency
+                        requirements until the transaction can successfully complete.
+                    </p>
+              <p>
+                        For information on managing consistency policies, see 
+                        <a class="xref" href="consistency.html" title="Managing Consistency">Managing Consistency</a>.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a>
+                    </p>
+              <p>
+                        An attempt was made to perform a write operation on a Replica. The exception
+                        typically indicates an error in the application logic. In some extremely
+                        rare cases it could be the result of a transition of the node from Master to
+                        Replica, while a transaction was in progress. 
+                    </p>
+              <p>
+                        The application must abort the current transaction and redirect all
+                        subsequent update operations to the Master. For
+                        example code that performs this action, see
+                        <a class="xref" href="runtransaction.html" title="Example Run Transaction Class">Example Run Transaction Class</a>.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/LockPreemptedException.html" target="_top">LockPreemptedException</a>
+                    </p>
+              <p>
+                        A read lock currently held by a Replica has been preempted by an HA write
+                        operation. The Replica should abort and retry the read operation in response
+                        to this exception.
+                    </p>
+              <p>
+                        Note that your application should attempt to catch the
+                        <a class="ulink" href="../java/com/sleepycat/je/LockConflictException.html" target="_top">LockConflictException</a> base class rather than this class because all of the
+                        locking exceptions are managed in the same way (abort and retry the
+                        transaction).
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/DatabasePreemptedException.html" target="_top">DatabasePreemptedException</a>
+                    </p>
+              <p>
+                        The database handle on a Replica was forcibly closed due to the replay of an
+                        <a class="ulink" href="../java/com/sleepycat/je/Environment.html#truncateDatabase(com.sleepycate.je.Transaction,java.lang.String,boolean)" target="_top">Environment.truncateDatabase()</a>, <a class="ulink" href="../java/com/sleepycat/je/Environment.html#removeDatabase(com.sleepycate.je.Transaction,java.lang.String)" target="_top">Environment.removeDatabase()</a> or 
+                        <a class="ulink" href="../java/com/sleepycat/je/Environment.html#renameDatabase(com.sleepycate.je.Transaction,java.lang.String,java.lang.String)" target="_top">Environment.renameDatabase()</a> operation in the
+                        replication stream.
+                    </p>
+              <p>
+                        When this exception occurs, the application must close any open Cursors and
+                        abort any open Transactions that are using the database, and then close the
+                        Database handle. If the application wishes, it may reopen the database if it
+                        still exists.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/RollbackException.html" target="_top">RollbackException</a>
+                    </p>
+              <p>
+                        A new master has been selected, this Replica's log is ahead of the current
+                        Master, but the Replica was unable to rollback without a
+                        recovery. As a consequence, one or more of the most recently committed
+                        transactions may need to be rolled back, before the Replica can synchronize
+                        its state with that of the current Master. This
+                        exception can happen if the electable Replica with the most
+                        recent log files was unable to participate in the
+                        election of the Master, perhaps because the node
+                        had been shut down.
+                    </p>
+              <p>
+                        For details on how to handle this exception, see 
+                        <a class="xref" href="txnrollback.html" title="Managing Transaction Rollbacks">Managing Transaction Rollbacks</a>.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientLogException.html" target="_top">InsufficientLogException</a>
+                    </p>
+              <p>
+                        Indicates that the log files constituting the Environment are insufficient
+                        and cannot be used as the basis for continuing with the replication stream
+                        provided by the current master. 
+                    </p>
+              <p>
+                        This exception generally means that the node has been down for a long enough
+                        time that it can not be brought up-to-date by the Master. For information on
+                        how to respond to this condition, see 
+                        <a class="xref" href="logfile-restore.html" title="Restoring Log Files">Restoring Log Files</a>.
+                    </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="handleexception"></a>Replicated Environment Handle-Specific Exceptions</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                In addition to Master- and Replica-specific exceptions, it is possible for a
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle to throw an <a class="ulink" href="../java/com/sleepycat/je/rep/UnknownMasterException.html" target="_top">UnknownMasterException</a>. This exception
+                indicates that the operation being tried requires communication with a Master, but
+                the Master is not available.
+            </p>
+        <p>
+                This exception typically indicates that there is a problem with your physical
+                infrastructure. It might mean that an insufficient number of electable nodes are available to
+                elect a Master, or that the current node is unable to communicate with other nodes
+                due to, for example, network problems.
+            </p>
+        <p>
+                In response to this exception, your application can try any number of corrective
+                actions, from immediately retrying the operation, to logging the problem and then
+                abandoning the operation, to waiting some predetermined period of time before
+                attempting the operation again. Your application can also
+                use the <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html" target="_top">Monitor</a> or the <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html" target="_top">StateChangeListener</a> to be
+                notified when a Master becomes available. For more
+                information see <a class="xref" href="monitors.html" title="Chapter 5. Writing Monitor Nodes">Writing Monitor Nodes</a>
+                or <a class="xref" href="replicawrites.html#using-statechangelistener" title="Using the StateChangeListener">Using the StateChangeListener</a>.
+            </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="progoverview.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="progoverview.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="repenvironmentopen.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 2. Replication API First Steps </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Opening a Replicated Environment</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

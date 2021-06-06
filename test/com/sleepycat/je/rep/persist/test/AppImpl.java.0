@@ -1,0 +1,204 @@
+/*-
+ * See the file LICENSE for redistribution information.
+ *
+ * Copyright (c) 2002, 2014 Oracle and/or its affiliates.  All rights reserved.
+ *
+ */
+
+package com.sleepycat.je.rep.persist.test;
+
+import junit.framework.TestCase;
+
+import com.sleepycat.je.rep.persist.test.AppBaseImpl;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+import com.sleepycat.persist.evolve.Mutations;
+import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.EntityModel;
+import com.sleepycat.persist.model.Persistent;
+import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.persist.model.Relationship;
+import com.sleepycat.persist.model.SecondaryKey;
+
+public class AppImpl extends AppBaseImpl {
+
+    private PrimaryIndex<Integer, Data> priIndex;
+    private SecondaryIndex<Integer, Integer, Data> secIndex;
+    private SecondaryIndex<Integer, Integer, DataA> subclassAIndex;
+
+    protected void setupConfig(final Mutations mutations,
+                               final EntityModel model) {
+        model.registerClass(DataA.class);
+    }
+
+    protected void init() {
+        priIndex = store.getPrimaryIndex(Integer.class, Data.class);
+        secIndex = store.getSecondaryIndex(priIndex, Integer.class, "secKey");
+        subclassAIndex = store.getSubclassIndex(priIndex, DataA.class,
+                                                Integer.class, "secKeyA");
+    }
+
+    public void writeData(final int key) {
+        priIndex.put(new Data(key));
+    }
+
+    public void writeDataA(final int key) {
+        priIndex.put(new DataA(key));
+    }
+
+    public void writeDataB(final int key) {
+        priIndex.put(new DataB(key));
+    }
+
+    public void writeDataC(final int key) {
+        TestCase.fail();
+    }
+
+    public void writeData2(final int key) {
+        TestCase.fail();
+    }
+
+    public void readData(final int key) {
+        final Data data = priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final Data data2 = secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+    }
+
+    public void readDataA(final int key) {
+        final DataA data = (DataA) priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final DataA data2 = (DataA) secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+
+        final DataA data3 = subclassAIndex.get(key);
+        TestCase.assertNotNull(data3);
+        TestCase.assertEquals(key, data3.priKey);
+    }
+
+    public void readDataB(final int key) {
+        final DataB data = (DataB) priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final DataB data2 = (DataB) secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+    }
+
+    public void readDataC(final int key) {
+        TestCase.fail();
+    }
+
+    public void readData2(final int key) {
+        TestCase.fail();
+    }
+
+    @Entity(version=0)
+    static class Data {
+
+        @PrimaryKey
+        int priKey;
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        int secKey;
+
+        Data(final int priKey) {
+            this.priKey = priKey;
+            secKey = priKey;
+        }
+
+        private Data() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static class DataA extends Data {
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        int secKeyA;
+
+        DataA(final int priKey) {
+            super(priKey);
+            secKeyA = priKey;
+        }
+
+        private DataA() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static class DataB extends Data {
+
+        DataB(final int priKey) {
+            super(priKey);
+        }
+
+        private DataB() {} // for deserialization
+    }
+
+    /* For testRefreshBeforeWrite. */
+
+    public void insertNullAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        TestCase.assertTrue(index.putNoOverwrite(new AnimalEntity(1, null)));
+    }
+
+    public void readNullAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        AnimalEntity e = index.get(1);
+        TestCase.assertNotNull(e);
+        TestCase.assertNull(e.animal);
+    }
+
+    public void insertDogAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        TestCase.assertTrue(index.putNoOverwrite(new AnimalEntity(2,
+                                                                  new Dog())));
+    }
+
+    public void readDogAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        AnimalEntity e = index.get(2);
+        TestCase.assertNotNull(e);
+        TestCase.assertTrue(e.animal instanceof Dog);
+    }
+
+    public void insertCatAnimal() {
+        TestCase.fail();
+    }
+
+    public void readCatAnimal() {
+        TestCase.fail();
+    }
+
+    @Entity(version=0)
+    static class AnimalEntity {
+
+        @PrimaryKey
+        int id;
+
+        Animal animal;
+
+        AnimalEntity(final int id, final Animal animal) {
+            this.id = id;
+            this.animal = animal;
+        }
+
+        private AnimalEntity() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static abstract class Animal {
+    }
+
+    @Persistent(version=0)
+    static class Dog extends Animal {
+        int woof = 999999;
+    }
+}

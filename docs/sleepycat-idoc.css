@@ -1,0 +1,56 @@
+body { width: 600px;
+width: 40em;
+	   background-color: white;
+       margin-left: 30pt;
+       font-family: Arial, Helvetica, sans-serif;
+      }
+
+div.docMain { width: 600px; 
+			  position: absolute;
+			  left: 30pt;
+			  top: 120pt;}
+
+div.contact { width: 40em;
+			  position: absolute;
+              left: 100pt;
+              top: 120pt;
+              font-size: 80%;
+            }
+
+div.contact a { padding-right: 2em;
+
+              }
+div.releaseDoc { width: 40em; 
+				position: absolute;
+				left: 30pt;
+                top: 180pt;}
+
+div.releaseDoc a { padding-right: 2em; }
+
+div.docColA { width: 20em;
+              position: absolute;
+              left: 30pt;
+              top: 250pt;
+            }
+
+div.docColB { width: 20em;
+              position: absolute;
+              left: 25em;
+              top: 250pt;
+            }
+
+h1  { font-family: Verdana: serif;
+                   font-size: 110%;
+				   margin-top: 1em;
+    }
+
+div.contact h1 { font-size: 140%; }
+
+h2  { font-family: Verdana: serif;
+                   font-size: 130%;
+				   margin-top: 1em;
+    }
+p.releaseInfo { font-style: italic;
+                font-weight: bold;
+              }
+

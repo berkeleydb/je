@@ -1,0 +1,407 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Berkeley DB Java Edition MBeans and JConsole Plugin</title>
+</head>
+<body>
+
+<div class="docMain">
+
+<center>
+<h1>Monitoring and Debugging Berkeley DB Java Edition with JMX</h1>
+</center>
+
+<a href="#mbeans">Monitoring and Diagnostic MBeans</a><br>
+<a href="#jconsole">Displaying Statistics Graphically With the JE
+  JConsole Plugin</a><br>
+
+<!-- MBEANS ---------------------------------------------  -->
+<hr>
+<h2><a name="mbeans">Monitoring and Diagnostic MBeans</a></h2>
+
+<h3>Overview</h3>
+<p>
+Berkeley DB Java Edition provides monitoring and debugging support
+through four JMX Dynamic MBeans.  JEMonitor and RepJEMonitor make JE
+statistics and basic administrative operations available, and are
+mainly used for monitoring a JE application. JEDiagnostics and
+RepJEDiagnostics makes JE logging output configurable dynamically, and
+are mainly used for debugging.
+</p>
+<p>
+A non-replicated (non-HA) JE Environment can only be accessed via
+JEMonitor and JEDiagnostics, while a replicated JE Environment can
+only be accessed via RepJEMonitor and RepJEDiagnostics.
+</p>
+<p>
+The functionality provided by the JE MBeans can be accessed through
+the standard MBean attribute/operation interface available through
+JConsole or another management console. In addition, environment
+statistics can be viewed and exported through the  
+<a href="#jconsole">JE JConsole Plugin</a>
+
+
+<h3>Enabling MBeans in your JE Application</h3>
+<p>To register and enable the MBeans for a JE application, set the
+JEMonitor system property to true. For example:<br><br>
+
+<code>
+java -DJEMonitor=true -cp &lt;je.jar&gt; &lt;JE application&gt; </code>
+
+
+<p>
+Setting <code>-DJEMonitor=true</code> will register both the monitoring
+and diagnostic MBeans for the application. For example, a non-HA
+environment will register both JEMonitor and JEDiagnostics, while a
+a replicated environment will register both RepJEMonitor and RepJEDiagnostics.
+</p>
+<h3>Attributes and Operations available through JEMonitor and RepJEMonitor</h3>
+<p>
+JEMonitor monitors a non-replicated JE application. RepJEMonitor
+monitors a replicated JE application and provides all the attributes
+and operations of JEMonitor, along with additional operations only
+applicable for replicated environments.
+</p>
+<h4>Monitoring Attributes</h4>
+<p>
+JEMonitor and RepJEMonitor have the following attributes list:
+<br>
+<br> 
+<table width="100%">
+<tr>
+<td align="center"><img src="JEMonitor-attributes.JPG" alt="Monitor attributes"></td>
+</tr>
+</table>
+<br>
+<br>
+<p>
+Attributes names and values are listed in the area outlined in
+<font color="red"><b>red</b></font>. Most of the attributes are
+immutable and cannot be changed through JEMonitor, with the exception
+of <code>cachePercent</code> and <code>cacheSize</code>. Detailed
+information about the attributes can be obtained by clicking on the
+attribute name in the list outlined in
+<font color="blue"><b>blue</b></font>.
+</p>
+<h4>Monitoring Operations</h4>
+<p>
+JEMonitor provides the following operations, which can be invoked on
+the monitored, running JE application:
+<br>
+<br>
+<table width="100%">
+<tr>
+	<td align="center"><img alt="Monitor operations" src="JEMonitor-operations.JPG"></td>
+</tr>
+</table>
+<br>
+<br>
+<p>
+These operations mimic functionality available through the
+com.sleepycat.je.Environment class. <code>getEnvConfig</code>
+and <code>getEnvironmentStats</code> are of particular value for
+obtaining information about the environment configuration, and current
+statistics. More information about each operation is available through
+a tool tip that displays when the mouse hovers over the operation button.
+<p>
+As stated above, RepJEMonitor provides two additional operations to monitor a 
+replicated JE application:
+<br>
+<br>
+<table width="100%">
+<tr>
+	<td align="center"><img alt="Monitor operations" src="RepJEMonitor-operations.JPG"></td>
+</tr>
+</table>
+<br>
+<br>
+<p>
+The additional operations are outlined
+in <font color="red"><b>red</b></font>.
+<code>getReplicationStats</code> displays replication specific
+statistics, while <code>dumpReplicationState</code> displays
+information about the replication group composition, current node
+state, etc.
+
+<h3>JEDiagnostics and RepJEDiagnostics</h3>
+<p>
+JEDiagnostics and RepJEDiagnostics, currently have the same attributes
+and operations list.
+</p>
+
+<h4>Diagnostic Attributes</h4>
+<p>
+JEDiagnostics and RepJEDiagnostics attribute are:
+<br>
+<br>
+<table width="100%">
+<tr>
+	<td align="center"><img alt="Diagnostic attributes" src="JEDiagnostics-attributes.JPG"></td>
+</tr>
+</table>
+<br>
+<br>
+<p>
+Attributes names and values are listed in the area outlined in
+<font color="red"><b>red</b></font>. These attributes manage the
+output levels for ConsoleHandler, FileHandler and MemoryHandler and
+let you change logging output for a running JE application. This is
+useful when doing detailed debugging, as described
+in <a href="../GettingStartedGuide/managelogging.html">Chapter 12 of
+the Getting Started Guide.</a>  Detailed information for each
+attribute is listed in the
+<font color="blue"><b>blue</b></font> area and can be displayed by
+clicking on the attribute.
+</p>
+<h4>Diagnostic Operations</h4>
+<p>
+JEDiagnostics and RepJEDiagnostics currently support the same operations:
+<br>
+<br>
+<table width="100%">
+<tr>
+	<td align="center"><img alt="Diagnostic operations" src="JEDiagnostics-operations.JPG"></td>
+</tr>
+</table>
+<br>
+<br>
+</p>
+<p>
+<code>resetLoggerLevel</code> allows you reset the level for a JE
+logger, while
+<code>pushMemoryHandler</code> lets you flush any logging output which
+has been buffered in memory. Both are used only in debugging situations.
+</p>
+<br>
+<br>
+
+
+<!-- JConsole ---------------------------------------------  -->
+<hr>
+<h2><a name="jconsole">Berkeley DB Java Edition JConsole Plugin</a></h2>
+
+
+<h3><a name="overview">Overview</a></h3>
+<p>
+The BDB JE JConsole plugins let you monitor and graphically display
+information from running JE applications using
+the <code>jconsole</code> utility which is distributed with the
+JDK. Two plugins jars are provided: one for monitoring non-HA JE
+applications (<code>JE_HOME/lib/JEJConsole.jar</code>), and another
+for monitoring JE HA applications
+(<code>JE_HOME/lib/RepJEJConsole.jar</code>).  The former
+lets <code>jconsole</code> monitor and display <code>
+EnvironmentStats</code> while the latter shows both
+<code>EnvironmentStats</code>
+and <code>ReplicatedEnvironmentStats</code>.
+</p>
+<p>
+The plugins can:
+<ul>
+<li> Display stats from a running JE application,
+<li> Optionally log those stats into a log file in csv format,
+<li> Graph those stats so that you can directly see the changes,
+</ul>
+</p>
+<p>
+The plugins are based on the JE MBeans described above and use the
+MBean operations to periodically obtain statistics which are displayed
+in a table or graph.
+<code>JEJConsole</code> invokes
+<code>JEMonitor.getEnvironmentStats</code>
+while <code>RepJEJConsole</code> invokes
+both <code>RepJEMonitor.getEnvironmentStats</code> and
+<code>RepJEMonitor.getReplicationStats</code>.
+Note that <code>JEJConsole</code> can be used to monitor both JE
+non-replicated and replicated applications, but in the latter case
+will not display the "JE Replicated Statistics" tab shown in the
+second screen shot below.
+</p>
+<p>
+See the javadoc
+for <a
+href="../java/com/sleepycat/je/EnvironmentStats.html">EnvironmentStats</a>
+and <a
+href="../java/com/sleepycat/je/rep/ReplicatedEnvironmentStats.html">ReplicatedEnvironmentStats</a>
+for more information about the meaning of the statistics.
+</p>
+<p>
+<br>
+A screenshot of the <code>JEJConsole</code> plugin:
+<br>
+<br>
+<table width="100%">
+<tr>
+<td align="center"><img alt="JEStats" src="JEStats-plugin.JPG"></td>
+</tr>
+</table>
+<br>
+<br>
+The <code>RepJEJConsole</code> plugin:
+<br>
+<table width="100%">
+<tr>
+<td align="center"><img alt="RepJEStats" src="RepJEStats-plugin.JPG"></td>
+</tr>
+</table>
+</p>
+<h3>Using The Plugins</h3>
+<p>
+<code>jconsole</code> can only monitor applications that have
+registered a <code>DynamicMBean</code>.
+Both JE and JE HA will automatically register an appropriate
+<code>DynamicMBean</code> when an <code>Environment</code> or
+<code>ReplicatedEnvironment</code> is created, if the <code>JEMonitor</code>
+system property is set to true (e.g. using <code>-DJEMonitor=true</code>
+on the command line).
+<p>
+To use the JE and JE Replication plugins, invoke <code>jconsole</code>
+with the <code>-pluginpath</code> option to specify one of the libraries.
+For example:
+<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<code>jconsole -pluginpath JE_HOME/lib/JEJConsole.jar</code><br><br>
+or
+<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<code>jconsole -pluginpath JE_HOME/lib/RepJEJConsole.jar</code><br><br>
+</p>
+<p>
+When the plugin starts up, a menu will appear which lets you choose
+the process to monitor. Your JE application should appear if you have
+set -DJEMonitor=true. 
+<p>
+Note: There is a <a href="http://java.sun.com/performance/jvmstat/faq.html#4">known problem</a> with discovering Java
+processes on Windows platforms when the temporary directory is on a
+FAT type file system. In that case, a Java application may need to
+set -XX:+PerfBypassFileSystemCheck on the Java command line in order
+for the process to appear on the connection menu.
+<p> After connecting to the process, a <code>"JE Statistics"</code> tab will
+be shown in <code>jconsole</code>. The tab will be named <code>"JE
+Replicated Statistics"</code> when using the
+<code>RepJEJConsole.jar</code> plugin. The tab provides various
+options:
+</p>
+<ul>
+<li>
+<i>Choose JE MBean</i>
+<p>
+A JE application may have more than one <code>Environment</code>, and
+therefore multiple <code>DynamicMBeans</code>. The plugin lets you
+select which <code>Environment</code> you want to look at with
+the <code>"Choose JE MBean"</code> box:
+<br><br>
+<div align="center"><img alt="Choose MBean" src="Choose-MBean.JPG"></div>
+</p>
+</li>
+<li>
+<i>Set Collection Interval</i>
+<p>
+The default interval for collecting environment stats is 10 seconds. 
+You can change this by entering a new value in the
+<code>"Collection interval (secs):"</code> field and then pressing the
+Enter key:
+<br><br>
+<div align="center"><img alt="Graph" src="Interval-setting.JPG"></div>
+</p>
+</li>
+<li>
+<i>Display cumulative stats</i>
+<p>
+By default, statistics are reset after each collection period, and the
+value displayed pertains only to the collection interval. For example,
+if the collection interval is 10 seconds, the plugin will display
+values for the first 10 seconds, the second 10 seconds, etc. You may
+choose instead to display statistics in a cumulative way, so that the
+displayed values accumulate as the application runs, instead of
+resetting in each interval. To do so, click the
+<code>"Display cumulative stats"</code> checkbox:
+<br><br>
+<div align="center"><img alt="Clear stats" src="Display-cumulative-stats.JPG"></div>
+</p>
+</li>
+<li>
+<i>Limit the Display to Non-Zero values</i>
+<p>
+JE provides numerous stats.  Depending on your application, some of
+them may be 0 and therefore irrelevant for analyzing performance.  You
+can hide these stats by clicking the <code>"Hide zero values"</code> checkbox:
+<br><br>
+<div align="center"><img alt="Non-zero" src="Non-zero.JPG"></div>
+</p>
+</li>
+<li>
+<i>Choose a File for Logging Stats</i>
+<p>
+You may specify the file to write selected stats to with
+the <code>"Record Statistics To..."</code> button.  Currently, only
+CSV format is supported:
+<br><br>
+<div align="center"><img alt="save log" src="Save-log.JPG"></div>
+</p>
+</li>
+<li>
+<i>Start Recording</i>
+<p>
+You can begin recording stats to the selected file by pressing
+the <code>"Start Recording"</code> button. While recording is enabled,
+you can not change the recording interval, log file, or the specific
+stats being logged:<br><br>
+<div align="center"><img alt="start recording" src="Start-record.JPG"></div>
+</p>
+</li>
+<li>
+<i>Stop Recording</i>
+<p>
+You can stop recording stats by pressing the <code>"Stop
+Recording"</code> button.  You can only change the recording interval,
+log file, or the specific stats being logged when recording is
+stopped:
+<br><br>
+<div align="center"><img alt="stop recording" src="Stop-record.JPG"></div>
+</p>
+</li>
+<li>
+<i>Choose Stats Group to Display</i>
+<p>
+JE Environment stats are divided into several groups. You can specify
+which groups to display by checking the appropriate groups:
+<br><br>
+<div align="center"><img alt="choose group" src="Choose-group.JPG"></div>
+</p>
+</li>
+<li>
+<i>Stop Logging a Stat</i>
+<p>
+All stats are logged by default. If you don't want to log a particular
+stat, you can right click on that stat, and uncheck <code>"Log This
+Stat"</code>:
+<br><br>
+<div align="center"><img alt="unlog" src="Unlog-stat.JPG"></div>
+</p>
+</li>
+<li>
+<i>Graph a Stat</i>
+<p>
+You may graph a particular stat by right clicking on the stat and
+selecting <code>"Graph This Stat"</code>.  For example if you right-click
+on <code>nMarkLNsProcessed</code> and select <code>Graph This Stat</code>...
+<br><br>
+<div align="center"><img alt="graph" src="Graph-stat.JPG"></div><br><br>
+... then a new window with the dynamic graph will be displayed:
+<br><br>
+<div align="center"><img alt="show graph" src="Show-graph.JPG"></div>
+</p>
+</li>
+<li>
+<i>Show tips</i>
+<p>
+Each stat has a mouse-over which describes its meaning. For example:
+<br><br>
+<div align="center"><img alt="show tips" src="Show-tips.JPG"></div>
+</p>
+</li>
+</ul>
+<p>
+Please report bugs to the <a href="http://forums.oracle.com/forums/forum.jspa?forumID=273">Berkeley DB Java Edition OTN forum</a>.
+</p>
+</div></html>

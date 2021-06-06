@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Managing Transaction Rollbacks</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="txn-management.html" title="Chapter 3. Transaction Management" />
+    <link rel="prev" href="cons_and_dur.html" title="Consistency and Durability Use Cases" />
+    <link rel="next" href="runtransaction.html" title="Example Run Transaction Class" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Managing Transaction Rollbacks</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="cons_and_dur.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Transaction Management</th>
+          <td width="20%" align="right"> <a accesskey="n" href="runtransaction.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="txnrollback"></a>Managing Transaction Rollbacks</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            In the event that a new Master is elected, it is possible for a
+            Replica to find that some of its logs are ahead of the logs
+            held by the Master. While this is unlikely to occur, your code
+            must still be ready to deal with the situation. When it
+            happens, you must roll back the transactions represented by the
+            logs that are ahead of the Master.
+        </p>
+      <p>
+            You do this by simply closing all your <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a>
+            handles, and then reopening. During the handshaking process
+            that occurs when the Replica joins the replication group, the
+            discrepancy in log files is resolved for you.
+        </p>
+      <p>
+            Note that the problem of logs on replicas being ahead of the
+            log on the master is unlikely to occur because the election
+            mechanism favors nodes with the most recent logs. When
+            selecting a master, a simple majority of nodes are required to
+            vote on the choice of master, and they will vote for the node
+            with the most recent log files. When the problem does occur,
+            though, it results in the updates reflected in the Replica's
+            log being discarded when the log is rolled back. 
+        </p>
+      <p>
+            Logs on a Replica can be ahead of the logs on the Master if
+            network or node failures result in transactions becoming
+            durable on fewer than a majority of the nodes in the
+            replication group. This reduced durability is more likely in
+            cases where one or more Replicas show large replication lags
+            relative to the Master. Administrators should monitor
+            replication lags and evaluate whether they are caused by issues
+            with network or host performance. Applications can reduce the
+            chance of transaction rollbacks by avoiding the use of weak
+            durability requirements like
+            <code class="literal">ReplicaAckPolicy.NONE</code> or a
+            <code class="literal">ReplicationMutableConfig.NODE_PRIORITY</code> of
+            zero.
+        </p>
+      <p>
+            JE HA lets your application know that a transaction must be
+            rolled back by throwing <a class="ulink" href="../java/com/sleepycat/je/rep/RollbackException.html" target="_top">RollbackException</a>. This exception can
+            by thrown by any operation that is performing routine database
+            access.
+        </p>
+      <pre class="programlisting">    ReplicatedEnvironment repEnv = new ReplicatedEnvironment(...);
+    boolean doWork = true;
+
+    while doWork {
+        try {
+            // performSomeDBWork is the method that
+            // performs your database access.
+            doWork = performSomeDBWork();
+        } catch (RollbackException rb) {
+            if (repEnv != null) {
+                repEnv.close();
+                repEnv = new ReplicatedEnvironment(...);
+        }
+    } </pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="cons_and_dur.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txn-management.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="runtransaction.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Consistency and Durability Use Cases </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Example Run Transaction Class</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

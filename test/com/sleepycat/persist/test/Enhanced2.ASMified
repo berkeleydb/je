@@ -1,0 +1,218 @@
+package asm.com.sleepycat.persist.test;
+import java.util.*;
+import org.objectweb.asm.*;
+import org.objectweb.asm.attrs.*;
+public class Enhanced2Dump implements Opcodes {
+
+public static byte[] dump () throws Exception {
+
+ClassWriter cw = new ClassWriter(false);
+FieldVisitor fv;
+MethodVisitor mv;
+AnnotationVisitor av0;
+
+cw.visit(V1_5, ACC_SUPER, "com/sleepycat/persist/test/Enhanced2", null, "com/sleepycat/persist/test/Enhanced1", null);
+
+cw.visitSource("Enhanced2.java", null);
+
+{
+av0 = cw.visitAnnotation("Lcom/sleepycat/persist/model/Persistent;", true);
+av0.visitEnd();
+}
+{
+mv = cw.visitMethod(0, "<init>", "()V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "<init>", "()V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(1, 1);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbNewInstance", "()Ljava/lang/Object;", null, null);
+mv.visitCode();
+mv.visitTypeInsn(NEW, "com/sleepycat/persist/test/Enhanced2");
+mv.visitInsn(DUP);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced2", "<init>", "()V");
+mv.visitInsn(ARETURN);
+mv.visitMaxs(2, 1);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbNewArray", "(I)Ljava/lang/Object;", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 1);
+mv.visitTypeInsn(ANEWARRAY, "com/sleepycat/persist/test/Enhanced2");
+mv.visitInsn(ARETURN);
+mv.visitMaxs(1, 2);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbIsPriKeyFieldNullOrZero", "()Z", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbIsPriKeyFieldNullOrZero", "()Z");
+mv.visitInsn(IRETURN);
+mv.visitMaxs(1, 1);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbWritePriKeyField", "(Lcom/sleepycat/persist/impl/EntityOutput;Lcom/sleepycat/persist/impl/Format;)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ALOAD, 2);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbWritePriKeyField", "(Lcom/sleepycat/persist/impl/EntityOutput;Lcom/sleepycat/persist/impl/Format;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(3, 3);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbReadPriKeyField", "(Lcom/sleepycat/persist/impl/EntityInput;Lcom/sleepycat/persist/impl/Format;)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ALOAD, 2);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbReadPriKeyField", "(Lcom/sleepycat/persist/impl/EntityInput;Lcom/sleepycat/persist/impl/Format;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(3, 3);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbWriteSecKeyFields", "(Lcom/sleepycat/persist/impl/EntityOutput;)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbWriteSecKeyFields", "(Lcom/sleepycat/persist/impl/EntityOutput;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(2, 2);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbReadSecKeyFields", "(Lcom/sleepycat/persist/impl/EntityInput;III)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 4);
+Label l0 = new Label();
+mv.visitJumpInsn(IFEQ, l0);
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitVarInsn(ILOAD, 3);
+mv.visitVarInsn(ILOAD, 4);
+mv.visitInsn(ICONST_1);
+mv.visitInsn(ISUB);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbReadSecKeyFields", "(Lcom/sleepycat/persist/impl/EntityInput;III)V");
+mv.visitLabel(l0);
+mv.visitInsn(RETURN);
+mv.visitMaxs(6, 5);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbWriteNonKeyFields", "(Lcom/sleepycat/persist/impl/EntityOutput;)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbWriteNonKeyFields", "(Lcom/sleepycat/persist/impl/EntityOutput;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(2, 2);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbReadNonKeyFields", "(Lcom/sleepycat/persist/impl/EntityInput;III)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 4);
+Label l0 = new Label();
+mv.visitJumpInsn(IFEQ, l0);
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitVarInsn(ILOAD, 3);
+mv.visitVarInsn(ILOAD, 4);
+mv.visitInsn(ICONST_1);
+mv.visitInsn(ISUB);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbReadNonKeyFields", "(Lcom/sleepycat/persist/impl/EntityInput;III)V");
+mv.visitLabel(l0);
+mv.visitInsn(RETURN);
+mv.visitMaxs(6, 5);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbNullifyKeyField", "(Ljava/lang/Object;IIZLjava/lang/Object;)Z", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 3);
+Label l0 = new Label();
+mv.visitJumpInsn(IFLE, l0);
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitVarInsn(ILOAD, 3);
+mv.visitInsn(ICONST_1);
+mv.visitInsn(ISUB);
+mv.visitVarInsn(ILOAD, 4);
+mv.visitVarInsn(ALOAD, 5);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbNullifyKeyField", "(Ljava/lang/Object;IIZLjava/lang/Object;)Z");
+mv.visitInsn(IRETURN);
+mv.visitLabel(l0);
+mv.visitInsn(ICONST_0);
+mv.visitInsn(IRETURN);
+mv.visitMaxs(6, 6);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbGetField", "(Ljava/lang/Object;IIZ)Ljava/lang/Object;", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 3);
+Label l0 = new Label();
+mv.visitJumpInsn(IFLE, l0);
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitVarInsn(ILOAD, 3);
+mv.visitInsn(ICONST_1);
+mv.visitInsn(ISUB);
+mv.visitVarInsn(ILOAD, 4);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbGetField", "(Ljava/lang/Object;IIZ)Ljava/lang/Object;");
+mv.visitInsn(ARETURN);
+mv.visitLabel(l0);
+mv.visitInsn(ACONST_NULL);
+mv.visitInsn(ARETURN);
+mv.visitMaxs(5, 5);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_PUBLIC, "bdbSetField", "(Ljava/lang/Object;IIZLjava/lang/Object;)V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 3);
+Label l0 = new Label();
+mv.visitJumpInsn(IFLE, l0);
+mv.visitVarInsn(ALOAD, 0);
+mv.visitVarInsn(ALOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitVarInsn(ILOAD, 3);
+mv.visitInsn(ICONST_1);
+mv.visitInsn(ISUB);
+mv.visitVarInsn(ILOAD, 4);
+mv.visitVarInsn(ALOAD, 5);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced1", "bdbSetField", "(Ljava/lang/Object;IIZLjava/lang/Object;)V");
+mv.visitLabel(l0);
+mv.visitInsn(RETURN);
+mv.visitMaxs(6, 6);
+mv.visitEnd();
+}
+{
+mv = cw.visitMethod(ACC_STATIC, "<clinit>", "()V", null, null);
+mv.visitCode();
+mv.visitInsn(ACONST_NULL);
+mv.visitTypeInsn(NEW, "com/sleepycat/persist/test/Enhanced2");
+mv.visitInsn(DUP);
+mv.visitMethodInsn(INVOKESPECIAL, "com/sleepycat/persist/test/Enhanced2", "<init>", "()V");
+mv.visitMethodInsn(INVOKESTATIC, "com/sleepycat/persist/impl/EnhancedAccessor", "registerClass", "(Ljava/lang/String;Lcom/sleepycat/persist/impl/Enhanced;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(3, 0);
+mv.visitEnd();
+}
+cw.visitEnd();
+
+return cw.toByteArray();
+}
+}

@@ -1,0 +1,266 @@
+How to use the Berkeley DB Java Edition JCA Resource Adapter in the
+Oracle Containers for J2EE version 10.1.3.2.0.
+
+Prerequisites:
+
+- OC4J version 10.1.3.2.0
+- ant 1.5.4 or later
+- J2EE jar files (available in the OC4J distribution)
+
+This HOWTO describes: 
+
+    (1) how to build and deploy the Berkeley DB Java Edition JCA Resource
+        Adapter under OC4J version 10.1.3.2.0
+
+    (2) how to run a simple smoke test to test that the RA has been
+        deployed correctly.
+
+    (3) some notes on writing applications that use the RA.
+
+The Berkeley DB Java Edition (JE) JCA code depends on J2EE libraries,
+but the regular JE code does not require these libraries in order to
+be built.  Therefore, the "ant compile" target only builds the
+non-J2EE based code.  To build the JE JCA libraries and examples, it
+is necessary to have the appropriate J2EE jar files available and to
+use additional ant targets.
+
+Building the Resource Adapter
+-----------------------------
+
+- Edit <JE_HOME>/src/com/sleepycat/je/jca/ra/ra.xml.  
+
+  (1) Search for "<transaction-support>"
+
+  (2) Select the appropriate value (LocalTransaction, NoTransaction, or
+      XATransaction) and comment out or delete the other two.  Don't use
+      multiple values of <transaction-support>.  
+  
+  (3) Change the value of the <security-permission-spec> to refer to the
+      JE environment directory.  OC4J needs this to file grant access
+      permission to JE, otherwise security exceptions will result.
+
+- Edit <JE_HOME>/build.properties:
+
+  (1) Set j2ee.jarfile to an appropriate j2ee.jar. For example,
+
+         j2ee.jarfile = <OC4J-HOME>/j2ee/home/lib/ejb.jar:
+	                <OC4J-HOME>/oc4j/j2ee/home/lib/connector.jar:
+			<OC4J-HOME>/oc4j/j2ee/home/lib/oc4j-internal.jar
+
+       The value specified for j2ee.jarfile should contain all the classes
+       necessary for proper execution of the JCA Resource Adapter (for
+       example, JNDI).
+
+  (2) Set example.resources to an appropriate value, e.g.
+
+         example.resources = <JE-HOME>/examples/resources/oc4j/oc4j.jar
+
+      The oc4j.jar file contains an application-client.xml file which looks
+      like this:
+
+bash-3.00$ cat examples/resources/oc4j/META-INF/application-client.xml
+<application-client>
+<ejb-ref>
+  <ejb-ref-name>SimpleBean</ejb-ref-name>
+  <ejb-ref-type>Session</ejb-ref-type>
+  <home>jca.simple.SimpleHome</home>
+  <remote>jca.simple.Simple</remote>
+</ejb-ref>
+</application-client>
+
+- With the current directory set to <JE_HOME>, execute
+
+     ant jca
+
+  This creates a jejca.rar Resource Adapter Archive in
+  <JE_HOME>/build/lib.  The jejca.rar contains a je.jar file.
+
+- If OC4J is not already started, start it now.
+
+     oc4j -start
+
+  Note:
+
+  The server can be stopped with the asadmin stop-domain command.  e.g.
+
+     oc4j -shutdown -port 23791 -password <your admin password>
+
+or
+
+     java -jar <OC4J-HOME>/j2ee/home/admin_client.jar
+           deployer:oc4j:localhost:23791 oc4jadmin <password> -shutdown
+
+- Deploy the JE Resource Adapter (<JE_HOME>/build/lib/jejca.rar),
+  using the Oracle Application Server Control web tool:
+
+    http://<hostname>:8888
+    login if necessary
+    Applications tab
+    In the "View" pulldown, select 'Standalone Resource Adapters'
+    Select "Deploy"
+    In the "Archive" section of the screen, enter the file name of the
+    jejca.rar file (<JE-HOME>/build/lib/jejca.rar).
+    Select "Next"
+    Enter "JEConnection" for Resource Adapter Name
+    Select "Next"
+    Select "Deploy"
+
+- Create the connector connection pool and connector resource:
+
+    After the RA has been successfully deployed, select "Return"
+    On the Home | Applications | Stand Alone Resource Adapters page,
+      select "Berkeley DB Java Edition JCA Adapter" link
+    Select "Connection Factories"
+    Under "Shared Connection Pools", select "Create"
+    Enter "JEConnectionPool" for Connection Pool Name and Select "OK"
+    Above "JNDI Location" select "Create"
+    Make sure that com.sleepycat.je.jca.ra.JEConnectionFactory is selected
+      in the pull down menu and select "Continue"
+    Enter "ra/JEConnectionPool" for "JNDI Location"
+    Select "Use Shared Connection Pool" and chose "JEConnectionPool" in the
+      menu.  Select "Finish"
+
+- If you change or rebuild the jejca.rar file, you must redeploy the Resource
+  Adapter file with the same steps above.
+
+Building the "SimpleBean" Example:
+----------------------------------
+
+The SimpleBean example is an EJB that has two methods, get() and
+put(), which get and put data using the JE Resource Adapter on the
+OC4J server.  You can use this example to test the JE RA that you
+just deployed.
+
+- Edit <JE_HOME>/build.properties:
+
+  (1) Set example.jca.srcdir to <JE_HOME>/examples/jca/oc4j
+
+         example.jca.srcdir = <JE_HOME>/examples/jca/oc4j
+
+    This is the directory where the OC4J specific deployment descriptor
+    for the "simple" EJB resides.
+
+  (2) Set example.jca.descriptorname to orion-ejb-jar.xml.
+
+        example.jca.desciptorname = orion-ejb-jar.xml
+
+      This is the name of the OC4J specific deployment descriptor for the
+      "simple" EJB.
+
+- Edit <JE_HOME>/examples/jca/simple/ejb-jar.xml
+  Uncomment the <assembly-descriptor> section at the end of the file.
+
+- Edit the source code for SimpleBean to refer to the correct
+  directory for the JE Environment.  The JE Environment directory is
+  the same one that was specified in the ra.xml file under the
+  <security-permission-spec> tag.  This directory should exist and
+  the OC4J server should have write permission to that directory.
+  The source code for SimpleBean is in
+
+     <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+  To set the directory, change the value of JE_ENV at the top of the
+  class.  For example,
+
+     private final String JE_ENV = "/tmp/je_store";
+
+- Edit the source code for SimpleBean to have the correct value for
+  TRANSACTIONAL.  If you set it to true, you should also set the
+  proper value in the ra.xml for <transaction-support> (either
+  LocalTransaction or XATransaction).  
+
+- Edit the SimpleClient.java file to have correct values for the JNDI lookup
+  properties (java.naming.*).
+
+- Edit the SimpleClient.java file to change the value of OC4J to true.
+
+- Build the SimpleBean example and jar file.
+
+     ant jca-examples
+
+  This builds a jejca-example.jar file and places it in the
+  <JE_HOME>/build/lib directory.  The jar file contains the SimpleBean
+  classes, and the ejb-jar.xml and sun-ejb-jar.xml descriptor files.
+
+- Deploy the jejca-example jar using the Oracle Application Server
+  Control web tool:
+
+    http://<hostname>:8888
+    login if necessary
+    Applications tab
+    Select "Applications" from the "View" pulldown.
+    Select "Deploy"
+    Enter the location of the jejca-example.jar file
+    (<JE-HOME>/build/lib/jejca-example.jar) in the
+    "Location on Server" box in the "Archive" section.
+    Select "Next".
+    Enter "Simple" in the "Application Name" box.  Select "Next".
+    On the "Deploy: Deployment Settings" page, click the pencil next to
+    "Map Environment References".
+    In the "Map Resource References" section, enter "ra/JEConnectionFactory"
+    in the form box for the "ra/JEConnectionFactory" Resource Reference.
+    Select "OK".
+    Select "Deploy".
+
+
+Running the "SimpleBean" Example:
+---------------------------------
+
+- Verify that the OC4J server has been started.
+
+- Run the client:
+
+    ant testex-jejcasimple -Dkey=foo -Ddata=bar
+
+  This should produce:
+
+    Buildfile: build.xml
+
+    testex-jejcasimple:
+     [java] Created Simple
+     [java] Simple.get('foo') = bar
+
+    BUILD SUCCESSFUL
+    Total time: 3 seconds
+
+If you don't see
+
+     [java] Simple.get('foo') = bar
+
+printed (for example, you see Simple.get('foo') = null), there may be
+a configuration problem.  Check the server.log for details.
+
+Implementation Notes for Applications Using the RA
+--------------------------------------------------
+
+Please refer to the SimpleBean example in
+
+    <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+- Obtain a JEConnection using the
+
+     JEConnectionFactory.getConnection()
+
+  method and passing it an environment home directory and
+  EnvironmentConfig object. Once the JEConnection has been obtained,
+  you can obtain the Environment handle by calling
+
+     JEConnection.getEnvironment();
+
+- Database handle cache available
+
+Because bean business methods may be relatively short, the underlying
+ManagedConnection object for JE provides a Database handle cache.
+This speeds up the Database open operation since the handle
+(generally) already exists in the cache.  Normally, a program opens a
+database using the Environment.openDatabase() method.  In the EJB
+environment, the program should call JEConnection.openDatabase()
+instead.  Database handles obtained using this method should not be
+close()'d as the ManagedConnection code does that when the
+ManagedConnection is closed.
+
+- Databases under XA must be transactional
+
+If you are using the XATransaction environment (as specified in the
+ra.xml file), all JE Databases used in that environment must be
+transactional.

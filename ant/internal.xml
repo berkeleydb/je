@@ -1,0 +1,1187 @@
+<?xml version="1.0"?>
+
+<!-- =================================================== -->
+<!-- Internal build targets for Berkeley DB Java Edition -->
+<!-- All targets here are for internal use only and are  -->
+<!-- not part of the published package.                  -->
+<!-- =================================================== -->
+
+<project name="JEInternal" basedir="..">
+<description>Internal targets for JE</description>
+
+    <!--
+    Properties that are intended to be passed via -D on the command line.
+    -->
+    <!-- Arguments to be passed on the command line of the <java> task. -->
+    <property name="args" value=""/>
+    <property name="args1" value=""/>
+    <property name="args2" value=""/>
+    <property name="args3" value=""/>
+    <!-- Off-heap cache is on for Oracle JDK and is off for Zing JDK,
+         by default. -->
+    <condition property="offheap"
+            value="true"
+            else="false">
+       <equals arg1="${zing.jvm.options}" arg2=""/>
+    </condition>
+
+    <!-- Default jar file for testing is the je.jar built here. -->
+    <property name="testjar" value="${jarfile}"/>
+
+    <!--
+    Common standalone test properties.
+    -->
+    <property name="standalone.srcdir" location="${basedir}/test/standalone"/>
+    <property name="standalone.dir" location="${builddir}/test/standalone"/>
+    <property name="standalone.destdir" location="${standalone.dir}/classes"/>
+    <property name="unittest.classes" location="${builddir}/test/classes"/>
+    <property name="standalone.datadir" location="${standalone.dir}/data"/>
+    <property name="standalone.logfile" location="${standalone.dir}/log"/>
+    <property name="standalone.propfile"
+              location="${standalone.datadir}/je.properties"/>
+
+    <path id="standalone.compile.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="${standalone.destdir}"/>
+      <pathelement location="${unittest.classes}"/>
+      <pathelement path="${junit.jarfile}"/>
+      <path refid="clover.classpath"/>
+    </path>
+
+    <path id="standalone.test.classpath">
+      <pathelement location="${testjar}"/>
+      <pathelement location="${standalone.destdir}"/>
+      <pathelement location="${unittest.classes}"/>
+      <pathelement path="${junit.jarfile}"/>
+      <path refid="clover.classpath"/>
+    </path>
+
+    <!-- ============================================================ -->
+    <!-- Global Targets                                               -->
+    <!-- ============================================================ -->
+
+    <target name="init">
+        <mkdir dir="${standalone.dir}"/>
+        <mkdir dir="${standalone.destdir}"/>
+    </target>
+
+    <target name="clean" depends="clean-standalone"/>
+
+    <target name="compile" depends="compile-standalone"/>
+
+    <target name="init-standalone" depends="init">
+        <delete dir="${standalone.datadir}"/>
+        <mkdir dir="${standalone.datadir}"/>
+    </target>
+
+    <target name="clean-standalone" depends="init">
+        <delete dir="${standalone.destdir}"/>
+        <mkdir dir="${standalone.destdir}"/>
+    </target>
+
+    <target name="compile-standalone" depends="init-standalone">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="srcdir" value="${standalone.srcdir}"/>
+            <property name="destdir" value="${standalone.destdir}"/>
+            <property name="include" value="**/*.java"/>
+            <reference refid="standalone.compile.classpath"
+	               torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+
+    <!-- Outputs the version of the ${jvm} so it can be visually verified. -->
+    <target name="javaversion">
+      <java classname="xxNotUsed" fork="yes" jvm="${jvm}">
+        <jvmarg value="-version"/>
+      </java>
+    </target>
+
+    <!-- =================== Standalone regression tests ======================
+    Tests that have a standard Java main and are run separately via <java>
+    rather than via <junit>.
+
+    Specific test targets (e.g., MemoryStress) are also invoked via the
+    'standalone' target in build.xml, using -Dtestcase=TestName where TestName
+    is the name of the one of the targets below.  Additional program args and
+    JVM args can be specified using -Dargs= and -Djvmargs=.
+
+    Each test program should:
+     + fail (System.exit with non-zero value) if the test fails
+     + write log information and errors to System.out and System.err
+     + take command line arguments for environment home and other parameters
+     + allow command line arguments to be repeated, so that the last specified
+       argument takes precendence; this allows specifying -Dargs="..." to
+       override arguments specified explicitly in the <java> task
+     + Print the full command line at the start of the test
+     + When an unexpected exception occurs, the test should fail; be sure to
+       catch Throwable not just Exception
+     + Check for data correctness, as well as for exceptions; if a
+       correctness check fails, the test should fail
+     + As part of correctness checking, check statistics to ensure that
+       activities relevant to the test are occurring (cache misses,
+       eviction, cleaning, etc)
+
+    Each test target below should:
+     + run the <java> task to invoke the standalone test program
+     + use fork="yes"
+     + use failonerror="yes"
+     + use output="${standalone.logfile}"
+     + use the predefined standalone.test.classpath
+     + pass ${standalone.datadir} as the environment directory argument
+     + pass other program args using <arg>, followed by <arg line="${args}"/>
+       to allow overriding program args using -Dargs="..."
+     + pass JVM args using <jvmarg>, followed by <jvmarg line="${jvmargs}"/>
+       to allow overriding JVM args using -Djvmargs="..."
+     + for stress tests, use <jvmarg value="-ea"/> to enable assertions
+
+    Each test may have any number of properties that can be passed via
+    -Dargs="...".  However, a default regression test should run without
+    specifying any such properties.
+
+    Some tests (namely performance regressions such as BigRandom) are not meant
+    to fail or pass in an automated way, and instead they output data that must
+    be manually examined.
+
+    By default a test is run against the je.jar built here.  -Dtestjar=JARFILE
+    may be used to run the test againt a different release of JE, as long as
+    the test only uses JE APIs that exist in that release, of course.  For
+    example, this can be used to run BigRandom against an earlier released
+    version of JE.
+
+    Miscellaneous:
+     + For long-running test, you can specify
+       "-Djvmargs=-Xloggc:<file>, -XX:-PrintGCTimeStamps, -XX:-PrintGCDetails"
+       to monitor GC behaviors. This would be useful for performance tests.
+     + In case of performance tuning standalone tests, it would be helpful to
+       print a full list of JE's perf tuning parameters(e.g. je.maxMemory,
+       je.cleaner.threads, etc) to logs and then do the comparisons.
+    ======================================================================= -->
+    <target name="standalone" depends="javaversion">
+      <echo message="Running: ${testcase}"/>
+      <echo message="Using JE: ${testjar}"/>
+      <echo message="Using GC params: ${jvm.gc}"/>
+      <echo message="Overriding: args=${args} jvmargs=${jvmargs}"/>
+      <echo message="See results in: (${standalone.logfile})"/>
+      <antcall target="${testcase}" inheritrefs="true"/>
+    </target>
+
+    <!--
+    MemoryStress: Runs a stress test under low memory conditions to force an
+    OutOfMemoryError to occur if a memory cache budget bug exists.  Also
+    outputs a detailed log.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=MemoryStress standalone
+      ant -Dtestcase=MemoryStress -Dargs="-dups" standalone
+
+    Run times on laptop with SSD:
+      16 min
+      13 min
+    -->
+    <target name="MemoryStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="MemoryStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx42m"/>
+	<jvmarg value="-ea"/>
+	<jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvm.gc}"/>
+	<jvmarg line="${jvmargs}"/>
+	<jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-nThreads"/>
+        <arg value="20"/>
+        <arg value="-nOps"/>
+        <arg value="500000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+      </java>
+    </target>
+
+    <!--
+    EnvSharedCache: Runs a stress test comparing EnvironmentStats with/without
+    setting EnvironmentConfig.setSharedCache(true) to see if the shared env
+    cache works efficiently.  Also outputs a detailed log.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=EnvSharedCache standalone
+      ant -Dtestcase=EnvSharedCache -Dargs="-opentest" standalone
+      ant -Dtestcase=EnvSharedCache -Dargs="-eventest" standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      30 min
+      568 min
+      32 min
+    -->
+    <target name="EnvSharedCache">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="EnvSharedCache"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx128m"/>
+	<jvmarg value="-ea"/>
+	<jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-envs"/>
+        <arg value="4"/>
+        <arg value="-threads"/>
+        <arg value="4"/>
+        <arg value="-keys"/>
+        <arg value="25000"/>
+        <arg value="-initonly"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args1}"/>
+      </java>
+      <!-- If it's opentest, use larger number of txns for a 12hour run. -->
+      <condition property="num.txns" value="600000">
+        <contains string="${args}" substring="-opentest"/>
+      </condition>
+      <condition property="num.txns" value="25000">
+        <not>
+          <isset property="num.txns"/>
+        </not>
+      </condition>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="EnvSharedCache"
+            output="${standalone.logfile}" append="true">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx128m"/>
+	<jvmarg value="-ea"/>
+	<jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-envs"/>
+        <arg value="4"/>
+        <arg value="-threads"/>
+        <arg value="4"/>
+        <arg value="-txns"/>
+        <arg value="${num.txns}"/>
+        <arg value="-cachetest"/>
+        <arg value="-shared"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+        <arg line="${args2}"/>
+      </java>
+    </target>
+
+    <!--
+    BigRandom: Outputs a detailed log and final throughput value.
+
+    Regression test:  The final throughput (printed as the last line of the
+    log) should be roughly equal or greater than for the prior release.
+
+      ant -Dtestcase=BigRandom standalone
+      ant -Dtestcase=BigRandom -Dargs="-nosync" standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      356 min
+      17 min
+
+    After each test is run, be sure to save the log file for comparing it to
+    subsequent runs and for generating graphs later.  For example:
+
+      cp build/test/standalone/log bigrandom-je3.2.23-nosync-log
+
+    Not yet done:
+    + move maxMemory to a command line argument so it can be overridden using
+      the args property.
+    + automate running of gnuplot to produce graphs for comparing
+      multiple runs.
+    -->
+    <target name="BigRandom">
+      <echo message="je.maxMemory=268435456"
+            file="${standalone.propfile}"/>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="BigRandom"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+	<jvmarg value="-Xmx360m"/>
+	<jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-initonly"/>
+        <arg value="-locality"/>
+        <arg value="5"/>
+        <arg value="-keys"/>
+        <arg value="10000000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+      </java>
+      <echo message="result ${test.result}"/>
+    </target>
+
+    <!--
+    TxnInMultiThreadsStress:
+    This stress test simulates such a scenario:
+    There are three threads. One is the CRUD thread, which create a new txn
+    object and processes CRUD operations within this txn. The other two threads
+    are the commit and abort threads, which commit/abort the txn created by
+    CRUD thread.
+
+    Regression tests: Test should pass when run as follows:
+      ant -Dtestcase=TxnInMultiThreadsStress standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      35 sec
+    -->
+    <target name="TxnInMultiThreadsStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="TxnInMultiThreadsStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+	<jvmarg value="-Xmx512m"/>
+	<jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-c"/>
+        <arg value="-a"/>
+        <arg value="-ops"/>
+        <arg value="200000"/>
+        <arg value="-keySize"/>
+        <arg value="3000"/>
+        <arg line="${args}"/>
+      </java>
+      <echo message="result ${test.result}"/>
+    </target>
+
+    <!--
+    RemoveDbStress: Make sure no bugs are spotted when remove/truncate
+    database is being called and the log cleaner and checkpointer threads
+    are interacting with the db. Also outputs a detailed log and final
+    throughput value.
+
+    Regression test:  The final throughput (printed as the last line of the
+    log) should be roughly equal or greater than for the prior release.  The
+    test is normally run once as follows when needed.
+    Each run takes apprx 1 to 2 hours.
+
+      ant -Dtestcase=RemoveDbStress standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      53 min
+
+    After each test is run, the log file is automatically copied to
+    RemoveDbStress-<yyMMdd_HH>-log for comparing it to subsequent runs.
+
+    -->
+    <target name="RemoveDbStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="RemoveDbStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-iter"/>
+        <arg value="200000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/RemoveDbStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    BigDW: Runs a stress test to check if deferred write database works as
+    properly as a normal one by performing insertion, dup-deletion and read
+    operations against a normal database and a deferred write database. The
+    outputed throughput (printed as the last line of the log) should be around
+    30 ops/sec, and 20000 txns should be enough for apprx 10 mins run.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=BigDW standalone
+      ant -Dtestcase=BigDW -Dargs="-txns 100000" standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      6 min
+      38 min
+
+    After each test is run, the log file is automatically copied to
+    BigDW-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="BigDW">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="BigDW"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx128m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-init"/>
+        <arg value="-dupdel"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/BigDW-${log.time}-log"/>
+    </target>
+
+    <!--
+    ClosedDbEviction: Runs a stress test to test the efficiency of eviction of
+    closed database roots, to make sure that the eviction would not
+    cause corruption or concurrency bugs. Also prints a detailed log.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=ClosedDbEviction standalone
+      ant -Dtestcase=ClosedDbEviction -Dargs="-recovery 10000000" standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      549 min
+      342 min
+
+    After each test is run, the log file is automatically copied to
+    ClosedDbEviction-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="ClosedDbEviction">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ClosedDbEviction"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-init"/>
+        <arg value="100000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args1}"/>
+      </java>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ClosedDbEviction"
+            output="${standalone.logfile}" append="true">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Xmx32m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-contention"/>
+        <arg value="100000000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+        <arg line="${args2}"/>
+      </java>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ClosedDbEviction"
+            output="${standalone.logfile}" append="true">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Xmx32m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-v"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-evict"/>
+        <arg value="20000000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+        <arg line="${args3}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/ClosedDbEviction-${log.time}-log"/>
+    </target>
+
+    <!--
+    ReplicationCleaning: Runs a stress test to test if JE replication does log
+    cleaning when the cleaner is enabled. Also, prints out a detailed log.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=ReplicationCleaning standalone
+      ant -Dtestcase=ReplicationCleaning -Dargs="-repNodeNum 8" standalone
+
+    Run times on laptop with SSD:
+      53 min
+      ??? min
+
+    After each test is run, the log file is automatically copied to
+    ReplicationCleaning-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="ReplicationCleaning" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ReplicationCleaning"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/ReplicationCleaning-${log.time}-log"/>
+    </target>
+
+    <!--
+    ReplicaReading: Runs a stress test to test if reading operations on replica
+    works as expected. And verify the deadlock exception of ReplayTxn is gone
+    with the "lock stealing" changes. Finally, get a reasonable retry number
+    for reading operations on replica.
+
+    Regression tests: Test should pass when run as follows:
+
+      ant -Dtestcase=ReplicaReading standalone
+      ant -Dtestcase=ReplicaReading
+          -Dargs="-nPriThreads 4 -nSecThreads 4 -txnOps 30" standalone
+
+    Run times on laptop with SSD:
+      16 min
+      14 min
+
+    After each test is run, the log file is automatically copied to
+    ReplicaReading-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="ReplicaReading" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ReplicaReading"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-totalRounds"/>
+        <arg value="3200"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/ReplicationReading-${log.time}-log"/>
+    </target>
+
+    <!--
+    ReplicaDbOps: Runs a stress test to test if database operations on replica
+    work as expected. This test also checks log cleaning.
+
+    Regression tests: Test should pass when run as follows:
+
+      ant -Dtestcase=ReplicaDbOps standalone
+      ant -Dtestcase=ReplicaDbOps -Dargs="-nThreads 4" standalone
+
+    Run times on laptop with SSD:
+      13 min
+      14 min
+
+      After each test is run, the log file is automatically copied to
+    ReplicaDbOps-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="ReplicaDbOps" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="ReplicaDbOps"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/ReplicationDbOps-${log.time}-log"/>
+    </target>
+
+    <!--
+    CleanWithSmallCache: Runs a stress test to test ...
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=CleanWithSmallCache standalone
+
+    Run time: because the cleaner never catches up it runs for the specified
+    -seconds, or almost 7 hours.
+
+    After each test is run, the log file is automatically copied to
+    CleanWithSmallCache-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="CleanWithSmallCache">
+      <echo message="CleanWithSmallCache: write"/>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="CleanWithSmallCache"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx10m"/>
+	<jvmarg value="-ea"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="-records 40000 -key 48 -data 10 -random -cache 250k -seconds 2000 -write true -offheap ${offheap}"/>
+        <arg line="${args1}"/>
+      </java>
+      <echo message="CleanWithSmallCache: clean"/>
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="CleanWithSmallCache"
+            output="${standalone.logfile}" append="true">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx32m"/>
+	<jvmarg value="-ea"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="-records 40000 -key 48 -data 10 -random -cache 250k -seconds 22000 -read true -clean -offheap ${offheap}"/>
+        <arg line="${args}"/>
+        <arg line="${args2}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/CleanWithSmallCache-${log.time}-log"/>
+    </target>
+
+    <!--
+    secure-config sets up the je.properties file to provide secure 
+    communication among HA nodes if the standalone.secure property
+    is defined.  For example:
+
+      ant -Dtestcase=FailoverReplica -Dstandalone.secure=1 standalone
+    -->
+    <target name="secure-config" if="standalone.secure">
+      <property name="ssldir" location="${basedir}/test/ssl"/>
+      <property name="ssl.keystore" location="${ssldir}/keys.store"/>
+      <property name="ssl.keystore.pwd" value="unittest"/>
+      <property name="ssl.cert.auth" value="CN=Unit Test"/>
+      <property name="ssl.truststore" location="${ssldir}/keys.store"/>
+      <echo message="je.rep.channelType=ssl${line.separator}"
+            file="${standalone.propfile}"/>
+      <echo message="je.rep.ssl.keyStoreFile=${ssl.keystore}${line.separator}"
+            file="${standalone.propfile}" append="true"/>
+      <echo message="je.rep.ssl.keyStorePassword=${ssl.keystore.pwd}${line.separator}"
+            file="${standalone.propfile}" append="true"/>
+      <echo message="je.rep.ssl.trustStoreFile=${ssl.truststore}${line.separator}"
+            file="${standalone.propfile}" append="true"/>
+      <echo message="je.rep.ssl.authenticatorClass=com.sleepycat.je.rep.net.SSLDNAuthenticator${line.separator}"
+            file="${standalone.propfile}" append="true"/>
+      <echo message="je.rep.ssl.authenticatorParams=${ssl.cert.auth}${line.separator}"
+            file="${standalone.propfile}" append="true"/>
+    </target>
+
+    <!--
+    The rep-net-config target should be a dependency of most HA tests.
+    It sets up the je.properties file with appropriate settings for replication
+    access based on other properties that have been set.  If configurations
+    other than secure-config are needed, just add them to the depends list of
+    rep-net-config.
+    -->
+    <target name="rep-net-config" depends="secure-config"/>
+
+    <!--
+    FailoverReplica: Exercise replica-only failovers, using FailoverTest with
+    appropriate parameters.
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=FailoverReplica standalone
+      ant -Dtestcase=FailoverReplica -Dargs="-repGroupSize 8" standalone
+
+    Run times on laptop with SSD:
+      29 min
+      ?? min
+
+    After each test is run, the log file is automatically copied to
+    FailoverReplica-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="FailoverReplica" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="FailoverTest"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-mode"/>
+        <arg value="replica"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/FailoverReplica-${log.time}-log"/>
+    </target>
+
+    <!--
+    FailoverMaster: Exercise master-only failovers, using FailoverTest with
+    appropriate parameters.
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=FailoverMaster standalone
+      ant -Dtestcase=FailoverMaster -Dargs="-repGroupSize 8" standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      130 min
+      145 min
+
+    After each test is run, the log file is automatically copied to
+    FailoveMasterr-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="FailoverMaster" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="FailoverTest"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx2048m"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-mode"/>
+        <arg value="master"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/FailoverMaster-${log.time}-log"/>
+    </target>
+
+    <!--
+    FailoverHybrid: Exercise replica and master failovers, using FailoverTest
+    with appropriate parameters.
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=FailoverHybrid standalone
+      ant -Dtestcase=FailoverHybrid -Dargs="-repGroupSize 8" standalone
+
+    Run times on laptop with SSD:
+      48 min
+      59 min
+
+    After each test is run, the log file is automatically copied to
+    FailoverHybridr-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="FailoverHybrid" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="FailoverTest"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Dverbose=true"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-mode"/>
+        <arg value="hybrid"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg value="-offheap"/>
+        <arg value="${offheap}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/FailoverHybrid-${log.time}-log"/>
+    </target>
+
+    <!--
+    TemporaryDbStress: Runs a stress test to simulate an Environment which
+    a small cache size, multiple cleaner threads setting on a large temporary
+    database to see whether this temporary database works normally in this
+    high cleaner-eviction concurrency environment.
+
+    Regression tests: Test should pass when run as follows:
+      ant -Dtestcase=TemporaryDbStress standalone
+
+    Run times on a laptop with an SSD:
+      112 min
+
+    After each test is run, the log file is automatically copied to
+    TemporaryDbStress-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="TemporaryDbStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="TemporaryDbStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx16m"/>
+        <jvmarg value="-ea"/>
+        <jvmarg value="-DsetErrorListener=true"/>
+        <jvmarg line="${jvm.gc}"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="-totalOps"/>
+        <arg value="15000000"/>
+        <arg value="-subDir"/>
+        <arg value="3"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/TemporaryDbStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    OpenEnvStress: Runs a stress test to simulate the application that multiple
+    threads open multiple environments, check whether the synchronization flow
+    of creating environments is correct. Aslo check to see if the shared cache
+    Environments are really sharing cache.
+
+    Regression tests: Test should pass when run as follows:
+      ant -Dtestcase=OpenEnvStress standalone
+
+    Run times in SLC datacenter, with other tests on same physical machine:
+      21 min
+
+    After each test is run, the log file is automatically copied to
+    OpenEnvStress-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="OpenEnvStress">
+        <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="OpenEnvStress"
+            output="${standalone.logfile}">
+            <classpath refid="standalone.test.classpath"/>
+            <sysproperty key="test.je.env.verifierSchedule"
+                         value="${test.je.env.verifierSchedule}"/>
+            <jvmarg value="-Xmx512m"/>
+            <jvmarg value="-ea"/>
+            <jvmarg value="-DsetErrorListener=true"/>
+            <jvmarg line="${jvmargs}"/>
+            <jvmarg line="${zing.jvm.options}"/>
+            <arg value="-root"/>
+            <arg value="${standalone.datadir}"/>
+            <arg value="-numEnvs"/>
+            <arg value="20"/>
+            <arg value="-totalIterations"/>
+            <arg value="5000"/>
+            <arg value="-sharedCache"/>
+            <arg value="true"/>
+            <arg line="${args}"/>
+        </java>
+        <tstamp>
+            <format property="log.time" pattern="yyMMdd_HH"/>
+        </tstamp>
+        <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/OpenEnvStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    IOErrorStress: Runs a stress test to simulate IO errors (exceptions thrown
+    by RandomAccessFile) to ensure log corruption does not occur.
+
+    NOTE: setErrorListener is intentionally NOT specified below, like it is for
+    most other tests, so that invalidation of the environment will not be done
+    by the test framework.  The environment should be invalidated by JE.
+
+    Regression tests: Test should pass when run as follows:
+      ant -Dtestcase=IOErrorStress standalone
+      ant -Dtestcase=IOErrorStress -Dargs="-cacheMB 1" standalone
+
+    Run time is specified with -minutes. 120 minutes is specified below and the
+    java task timeout is 180 minutes.
+
+    After each test is run, the log file is automatically copied to
+    IOErrorStress-<yyMMdd_HH>-log for comparing it to subsequent runs.
+    -->
+    <target name="IOErrorStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="IOErrorStress"
+            output="${standalone.logfile}"
+            timeout="10800000">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg value="-ea"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg value="-cacheMB"/>
+        <arg value="10"/>
+        <arg value="-minutes"/>
+        <arg value="120"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/IOErrorStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    MasterTransferExercise: Stressed the transition of a JE HA node from
+    master to replica status. One flavor of test has mimics an
+    application load of data record inserts, updates and deletes,
+    while the other executes database creates, renames, and
+    removes. Both flavors must be tested, because there is specialized
+    txn  handling for database operations.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=MasterTransferExercise standalone
+      ant -Dtestcase=MasterTransferExercise -Dargs="-testType DbOps -numAppThreads 2" standalone
+
+      Run time of 10 minutes.
+    -->
+    <target name="MasterTransferExercise" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="MasterTransferExercise"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/MasterTransferExercise-${log.time}-log"/>
+    </target>
+
+    <!--
+    TTLStress: Test accessing records as they are expiring.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=TTLStress standalone
+
+    Run time of 30 minutes.
+    -->
+    <target name="TTLStress" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="TTLStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/TTLStress-${log.time}-log"/>
+    </target>
+	
+    <!--
+    DeadlockStress: Test different scenarios about deadlock.
+
+    Regression test:  Test should pass when run as follows:
+
+      ant -Dtestcase=DeadlockStress standalone
+
+    Run time of *** minutes.
+    TODO: Need to add more arguments.
+    -->
+    <target name="DeadlockStress">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="DeadlockStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/DeadlockStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    DiskLimitStress: Tests full write load with a disk limit.
+
+    Regression test:  Test should pass when run as follows:
+
+      # Test steady-state max throughput with one node.
+      ant -Dtestcase=DiskLimitStress standalone -Dargs="-nodes 1 -minutes 15"
+
+      # Test steady-state HA throughput.
+      ant -Dtestcase=DiskLimitStress standalone -Dargs="-nodes 3 -minutes 15"
+
+      # Test various violations of disk limit
+      ant -Dtestcase=DiskLimitStress standalone \
+         -Dargs="-nodes 3 -violations true -minutes 25"
+
+    Total run time of less than 60 minutes.
+    -->
+    <target name="DiskLimitStress" depends="rep-net-config">
+      <java fork="yes" jvm="${jvm}" failonerror="yes"
+            classname="DiskLimitStress"
+            output="${standalone.logfile}">
+        <classpath refid="standalone.test.classpath"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <jvmarg value="-Xmx512m"/>
+        <jvmarg line="${jvmargs}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <arg value="-h"/>
+        <arg value="${standalone.datadir}"/>
+        <arg line="${args}"/>
+      </java>
+      <tstamp>
+        <format property="log.time" pattern="yyMMdd_HH"/>
+      </tstamp>
+      <copy file="${standalone.logfile}"
+            tofile="${standalone.dir}/DiskLimitStress-${log.time}-log"/>
+    </target>
+
+    <!--
+    GSGDocsBuild: Runs the GSGDocs_bookBuild.sh in je_home/dist, to
+    automatically build four je's GSG documents.
+    -->
+    <target name="GSGDocsBuild">
+      <exec executable="/bin/sh">
+        <arg value="${basedir}/dist/GSGDocs_bookBuild.sh" />
+      </exec>
+    </target>
+</project>

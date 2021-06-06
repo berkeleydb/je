@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<jboss>
+   <enterprise-beans>
+      <session>
+         <ejb-name>SimpleBean</ejb-name>
+         <resource-ref>
+            <res-ref-name>ra/JEConnectionFactory</res-ref-name>
+            <jndi-name>java:/LocalTransJE</jndi-name>
+	    <!--
+            <jndi-name>java:/NoTransJE</jndi-name>
+            <jndi-name>java:/XATransJE</jndi-name>
+	    -->
+         </resource-ref>
+      </session>
+   </enterprise-beans>
+</jboss>

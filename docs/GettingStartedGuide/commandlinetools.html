@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>The Command Line Tools</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="diskthreshold.html" title="Setting Disk Thresholds" />
+    <link rel="next" href="managelogging.html" title="Logging" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">The Command Line Tools</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="diskthreshold.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 12. Administering Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="managelogging.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="commandlinetools"></a>The Command Line Tools</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="commandlinetools.html#DbDump">DbDump</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="commandlinetools.html#DbLoad">DbLoad</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="commandlinetools.html#DbVerify">DbVerify</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        JE ships with several command line tools that
+        you can use to help you manage your databases. They are:
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+              <a class="ulink" href="../java/com/sleepycat/je/util/DbDump.html" target="_top">DbDump</a>
+            </p>
+            <p>
+           Dumps a database to a user-readable format.
+        </p>
+          </li>
+          <li>
+            <p>
+            <a class="ulink" href="../java/com/sleepycat/je/util/DbLoad.html" target="_top">DbLoad</a>
+        </p>
+            <p>
+            Loads a database from the output produced by <code class="literal">DbDump</code>
+        </p>
+          </li>
+          <li>
+            <p>
+              <a class="ulink" href="../java/com/sleepycat/je/util/DbVerify.html" target="_top">DbVerify</a>
+            </p>
+            <p>
+            Verifies the structure of a database.
+        </p>
+          </li>
+        </ul>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="DbDump"></a>DbDump</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+            Dumps a database to a flat-text representation. Options are:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-f</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the file to which the output from this command is written. 
+                        The console (standard out) is used by default.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-h</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the environment's directory. This parameter is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-l</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Lists the databases contained in the environment. If the <code class="option">-s</code> is 
+                        not provided, then this argument is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-p</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Prints database records in human-readable format.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-r</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Salvage data from a possibly corrupt file. When used on a uncorrupted database, this option
+                        should return data equivalent to a normal dump, but most likely in a different order.
+                    </p>
+              <p>
+                        This option causes the ensuing output to go to a file named 
+                        <span class="emphasis"><em>dbname</em></span><code class="literal">.dump</code>  where
+                        <span class="emphasis"><em>dbname</em></span> is the name of the database you are dumping. The
+                        file is placed in the current working directory.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-R</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Aggressively salvage data from a possibly corrupt file. This option differs from the -r option
+                        in that it will return all possible data from the file at the risk of also returning already
+                        deleted or otherwise nonsensical items. Data dumped in this fashion will almost certainly have
+                        to be edited by hand or other means before the data is ready for reload into another database.
+                    </p>
+              <p>
+                        This option causes the ensuing output to go to a file named 
+                        <span class="emphasis"><em>dbname</em></span><code class="literal">.dump</code>  where
+                        <span class="emphasis"><em>dbname</em></span> is the name of the database you are dumping. The
+                        file is placed in the current working directory.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-s</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the database to be dumped. If this option is not specified, then the <code class="option">-l</code> is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-v</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Prints progress information to the console for
+                        <code class="literal">-r</code> or <code class="literal">-R</code> mode.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-V</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Prints the database version number and then quits. All other command line options are ignored.
+                    </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+            For example:
+        </p>
+        <pre class="programlisting">&gt; <strong class="userinput"><code>java com.sleepycat.je.util.DbDump -h . -p -s VendorDB</code></strong>  
+VERSION=3
+format=print
+type=btree
+database=VendorDB
+dupsort=false
+HEADER=END
+ Mom's Kitchen
+ sr\01\01xpt\00\0d53 Yerman Ct.t\00\0c763 554 9200t\00\0bMiddle Townt\00
+ \0eMaggie Kultgent\00\10763 554 9200 x12t\00\02MNt\00\0dMom's Kitchent\00
+ \0555432
+ Off the Vine
+ sr\01\01xpt\00\10133 American Ct.t\00\0c563 121 3800t\00\0aCentennialt\00
+ \08Bob Kingt\00\10563 121 3800 x54t\00\02IAt\00\0cOff the Vinet\00\0552002
+ Simply Fresh
+ sr\01\01xpt\00\1115612 Bogart Lanet\00\0c420 333 3912t\00\08Harrigant\00
+ \0fCheryl Swedbergt\00\0c420 333 3952t\00\02WIt\00\0cSimply Fresht\00\0
+ 553704
+ The Baking Pan
+ sr\01\01xpt\00\0e1415 53rd Ave.t\00\0c320 442 2277t\00\07Dutchint\00\09
+ Mike Roant\00\0c320 442 6879t\00\02MNt\00\0eThe Baking Pant\00\0556304
+ The Pantry
+ sr\01\01xpt\00\111206 N. Creek Wayt\00\0c763 555 3391t\00\0bMiddle Town
+ t\00\0fSully Beckstromt\00\0c763 555 3391t\00\02MNt\00\0aThe Pantryt\00
+ \0555432
+ TriCounty Produce
+ sr\01\01xpt\00\12309 S. Main Streett\00\0c763 555 5761t\00\0bMiddle Townt
+ \00\0dMort Dufresnet\00\0c763 555 5765t\00\02MNt\00\11TriCounty Producet
+ \00\0555432
+DATA=END
+&gt; </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="DbLoad"></a>DbLoad</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+            Loads a database from the output produced by <code class="literal">DbDump</code>.
+            Options are:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-c</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>Specifies configuration options. The options supplied here override the corresponding options
+                        that appear in the data that is being loaded. This option takes values of the form
+                        <span class="emphasis"><em>name</em></span>=<span class="emphasis"><em>value</em></span>, where <span class="emphasis"><em>name</em></span>
+                        is the configuration option that you are overriding and <span class="emphasis"><em>value</em></span>
+                        is the new value for the option.
+                        </p>
+              <p>
+                            The following options can be specified:
+                        </p>
+              <div class="itemizedlist">
+                <ul type="disc">
+                  <li>
+                    <p>
+                                    <code class="literal">database</code>
+                                </p>
+                    <p>
+                                    The name of the database to be loaded. This option duplicates the functionality of
+                                    this command's <code class="option">-s</code> command line option.
+                                </p>
+                  </li>
+                  <li>
+                    <p>
+                                    <code class="literal">dupsort</code>
+                                </p>
+                    <p>
+                                    Indicates whether duplicates are allowed in the database. A value of
+                                    <code class="literal">true</code> allows duplicates in the database.
+                                </p>
+                  </li>
+                </ul>
+              </div>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-f</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the file from which the database is to be loaded.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-n</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Do not overwrite existing keys in the database when loading into an already existing database.
+                        If a key/data pair cannot be loaded into the database for this reason, a warning message is
+                        displayed on the standard error output, and the key/data pair are skipped
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-h</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the environment's directory. This parameter is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-l</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Allows loading databases that were dumped with the Berkeley DB C
+                        product, when the dump file contains parameters not known to JE.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-s</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Overrides the database name, causing the data to be loaded into a database that uses the name
+                        supplied to this parameter.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-T</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                            Causes a flat text file to be loaded into the database.
+                        </p>
+              <p>
+                            The input must be paired lines of text, where the first line of the pair is the key item,
+                            and the second line of the pair is its corresponding data item.
+                        </p>
+              <p>
+                            A simple escape mechanism, where newline and backslash (\) characters are special, is
+                            applied to the text input. Newline characters are interpreted as record separators.
+                            Backslash characters in the text will be interpreted in one of two ways: If the backslash
+                            character precedes another backslash character, the pair will be interpreted as a literal
+                            backslash. If the backslash character precedes any other character, the two characters
+                            following the backslash will be interpreted as a hexadecimal specification of a single
+                            character; for example, \0a is a newline character in the ASCII character set.
+                        </p>
+              <p>
+                            For this reason, any backslash or newline characters that naturally occur in the text input
+                            must be escaped to avoid misinterpretation by db_load.
+                        </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-v</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Report periodic load status to the console.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-V</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Prints the database version number and then quits. All other command line options are ignored.
+                    </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+            For example:
+        </p>
+        <pre class="programlisting">&gt; <strong class="userinput"><code>java com.sleepycat.je.util.DbDump -h . -s VendorDB -f vendordb.txt</code></strong>
+&gt; <strong class="userinput"><code>java com.sleepycat.je.util.DbLoad -h . -f vendordb.txt</code></strong>
+&gt; </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="DbVerify"></a>DbVerify</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+            Examines the identified database for errors. Options are:
+        </p>
+        <div class="variablelist">
+          <dl>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-h</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the environment's directory. This parameter is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-q</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Suppress the printing of any error descriptions. Instead, simply exit success or failure.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-s</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Identifies the database to be verified. This parameter is required.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-V</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Prints the database version number and then quits. All other command line options are ignored.
+                    </p>
+            </dd>
+            <dt>
+              <span class="term">
+                <span class="bold">
+                  <strong><code class="option">-v</code> </strong>
+                </span>
+              </span>
+            </dt>
+            <dd>
+              <p>
+                        Report intermediate statistics every <span class="emphasis"><em>N</em></span> leaf nodes, where
+                        <span class="emphasis"><em>N</em></span> is the value that you provide this parameter.
+                    </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+            For example:
+        </p>
+        <pre class="programlisting">&gt; <strong class="userinput"><code>java com.sleepycat.je.util.DbVerify -h . -s VendorDB</code></strong>
+
+&lt;BtreeStats&gt;
+&lt;BottomInternalNodesByLevel total="1"&gt;
+  &lt;Item level="1" count="1"/&gt;
+&lt;/BottomInternalNodesByLevel&gt;
+&lt;InternalNodesByLevel total="1"&gt;
+  &lt;Item level="2" count="1"/&gt;
+&lt;/InternalNodesByLevel&gt;
+&lt;LeafNodes count="6"/&gt;
+&lt;DeletedLeafNodes count="0"/&gt;
+&lt;DuplicateCountLeafNodes count="0"/&gt;
+&lt;MainTreeMaxDepth depth="2"/&gt;
+&lt;DuplicateTreeMaxDepth depth="0"/&gt;
+&lt;/BtreeStats&gt;</pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="diskthreshold.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="managelogging.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Setting Disk Thresholds </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Logging</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

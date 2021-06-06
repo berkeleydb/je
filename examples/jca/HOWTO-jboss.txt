@@ -1,0 +1,217 @@
+How to use the Berkeley DB Java Edition JCA Resource Adapter in JBoss 3.2.6
+
+Prerequisites:
+
+JBoss 3.2.6
+ant 1.5.4 or later
+J2EE jar files (available in the JBoss distribution)
+
+This HOWTO describes:
+
+    (1) how to build and deploy the Berkeley DB Java Edition JCA Resource
+        Adapter under the JBoss Application Server (v3.2.6).
+
+    (2) how to run a simple smoke test to test that the RA has been
+        deployed correctly.
+
+    (3) some notes on writing applications that use the RA.
+
+The Berkeley DB Java Edition (JE) JCA code depends on J2EE libraries,
+but the regular JE code does not require these libraries in order
+to build.  Therefore, the "ant compile" target only builds the
+non-J2EE based code.  To build the JE JCA libraries and examples, it is
+necessary to have the appropriate J2EE jar files available and to use
+additional ant targets.
+
+Building the Resource Adapter
+-----------------------------
+
+- Edit <JE_HOME>/src/com/sleepycat/je/jca/ra/ra.xml.
+
+  (1) Search for "<transaction-support>"
+
+  (2) Select the appropriate value (LocalTransaction, NoTransaction, or
+      XATransaction), and comment out or delete the other two.  Don't use
+      multiple values of <transaction-support>.
+
+  (3) Change the value of the <security-permission-spec> to refer to the JE
+  environment directory.  JBoss needs this to grant access permission
+  to JE, otherwise security exceptions will result.
+
+  Note:
+
+  If you use XATransaction, all your databases must be transactional.
+
+- Edit <JE-HOME>/build.properties:
+
+  (1) Set j2ee.jarfile to an appropriate j2ee.jar. For example,
+
+          j2ee.jarfile = <JBOSS-HOME>/client/jbossall-client.jar
+
+       The value specified for j2ee.jarfile should contain all the classes
+       necessary for proper execution of the JCA Resource Adapter (for
+       example, JNDI).  The jbossall-client.jar is sufficient.
+
+  (2) Set example.resources to an appropriate value, e.g.
+
+         example.resources = <JE-HOME>/examples/resources/jboss
+
+      The example.resources property should contain a jndi.properties file
+      that is correct for the target environment.  If you are using the
+      jndi.properties supplied in the {examples.resources} directory,
+      review it to make sure it has correct values.
+
+- With the current directory set to <JE-HOME>, execute
+
+     ant jca
+
+  This creates a jejca.rar Resource Adapter Archive in <JE_HOME>/build/lib.
+  The jejca.rar archive contains a je.jar file.
+
+- Deploy the JE Resource Adapter (<JE_HOME>/build/lib/jejca.rar),
+  using an appropriate JBoss deployment tool or by simply copying it
+  to the JBoss deployment directory.  For example,
+
+    copy <JE_HOME>/build/lib/jejca.rar <JBOSS>/server/default/deploy
+
+- If the JBoss server is not already running, start it now.
+
+Building the "SimpleBean" Example:
+----------------------------------
+
+The SimpleBean example is an EJB that has two methods, get() and
+put(), which get and put data using the JE Resource Adapter on the
+JBoss server.  You can use this example to test the JE Resource
+Adapter that you just deployed.
+
+- Edit <JE_HOME>/build.properties:
+
+  (1) Set example.jca.srcdir to <JE_HOME>/examples/jca/jboss
+
+        example.jca.srcdir = <JE_HOME>/examples/jca/jboss
+
+      This is the directory where the JBoss specific deployment descriptor
+      for the "simple" EJB resides.
+
+  (2) Set example.jca.descriptorname to jboss.xml.
+
+        example.jca.desciptorname = jboss.xml
+
+      This is the name of the jboss specific deployment descriptor for the
+      "simple" EJB.
+
+- Edit the source code for SimpleBean to refer to the correct
+  directory for the JE Environment.  The JE Environment directory is
+  the same one that was specified in the ra.xml file under the
+  <security-permission-spec> tag.  This directory should exist and
+  the JBoss server should have write permission to that directory.
+  The source code for SimpleBean is in
+
+     <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+  To set the directory, change the value of JE_ENV at the top of the
+  class.  For example,
+
+     private final String JE_ENV = "/tmp/je_store";
+
+- Edit the jboss.xml descriptor in
+
+     <JE_HOME>/examples/jca/jboss/jboss.xml
+
+  to use the jndi-name that corresponds to the transaction-support
+  value in the ra.xml file above.  That is, select one of the
+  following three lines and comment out or remove the other two:
+
+            <jndi-name>java:/LocalTransJE</jndi-name>
+            <jndi-name>java:/NoTransJE</jndi-name>
+            <jndi-name>java:/XATransJE</jndi-name>
+
+- Build the SimpleBean example and jar file.
+
+     ant jca-examples
+
+  This builds a jejca-example.jar file and places it in the
+  <JE_HOME>/build/lib directory.  The jar file contains the SimpleBean
+  classes, and the ejb-jar.xml and jboss.xml descriptor files.
+
+- Deploy the jejca-example jar by copying it to a deployment directory
+  (or use an appropriate deployment tool).  For example,
+
+    copy <JE_HOME>/build/lib/jejca-example.jar <JBOSS>/server/default/deploy
+
+- Depending on which transaction support you have selected, examine the
+  corresponding RA service configuration file in
+
+     <JE_HOME>/examples/jca/jboss
+
+  (e.g. je-localtx-ds.xml).  Ensure that the jndi-name matches the
+  name that you selected in the jboss.xml file in the same directory.
+
+- Deploy the RA service configuration file (e.g. je-localtx-ds.xml) by
+  copying it to the JBoss server deployment directory or using an
+  appropriate deployment tool.  For example,
+
+     copy <JE_HOME>/examples/jca/jboss/je-localtx-ds.xml
+          <JBOSS>/server/default/deploy
+
+Running the "SimpleBean" Example:
+---------------------------------
+
+- Verify that the JBoss server has been started.
+
+- Run the client:
+
+    ant testex-jejcasimple -Dkey=foo -Ddata=bar
+
+  This should produce:
+
+    Buildfile: build.xml
+
+    testex-jejcasimple:
+     [java] Created Simple
+     [java] Simple.get('foo') = bar
+
+    BUILD SUCCESSFUL
+    Total time: 3 seconds
+
+If you don't see
+
+     [java] Simple.get('foo') = bar
+
+printed (for example, you see Simple.get('foo') = null), there may be
+a configuration problem.  Check the server logfile for details.
+
+Implementation Notes for Applications Using the RA
+--------------------------------------------------
+
+Please refer to the SimpleBean example in
+
+    <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+- Obtain a JEConnection using the
+
+     JEConnectionFactory.getConnection()
+
+  method and passing it an environment home directory and
+  EnvironmentConfig object. Once the JEConnection has been obtained,
+  you can obtain the Environment handle by calling
+
+     JEConnection.getEnvironment();
+
+- Database handle cache available
+
+Because bean business methods may be relatively short, the underlying
+ManagedConnection object for JE provides a Database handle cache.
+This speeds up the Database open operation since the handle
+(generally) already exists in the cache.  Normally, a program opens a
+database using the Environment.openDatabase() method.  In the EJB
+environment, the program should call JEConnection.openDatabase()
+instead.  Database handles obtained using this method should not be
+close()'d as the ManagedConnection code does that when the
+ManagedConnection is closed.
+
+- Databases under XA must be transactional
+
+If you are using the XATransaction environment (as specified in the
+ra.xml file), all JE Databases used in that environment must be
+transactional.

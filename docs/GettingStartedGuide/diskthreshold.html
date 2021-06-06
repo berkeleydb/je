@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Setting Disk Thresholds</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="cachesize.html" title="Sizing the Cache" />
+    <link rel="next" href="commandlinetools.html" title="The Command Line Tools" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Setting Disk Thresholds</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="cachesize.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 12. Administering Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="commandlinetools.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="diskthreshold"></a>Setting Disk Thresholds</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+         You can control the maximum amount of disk space that JE can use by setting two different
+         threshold values. If JE exceeds either of these threshold values, writes will no longer
+         be allowed to the database. Instead, when a write is attempted, <a class="ulink" href="../java/com/sleepycat/je/DiskLimitException.html" target="_top">DiskLimitException</a> is thrown.
+         The thresholds you can set are:
+     </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                 <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a>
+             </p>
+            <p>
+                 Specifies an upper limit on the total number of bytes that can be used for data storage.
+                 By default, this property is set to <code class="literal">0</code>, which means no upper
+                 limit is enforced. Instead, the value set for <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a> will control your
+                 how much disk space your database is allowed to consume.
+             </p>
+            <p>
+                 If multiple JE environments share the same storage volume, Oracle recommends that you
+                 set <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> to a non-zero value, especially if an external application or service is
+                 also consuming space on the disk volume.
+             </p>
+            <p>
+                 This value can be managed using the <a class="ulink" href="../java/com/sleepycat/je/EnvironmentMutableConfig.html#setMaxDisk-long-" target="_top">EnvironmentMutableConfig.setMaxDisk()</a> method.
+             </p>
+          </li>
+          <li>
+            <p>
+                 <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a>
+             </p>
+            <p>
+                 Specifies the minimum amount of free space to maintain on the disk volume. The
+                 default value is 5 GB, which is large enough to allow manual recovery if the
+                 free space threshold is exceeded.
+             </p>
+            <p>
+                 If <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> is set to <code class="literal">0</code>, then the total amount of 
+                 space your JE database can consume is:
+             </p>
+            <pre class="programlisting">&lt;disk_size&gt; - &lt;FREE_DISK&gt;</pre>
+            <p>
+                 So for a 300 GB volume and a free disk size of 5 GB, your database can grow 
+                 to consume 295 GB.
+             </p>
+            <p>
+                 If <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> is set to a non-zero value, then the total amount of space
+                 your JE database can consume is:
+             </p>
+            <pre class="programlisting">&lt;MAX_DISK&gt; - &lt;FREE_DISK&gt;</pre>
+            <p>
+                 So for the same 300 GB volume, if max disk is 100 GB and free disk is 5 GB, then
+                 your database can consume at most 95 GB.
+             </p>
+            <p>
+                 Be aware that the subtraction shown, above, is performed only if <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a> is explicitly
+                 set or <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> is greater than 10GB. See the <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a> Javadoc for more information.
+             </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+         For usage scenarios, see the <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> Javadoc.
+     </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="cachesize.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="commandlinetools.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Sizing the Cache </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> The Command Line Tools</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Listening for Events</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="monitors.html" title="Chapter 5. Writing Monitor Nodes" />
+    <link rel="prev" href="monitors.html" title="Chapter 5. Writing Monitor Nodes" />
+    <link rel="next" href="repexample.html" title="Chapter 6. Replication Examples" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Listening for Events</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="monitors.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 5. Writing Monitor Nodes</th>
+          <td width="20%" align="right"> <a accesskey="n" href="repexample.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="events"></a>Listening for Events</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+           One of the things the <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html" target="_top">Monitor</a> class allows you to do is to
+           listen for certain events that occur in the composition of the
+           replication group. Your Monitor can be notified of these events
+           by running an event listener using <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html#startListener(com.sleepycat.je.rep.monitor.MonitorChangeListener)" target="_top">Monitor.startListener()</a>.
+           For example:
+       </p>
+      <p>
+           <code class="methodname">Monitor.startListener()</code> takes a single
+           argument, and that is an instance of <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/MonitorChangeListener.html" target="_top">MonitorChangeListener</a>.
+           <code class="classname">MonitorChangeListener</code> is an interface
+           that you implement for the purpose of handling replication
+           group events.
+       </p>
+      <p>
+           There are four events that the change listener can be notified
+           of. Each of these are represented by a unique class:
+       </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                   <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/GroupChangeEvent.html" target="_top">GroupChangeEvent</a>
+               </p>
+            <p>
+                   A new instance of this event is generated each time
+                   an electable or monitor node, but not a secondary
+                   node, is added or removed from the replication group.
+               </p>
+          </li>
+          <li>
+            <p>
+                   <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/NewMasterEvent.html" target="_top">NewMasterEvent</a>
+               </p>
+            <p>
+                  A new instance of this event is generated each time a
+                  new Master is elected. 
+               </p>
+          </li>
+          <li>
+            <p>
+                   <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/JoinGroupEvent.html" target="_top">JoinGroupEvent</a>
+               </p>
+            <p>
+                  A new instance of this event is generated each time an
+                  electable or secondary node, but not a monitor node,
+                  joins a group. The event is generated on a "best
+                  effort" basis. It may not be generated, for example,
+                  if the joining node was unable to communicate with the
+                  monitor due to a network problem. The application must
+                  be resilient in the face of such missing events.
+               </p>
+          </li>
+          <li>
+            <p>
+                   <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/LeaveGroupEvent.html" target="_top">LeaveGroupEvent</a>
+               </p>
+            <p>
+                 A new instance of this event is generated each time an
+                 electable or secondary node, but not a monitor node,
+                 node leaves the group. The event is generated on a
+                 "best effort" basis. It may not be generated if the
+                 node leaving the group dies (for example, it was
+                 killed) before it has a chance to generate the event,
+                 or if the node was unable to communicate with the
+                 monitor due to a network problem. The application must
+                 be resilient in the face of such missing events.
+               </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+           For example, an implementation of the <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/MonitorChangeListener.html" target="_top">MonitorChangeListener</a>
+           interface might be:
+       </p>
+      <pre class="programlisting">class MyChangeListener implements MonitorChangeListener {
+
+   public void notify(NewMasterEvent newMasterEvent) {
+
+    String newNodeName = newMasterEvent.getNodeName();
+
+    InetSocketAddress newMasterAddr = 
+           newMasterEvent.getSocketAddress();
+    String newMasterHostName = newMasterAddr.getHostName();
+    int newMasterPort = newMasterAddr.getPort();
+
+    // Do something with this information here.
+   }
+
+   public void notify(GroupChangeEvent groupChangeEvent) {
+    ReplicationGroup repGroup = groupChangeEvent.getRepGroup();
+
+    // Do something with the new ReplicationGroup composition here.
+   }
+
+   ...
+
+} </pre>
+      <p>
+       You can then start the Monitor listener as follows:
+   </p>
+      <pre class="programlisting"> // Initialize the monitor node config
+ReplicationConfig config = 
+       new ReplicationConfig("MyRepGroupName",
+                             "mon1",
+                             "monhost1.acme.com:7000");
+config.setNodeType(NodeType.MONITOR);
+config.setHelperHosts("node1.acme.com:5000,node2.acme.com:5000");
+
+Monitor monitor = new Monitor(config);
+
+// If the monitor has not been registered as a member of the 
+// group, register it now. register() returns the current node 
+// that is the master.
+ReplicationNode currentMaster = monitor.register();
+
+<strong class="userinput"><code>// Start up the listener, so that it can be used to track changes 
+// in the master node, or group composition.
+monitor.startListener(new MyChangeListener());</code></strong> </pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="monitors.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="monitors.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="repexample.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 5. Writing Monitor Nodes </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 6. Replication Examples</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- ===================================================================== -->
+<!--                                                                       -->
+<!--  JE JBoss MBean Service Configuration for                             -->
+<!--  com.sleepycat.je.jmx.JEMonitor and                                   -->
+<!--  je.JEApplicationMBean                         -->
+<!--                                                                       -->
+<!-- ===================================================================== -->
+
+<server>
+
+  <classpath codebase="." archives="je.jar,jejmx.jar"/>
+
+  <!-- This mbean can only access a JE environment which is already active -->
+  <mbean code="com.sleepycat.je.jmx.JEMonitor" 
+         name="user:service=JEMonitor">
+     <constructor> 
+         <!-- Environment directory -->
+     	 <arg type="java.lang.String" value="c:/tmp/je_store"/>
+     </constructor>
+  </mbean>
+
+  <!-- 
+
+       This mbean can configure and open a JE environment, as well as provide
+       monitoring support. To enable this mbean,
+           -create a jejmx-example.jar: cd <jehome>; ant jmx-examples
+           -add jejmx-example.jar to the classpath property 
+           -uncomment the section below.
+
+  <classpath codebase="." archives="je.jar,jejmx.jar,jejmx-example.jar"/>
+
+  <mbean code="jmx.JEApplicationMBean" 
+          name="user:service=JEApplicationMBean">
+     <constructor>  
+     	 <arg type="java.lang.String" value="c:/tmp/je_store2"/>
+     </constructor>
+  </mbean>
+
+  -->
+
+</server>

@@ -1,0 +1,82 @@
+package asm.com.sleepycat.persist.test;
+import java.util.*;
+import org.objectweb.asm.*;
+import org.objectweb.asm.attrs.*;
+public class Enhanced0Dump implements Opcodes {
+
+public static byte[] dump () throws Exception {
+
+ClassWriter cw = new ClassWriter(false);
+FieldVisitor fv;
+MethodVisitor mv;
+AnnotationVisitor av0;
+
+cw.visit(V1_5, ACC_SUPER, "com/sleepycat/persist/test/Enhanced0", null, "java/lang/Object", null);
+
+cw.visitSource("Enhanced0.java", null);
+
+{
+av0 = cw.visitAnnotation("Lcom/sleepycat/persist/model/Entity;", true);
+av0.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f1", "Ljava/lang/String;", null, null);
+{
+av0 = fv.visitAnnotation("Lcom/sleepycat/persist/model/PrimaryKey;", true);
+av0.visitEnd();
+}
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f2", "I", null, null);
+{
+av0 = fv.visitAnnotation("Lcom/sleepycat/persist/model/SecondaryKey;", true);
+av0.visitEnum("relate", "Lcom/sleepycat/persist/model/Relationship;", "MANY_TO_ONE");
+av0.visitEnd();
+}
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f3", "Ljava/lang/String;", null, null);
+{
+av0 = fv.visitAnnotation("Lcom/sleepycat/persist/model/SecondaryKey;", true);
+av0.visitEnum("relate", "Lcom/sleepycat/persist/model/Relationship;", "MANY_TO_ONE");
+av0.visitEnd();
+}
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f4", "Ljava/lang/String;", null, null);
+{
+av0 = fv.visitAnnotation("Lcom/sleepycat/persist/model/SecondaryKey;", true);
+av0.visitEnum("relate", "Lcom/sleepycat/persist/model/Relationship;", "MANY_TO_ONE");
+av0.visitEnd();
+}
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f5", "I", null, null);
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f6", "Ljava/lang/String;", null, null);
+fv.visitEnd();
+}
+{
+fv = cw.visitField(ACC_PRIVATE, "f7", "Ljava/lang/String;", null, null);
+fv.visitEnd();
+}
+{
+mv = cw.visitMethod(0, "<init>", "()V", null, null);
+mv.visitCode();
+mv.visitVarInsn(ALOAD, 0);
+mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(1, 1);
+mv.visitEnd();
+}
+cw.visitEnd();
+
+return cw.toByteArray();
+}
+}

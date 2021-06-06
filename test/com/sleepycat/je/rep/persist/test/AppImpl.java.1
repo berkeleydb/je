@@ -1,0 +1,308 @@
+/*-
+ * See the file LICENSE for redistribution information.
+ *
+ * Copyright (c) 2002, 2014 Oracle and/or its affiliates.  All rights reserved.
+ *
+ */
+
+package com.sleepycat.je.rep.persist.test;
+
+import junit.framework.TestCase;
+
+import com.sleepycat.je.rep.persist.test.AppBaseImpl;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+import com.sleepycat.persist.evolve.Mutations;
+import com.sleepycat.persist.evolve.Renamer;
+import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.EntityModel;
+import com.sleepycat.persist.model.Persistent;
+import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.persist.model.Relationship;
+import com.sleepycat.persist.model.SecondaryKey;
+
+public class AppImpl extends AppBaseImpl {
+
+    private PrimaryIndex<Integer, RenamedData> priIndex;
+    private SecondaryIndex<Integer, Integer, RenamedData> secIndex;
+    private SecondaryIndex<Integer, Integer, DataA> subclassAIndex;
+
+    protected void setupConfig(final Mutations mutations,
+                               final EntityModel model) {
+        model.registerClass(DataA.class);
+        model.registerClass(DataB.class);
+        model.registerClass(NewDataC.class);
+        final String APP_IMPL = AppImpl.class.getName();
+        mutations.addRenamer(new Renamer(APP_IMPL + "$Data", 0,
+                                         APP_IMPL + "$RenamedData"));
+        mutations.addRenamer(new Renamer(APP_IMPL + "$Data", 0, "secKey",
+                                         "renamedSecKey"));
+    }
+
+    protected void init() {
+        priIndex = store.getPrimaryIndex(Integer.class, RenamedData.class);
+        secIndex = store.getSecondaryIndex(priIndex, Integer.class,
+                                           "renamedSecKey");
+        subclassAIndex = store.getSubclassIndex(priIndex, DataA.class,
+                                                Integer.class, "secKeyA");
+    }
+
+    public void writeData(final int key) {
+        priIndex.put(new RenamedData(key));
+    }
+
+    public void writeDataA(final int key) {
+        priIndex.put(new DataA(key));
+    }
+
+    public void writeDataB(final int key) {
+        priIndex.put(new DataB(key));
+    }
+
+    public void writeDataC(final int key) {
+        priIndex.put(new NewDataC(key));
+    }
+
+    public void writeData2(final int key) {
+        /* May throw IndexNotAvailableException. */
+        final PrimaryIndex<Integer, NewData2> index =
+            store.getPrimaryIndex(Integer.class, NewData2.class);
+        index.put(new NewData2(key));
+    }
+
+    public void readData(final int key) {
+        final RenamedData data = priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final RenamedData data2 = secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+
+        /* May throw IndexNotAvailableException. */
+        SecondaryIndex<Integer, Integer, RenamedData> newSecIndex =
+            store.getSecondaryIndex(priIndex, Integer.class, "newSecKey");
+        final RenamedData data3 = newSecIndex.get(key);
+        if (data.newSecKey == null) {
+            TestCase.assertNull(data3);
+        } else {
+            TestCase.assertNotNull(data3);
+            TestCase.assertEquals(key, data3.priKey);
+        }
+    }
+
+    public void readDataA(final int key) {
+        final DataA data = (DataA) priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final DataA data2 = (DataA) secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+
+        final DataA data3 = subclassAIndex.get(key);
+        TestCase.assertNotNull(data3);
+        TestCase.assertEquals(key, data3.priKey);
+    }
+
+    public void readDataB(final int key) {
+        final DataB data = (DataB) priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final DataB data2 = (DataB) secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+
+        /* May throw IndexNotAvailableException. */
+        final SecondaryIndex<Integer, Integer, DataB> newSubclassBIndex =
+            store.getSubclassIndex(priIndex, DataB.class, Integer.class,
+                                   "newSecKeyB");
+        final DataB data3 = newSubclassBIndex.get(key);
+        if (data.newSecKeyB == null) {
+            TestCase.assertNull(data3);
+        } else {
+            TestCase.assertNotNull(data3);
+            TestCase.assertEquals(key, data3.priKey);
+        }
+    }
+
+    public void readDataC(final int key) {
+
+        /*
+         * Call getSubclassIndex before reading via primary and existing (old)
+         * secondary index, since the latter is not possible until we've
+         * written a record.  We want to ensure that getSubclassIndex throws
+         * IndexNotAvailableException.
+         */
+        final SecondaryIndex<Integer, Integer, NewDataC> subclassCIndex =
+            store.getSubclassIndex(priIndex, NewDataC.class, Integer.class,
+                                   "secKeyC");
+
+        final NewDataC data = (NewDataC) priIndex.get(key);
+        TestCase.assertNotNull(data);
+
+        final NewDataC data2 = (NewDataC) secIndex.get(key);
+        TestCase.assertNotNull(data2);
+        TestCase.assertEquals(key, data2.priKey);
+
+        final NewDataC data3 = subclassCIndex.get(key);
+        TestCase.assertNotNull(data3);
+        TestCase.assertEquals(key, data3.priKey);
+    }
+
+    public void readData2(final int key) {
+        /* May throw IndexNotAvailableException. */
+        final PrimaryIndex<Integer, NewData2> index =
+            store.getPrimaryIndex(Integer.class, NewData2.class);
+        NewData2 data = index.get(key);
+        TestCase.assertNotNull(data);
+    }
+
+    @Entity(version=1)
+    static class RenamedData {
+
+        @PrimaryKey
+        int priKey;
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        int renamedSecKey;
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        Integer newSecKey;
+
+        private String newField;
+
+        RenamedData(final int priKey) {
+            this.priKey = priKey;
+            renamedSecKey = priKey;
+            newSecKey = priKey;
+            newField = "new";
+        }
+
+        private RenamedData() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static class DataA extends RenamedData {
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        int secKeyA;
+
+        DataA(final int priKey) {
+            super(priKey);
+            secKeyA = priKey;
+        }
+
+        private DataA() {} // for deserialization
+    }
+
+    @Persistent(version=1)
+    static class DataB extends RenamedData {
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        Integer newSecKeyB;
+
+        DataB(final int priKey) {
+            super(priKey);
+            newSecKeyB = priKey;
+        }
+
+        private DataB() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static class NewDataC extends RenamedData {
+
+        @SecondaryKey(relate=Relationship.ONE_TO_ONE)
+        int secKeyC;
+
+        NewDataC(final int priKey) {
+            super(priKey);
+            secKeyC = priKey;
+        }
+
+        private NewDataC() {} // for deserialization
+    }
+
+    @Entity(version=0)
+    static class NewData2 {
+
+        @PrimaryKey
+        int priKey;
+
+        NewData2(final int priKey) {
+            this.priKey = priKey;
+        }
+
+        private NewData2() {} // for deserialization
+    }
+
+    public void insertNullAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        TestCase.assertTrue(index.putNoOverwrite(new AnimalEntity(1, null)));
+    }
+
+    public void readNullAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        AnimalEntity e = index.get(1);
+        TestCase.assertNotNull(e);
+        TestCase.assertNull(e.animal);
+    }
+
+    public void insertDogAnimal() {
+        TestCase.fail();
+    }
+
+    public void readDogAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        AnimalEntity e = index.get(2);
+        TestCase.assertNotNull(e);
+        TestCase.assertTrue(e.animal instanceof Dog);
+    }
+
+    public void insertCatAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        TestCase.assertTrue(index.putNoOverwrite(new AnimalEntity(3,
+                                                                  new Cat())));
+    }
+
+    public void readCatAnimal() {
+        final PrimaryIndex<Integer, AnimalEntity> index =
+            store.getPrimaryIndex(Integer.class, AnimalEntity.class);
+        AnimalEntity e = index.get(3);
+        TestCase.assertNotNull(e);
+        TestCase.assertTrue(e.animal instanceof Cat);
+    }
+
+    @Entity(version=0)
+    static class AnimalEntity {
+
+        @PrimaryKey
+        int id;
+
+        Animal animal;
+
+        AnimalEntity(final int id, final Animal animal) {
+            this.id = id;
+            this.animal = animal;
+        }
+
+        private AnimalEntity() {} // for deserialization
+    }
+
+    @Persistent(version=0)
+    static abstract class Animal {
+    }
+
+    @Persistent(version=0)
+    static class Dog extends Animal {
+        int woof = 999999;
+    }
+
+    @Persistent(version=0)
+    static class Cat extends Animal {
+        String meow = "meow?";
+    }
+}

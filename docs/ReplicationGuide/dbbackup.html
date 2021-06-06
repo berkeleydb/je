@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Backing up a Replicated Application</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="utilities.html" title="Chapter 4. Utilities" />
+    <link rel="prev" href="logfile-restore.html" title="Restoring Log Files" />
+    <link rel="next" href="enablerep.html" title="Converting Existing Environments for Replication" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Backing up a Replicated Application</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="logfile-restore.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 4. Utilities</th>
+          <td width="20%" align="right"> <a accesskey="n" href="enablerep.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="dbbackup"></a>Backing up a Replicated Application</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            In a stand-alone, non-replicated JE application, the log is
+            strictly append only. You use the <a class="ulink" href="../java/com/sleepycat/je/util/DbBackup.html" target="_top">DbBackup</a> class to help
+            applications coordinate while database operations are
+            continuing to add to the log. This helper class does this by
+            defining the log files needed for a consistent backup, and then freezes
+            all changes to those files, including any changes that might be
+            made by JE background operations. The application can copy
+            that defined set of files and finish operation without checking
+            for the ongoing creation of new files. Also, there will be no
+            need to check for a newer version of the last file on the next
+            backup. 
+        </p>
+      <p>
+            When you are using JE HA, however, log files other than the
+            last log file might be modified as part of the HA sync-up
+            operation. Though a rare occurrence, such
+            modifications would invalidate the backup because there is the
+            chance that files are modified after being copied.
+        </p>
+      <p>
+            If this happens, <a class="ulink" href="../java/com/sleepycat/je/util/DbBackup.html#endBackup()" target="_top">DbBackup.endBackup()</a> throws a
+            <a class="ulink" href="../java/com/sleepycat/je/rep/LogOverwriteException.html" target="_top">LogOverwriteException</a>. Upon encountering this exception, the
+            backup files should be discarded and a new set of backup files
+            created.
+        </p>
+      <p>
+            For example:
+        </p>
+      <pre class="programlisting">        for (int i=0; i &lt; BACKUP_RETRIES; i++) {
+            final ReplicatedEnvironment repEnv = ...;
+            final DbBackup backupHelper = new DbBackup(repEnv);
+            
+            backupHelper.startBackup();
+            String[] filesForBackup = 
+                backupHelper.getLogFilesInBackupSet();
+
+            /* Copy the files to archival storage. */
+            myApplicationCopyMethod(filesForBackup);
+            
+            try {
+                backupHelper.endBackup();
+                break;
+            } catch (LogOverwriteException e) {
+                /* Remove backed up files. */ 
+                myApplicationCleanupMethod();
+                continue;
+            } finally {
+                repEnv.close();
+            }
+        } </pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="logfile-restore.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="utilities.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="enablerep.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Restoring Log Files </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Converting Existing Environments for Replication</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

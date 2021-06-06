@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Using Time to Live</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="DBEntry.html" title="Chapter 8. Database Records" />
+    <link rel="prev" href="usingDbt.html" title="Reading and Writing Database Records" />
+    <link rel="next" href="bindAPI.html" title="Using the BIND APIs" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Using Time to Live</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="usingDbt.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 8. Database Records</th>
+          <td width="20%" align="right"> <a accesskey="n" href="bindAPI.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="timetolive"></a>Using Time to Live</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="timetolive.html#ttl-specify">Specifying a TTL Value</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="timetolive.html#ttl-update">Updating a TTL Value</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="timetolive.html#ttl-remove">Deleting TTL Expiration</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <span>
+    <p>
+        Time to Live (TTL) is a mechanism that allows you to automatically
+        expire 
+            
+            <span>database records.</span>
+         TTL is expressed as the amount of time data is allowed to live in
+         the 
+            
+            <span>database.</span>
+         Data which has reached its expiration timeout value can no longer
+         be retrieved, and will not appear in any 
+            
+            <span>database</span>
+         statistics. Whether the data is physically removed from the 
+            
+            <span>database</span>
+         is determined by an internal mechanism that is not
+         user-controllable. 
+     </p>
+     <p>
+         TTL represents a minimum guaranteed time to live. Data expires on
+         hour or day boundaries. This means that with a one hour TTL, there
+         can be as much as two hours worth of unexpired data. For example
+         (using a time format of hour:minute:second), given a one hour TTL,
+         data written between 00:00:00.000 and 00:59:59.999 will expire at
+         02:00:00.000 because the data is guaranteed to expire no less than
+         one hour from when it is written. 
+     </p>
+     <p>
+         Expired data is invisible to queries and 
+            
+            <span>database</span>
+         statistics, but even so it is using disk space until it has been
+         purged.  The expired data is purged from disk at some point in
+         time after its expiration date. The exact time when the data is
+         purged is driven by internal mechanisms and the workload on your
+            
+            <span>database.</span>
+     </p>
+     <p>
+         The TTL value for a 
+            
+            <span>database record</span>
+         can be updated at any time before the expiration value has been
+         reached. Data that has expired can no longer be modified, and this
+         includes its TTL value. 
+    </p>
+    <p>
+        TTL is more efficient than manual user-deletion of the 
+            
+            <span>record</span>
+        because it avoids the overhead of writing a database log entry for
+        the data deletion. The deletion also does not appear in the
+        replication stream.
+    </p>
+    <p>
+        The following provides a brief introduction to using Time to Live.
+        For a more complete description of this mechanism, see the
+        <a class="ulink" href="../java/com/sleepycat/je/WriteOptions.html" target="_top">
+            com.sleepycat.je.WriteOptions javadoc.
+        </a>
+    </p>
+</span>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="ttl-specify"></a>Specifying a TTL Value</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                TTL values are specified on a record by record basis using
+                the <code class="classname">WriteOptions</code> class, which can
+                but used by various <code class="methodname">put()</code> methods
+                when writing to the database. For example, variations of
+                <code class="methodname">Database.put()</code>,
+                <code class="methodname">PrimaryIndex.put()</code>, and 
+                <code class="methodname">Cursor.put()</code> exist that accept a 
+                <code class="classname">WriteOptions</code> class instance.
+            </p>
+        <p>
+                <code class="classname">WriteOptions</code> allows
+                you to identify the number of days or hours the record will exist
+                in the database before expiring. A duration interval specified in
+                days is recommended because this results in the least amount of
+                storage consumed in the store. However, if you want a TTL value
+                that is not an even multiple of days, then specify the TTL
+                value in hours.
+            </p>
+        <p>
+                The code example from
+                <a class="xref" href="usingDbt.html#databaseWrite" title="Writing Records to the Database">Writing Records to the Database</a>
+                can be extended to specify a TTL value of 5 days like this:
+            </p>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+<strong class="userinput"><code>import com.sleepycat.je.Put;
+import com.sleepycat.je.WriteOptions;</code></strong>
+
+
+...
+
+// Environment and database opens omitted for clarity.
+// Environment and database must NOT be opened read-only.
+
+String aKey = "myFirstKey";
+String aData = "myFirstData";
+
+try {
+    DatabaseEntry theKey = new DatabaseEntry(aKey.getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry(aData.getBytes("UTF-8"));
+
+    <strong class="userinput"><code>WriteOptions wo = new WriteOptions();
+    // This sets the TTL using day units. Another variation
+    // of setTTL() exists that accepts a TimeUnit class instance.
+    wo.setTTL(5);
+    myDatabase.put(null,             // Transaction handle.
+                   theKey,           // Record's key.
+                   theData,          // Record's data.
+                   Put.NO_OVERWRITE, // If the record exists,
+                                     // do not overwrite it.
+                   wo);              // WriteOptions instance.</code></strong>
+
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="ttl-update"></a>Updating a TTL Value</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                To update the expiration time for a record, you update the
+                record as normal, and at the same time specify the new expiration
+                time. However, you must also indicate that the expiration time
+                is to be updated. By default, you can modify the record and
+                the expiration time will not be modified, even if you specify a
+                new TTL value for the record.
+            </p>
+        <p>
+                To indicate that the the expiration time is to be updated,
+                specify <code class="literal">true</code> to the
+                <code class="methodname">WriteOptions.setUpdateTTL()</code>
+                method. For example, using the previous example, to change
+                the TTL value to 10 days, do the following:
+            </p>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Put;
+import com.sleepycat.je.WriteOptions;
+
+
+...
+
+// Environment and database opens omitted for clarity.
+// Environment and database must NOT be opened read-only.
+
+String aKey = "myFirstKey";
+String aData = "myFirstData";
+
+try {
+    DatabaseEntry theKey = new DatabaseEntry(aKey.getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry(aData.getBytes("UTF-8"));
+
+    WriteOptions wo = new WriteOptions();
+    // This sets the TTL using day units. Another variation
+    // of setTTL() exists that accepts a TimeUnit class instance.
+    wo.setTTL(5);
+    <strong class="userinput"><code>// If the record currently exists, update the TTL value
+    wo.setUpdateTTL(true);</code></strong>
+    myDatabase.put(null,             // Transaction handle.
+                   theKey,           // Record's key.
+                   theData,          // Record's data.
+                   <strong class="userinput"><code>Put.OVERWRITE,    // If the record exists,
+                                     // overwrite it.</code></strong>
+                   wo);              // WriteOptions instance.
+
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="ttl-remove"></a>Deleting TTL Expiration</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                If you have set a TTL value for a record and you later decide you
+                do not want it to ever automatically expire, you can turn off
+                TTL by setting a TTL value of <code class="literal">0</code>:
+            </p>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Put;
+import com.sleepycat.je.WriteOptions;
+
+
+...
+
+// Environment and database opens omitted for clarity.
+// Environment and database must NOT be opened read-only.
+
+String aKey = "myFirstKey";
+String aData = "myFirstData";
+
+try {
+    DatabaseEntry theKey = new DatabaseEntry(aKey.getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry(aData.getBytes("UTF-8"));
+
+    WriteOptions wo = new WriteOptions();
+    <strong class="userinput"><code>// Turn off automatic expiration of this record.
+    wo.setTTL(0);</code></strong>
+    wo.setUpdateTTL(true);
+    myDatabase.put(null,             // Transaction handle.
+                   theKey,           // Record's key.
+                   theData,          // Record's data.
+                   Put.OVERWRITE,    // If the record exists,
+                                     // overwrite it.
+                   wo);              // WriteOptions instance.
+
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="usingDbt.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="DBEntry.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="bindAPI.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Reading and Writing Database Records </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Using the BIND APIs</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

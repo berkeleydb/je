@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Configuring Two-Node Groups</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="prev" href="timesync.html" title="Time Synchronization" />
+    <link rel="next" href="txn-management.html" title="Chapter 3. Transaction Management" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Configuring Two-Node Groups</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="timesync.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Replication API First Steps</th>
+          <td width="20%" align="right"> <a accesskey="n" href="txn-management.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="two-node"></a>Configuring Two-Node Groups</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            A group needs at least a simple majority of active nodes in
+            order to elect a Master. This means that for a replication group of size
+            two, the failure of a single node means that the group as a
+            whole is no longer available. In some cases, it may be
+            desirable for the application to proceed anyway. If you are
+            using a two-node group, and you decide you want your application
+            to continue even if one of the nodes is unavailable, then you
+            can trade off some of your durability guarantees, as well as
+            potentially some of your performance, in exchange for a higher
+            availability guarantee.
+        </p>
+      <p>
+            JE HA can explicitly relax the requirement for a simple majority of
+            nodes. This is only possible when the replication group size is
+            two. The application does this by designating one of the two
+            electable nodes as a Primary node. The other node in the group is
+            implicitly the Non-Primary node.
+        </p>
+      <p>
+            At any given instant in time, exactly one of the two nodes can
+            be designated as the Primary. The application is responsible
+            for ensuring that this is the case.
+        </p>
+      <p>
+            When the Non-Primary node is not available, the number of nodes
+            required for a simple majority is reduced to one. As a
+            consequence, the Primary is able to elect itself as the Master
+            and then commit transactions that require a simple majority to
+            commit. The Primary is said to be <span class="emphasis"><em>active</em></span>
+            when it is operating in this state. The transition from a
+            designated Primary to an active Primary happens when the
+            Primary needs to contact the Non-Primary node, but fails to do so
+            for one of the following reasons:
+        </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                    An election is initiated by the Primary to determine a
+                    new Master. This might happen because the Primary is
+                    just starting up, or because the Primary has lost
+                    contact with the Non-Primary. In either case, if the
+                    election fails to establish a Master, the Primary is
+                    activated and it becomes the Master.
+                </p>
+            <p>
+                    Note that the Primary will attempt to locate a Master
+                    until it has hit the retry limit as defined by the
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#ELECTIONS_PRIMARY_RETRIES" target="_top">ELECTIONS_PRIMARY_RETRIES</a> configuration property. But
+                    until the Primary has reached that limit, it will not
+                    transition to the active state.
+                </p>
+          </li>
+          <li>
+            <p>
+                    An <a class="ulink" href="../java/com/sleepycat/je/Environment.html#beginTransaction(com.sleepycat.je.Transaction, com.sleepycat.je.TransactionConfig)" target="_top">Environment.beginTransaction()</a> operation
+                    is invoked on the Primary while it is in the Master
+                    state, and it cannot establish contact with the
+                    Non-Primary in the time period specified by the 
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#INSUFFICIENT_REPLICAS_TIMEOUT" target="_top">INSUFFICIENT_REPLICAS_TIMEOUT</a> configuration property.
+                </p>
+          </li>
+          <li>
+            <p>
+                    A <a class="ulink" href="../java/com/sleepycat/je/Transaction.html#commit()" target="_top">Transaction.commit()</a> needing a commit acknowledgement
+                    is invoked on the Primary while it is in the Master
+                    state, and the Primary does not receive the commit
+                    acknowledgement within the time period specified by the
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#REPLICA_ACK_TIMEOUT" target="_top">REPLICA_ACK_TIMEOUT</a> configuration property.
+                </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+            Both the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#INSUFFICIENT_REPLICAS_TIMEOUT" target="_top">INSUFFICIENT_REPLICAS_TIMEOUT</a> and
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#REPLICA_ACK_TIMEOUT" target="_top">REPLICA_ACK_TIMEOUT</a> error cases are driven by the durability
+            policy that you are using for your transactions.  See 
+            <a class="xref" href="txn-management.html#durability" title="Managing Durability">Managing Durability</a>
+            for more information.
+        </p>
+      <p>
+            The three properties described above:
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#ELECTIONS_PRIMARY_RETRIES" target="_top">ELECTIONS_PRIMARY_RETRIES</a>, <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#INSUFFICIENT_REPLICAS_TIMEOUT" target="_top">INSUFFICIENT_REPLICAS_TIMEOUT</a>
+            and <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#REPLICA_ACK_TIMEOUT" target="_top">REPLICA_ACK_TIMEOUT</a> impact the time taken by the Primary
+            to become active  in the absence of the Non-Primary. Choosing
+            smaller values for the timeouts and election retries will
+            generally result in smaller service disruptions by activating
+            the Primary more rapidly.  The downside is that transient
+            network glitches may result in unnecessary transitions to the
+            active state where the Primary is operating with reduced
+            Durability. It's up to the application to make these tradeoffs
+            appropriately based on its operating environment.
+        </p>
+      <p>
+            When the Non-Primary becomes available again, the Primary becomes
+            aware of it as part of the Master/Replica handshake (see
+            <a class="xref" href="lifecycle.html#lifecycle-nodestartup" title="Replica Startup">Replica Startup</a>). 
+            At that time, the number of nodes required for a simple majority
+            reverts to two. That is, the Primary is no longer in the active
+            state.
+        </p>
+      <p>
+            Your application must be very careful to not designate two
+            nodes as Primaries. If both nodes are designated as Primaries,
+            and the two nodes cannot communicate with one another for some
+            reason, they could both consider themselves to be Masters and
+            start accepting write transactions. This would violate a
+            fundamental requirement of JE HA that at any given instant
+            in time, there is only one node that is permitted to write to
+            the replicated environment.
+        </p>
+      <p>
+            The Non-Primary always needs two nodes for a simple majority, and
+            as a result can never become a Master in the absence of the
+            Primary. If the Primary node fails, you can make provisions to
+            swap the Primary and Non-Primary designations, so that the
+            surviving node is now the Primary. The swap must be done
+            carefully to ensure that both nodes are not concurrently
+            designated Primaries. In particular, the failed node must come
+            up as a Non-Primary after it has been repaired.
+        </p>
+      <p>
+            You designate a node as Primary using the mutable config
+            property <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#DESIGNATED_PRIMARY" target="_top">DESIGNATED_PRIMARY</a>. You set this property using
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#setDesignatedPrimary(boolean)" target="_top">ReplicationMutableConfig.setDesignatedPrimary()</a>. This property
+            is ignored for groups of size greater than two. 
+        </p>
+      <p>
+            As stated above, this configuration can only be set for one node at a
+            time. This condition is checked during the Master/Replica
+            startup handshake, and if both are designated as Primary then
+            an <a class="ulink" href="../java/com/sleepycat/je/EnvironmentFailureException.html" target="_top">EnvironmentFailureException</a> is thrown. However, you
+            should not rely on this handshake process to guard against dual
+            Primaries. As stated above, if both nodes are designated
+            Primary at some point after the handshake occurs, and your
+            application experiences a network partition event such that the
+            two nodes can no longer communicate, then both nodes will
+            become Masters. This is error condition that will require you
+            to lose data on at least one of the nodes if writes have
+            occurred on both nodes while the network partition was in
+            progress.
+        </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="timesync.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="progoverview.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="txn-management.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Time Synchronization </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 3. Transaction Management</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

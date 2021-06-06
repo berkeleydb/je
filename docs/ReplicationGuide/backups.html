@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Running Backups</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="administration.html" title="Chapter 7. Administration" />
+    <link rel="prev" href="nodeconfig.html" title="Node Configuration" />
+    <link rel="next" href="addremovenodes.html" title="Adding and Removing Nodes" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Running Backups</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="nodeconfig.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Administration</th>
+          <td width="20%" align="right"> <a accesskey="n" href="addremovenodes.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="backups"></a>Running Backups</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+          Because JE replication causes a current copy of your
+          environment to be available at every data node in the group, the need
+          for frequent backups is greatly reduced. Basically, every time a
+          change is made on the Master, that change is backed up to every
+          Replica node currently running. The result is that for each write 
+          operation you get a real-time incremental backup to 
+          <span class="emphasis"><em>n-1</em></span> nodes, where <span class="emphasis"><em>n</em></span> are
+          the total number of data nodes (including the Master) currently
+          running in your replication group.
+      </p>
+      <p>
+          For this reason, JE does not currently support formal
+          incremental backups of replicated environments. An application
+          based upon the <a class="ulink" href="../java/com/sleepycat/je/util/DbBackup.html" target="_top">DbBackup</a> utility class can be written to allow
+          administrators to create full backups. This is useful for
+          creating a backup to be stored on offline media, if your data
+          strategy calls for that level of protection.
+      </p>
+      <p>
+          Remember that when performing a full backup, you should obtain
+          the backup from a node that is current. Either use the Master
+          node itself, or use a Replica node that must acknowledge a
+          transaction commit before the commit operation can complete on
+          the Master.
+      </p>
+      <p>
+          Note that <a class="ulink" href="../java/com/sleepycat/je/util/DbBackup.html" target="_top">DbBackup</a> has some functionality that
+          is specifically useful for replicated environments. See 
+          <a class="xref" href="dbbackup.html" title="Backing up a Replicated Application">Backing up a Replicated Application</a>
+          for details.
+      </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="nodeconfig.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="addremovenodes.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Node Configuration </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Adding and Removing Nodes</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

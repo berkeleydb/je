@@ -1,0 +1,248 @@
+How to use the Berkeley DB Java Edition JCA Resource Adapter in the
+Sun Java System Application Server 8.1 or Glassfish 2.1.1.
+
+Prerequisites:
+
+- Sun Java System Application Server 8.1/Glassfish 2.1.1
+- ant 1.5.4 or later
+- J2EE jar files (available in the SJSAS distribution)
+
+This HOWTO describes:
+
+    (1) how to build and deploy the Berkeley DB Java Edition JCA Resource
+        Adapter under the Sun Java System Application Server (v8.1).
+
+    (2) how to run a simple smoke test to test that the RA has been
+        deployed correctly.
+
+    (3) some notes on writing applications that use the RA.
+
+The Berkeley DB Java Edition (JE) JCA code depends on J2EE libraries,
+but the regular JE code does not require these libraries in order to
+be built.  Therefore, the "ant compile" target only builds the
+non-J2EE based code.  To build the JE JCA libraries and examples, it
+is necessary to have the appropriate J2EE jar files available and to
+use additional ant targets.
+
+Building the Resource Adapter
+-----------------------------
+
+- Edit <JE_HOME>/src/com/sleepycat/je/jca/ra/ra.xml.
+
+  (1) Search for "<transaction-support>"
+
+  (2) Select the appropriate value (LocalTransaction, NoTransaction, or
+      XATransaction) and comment out or delete the other two.  Don't use
+      multiple values of <transaction-support>.
+
+  (3) Change the value of the <security-permission-spec> to refer to the
+      JE environment directory.  SJSAS needs this to file grant access
+      permission to JE, otherwise security exceptions will result.
+
+- Edit <SJSAS-HOME>/domains/domain1/config/server.policy to include
+
+	permission java.io.FilePermission
+         "/tmp/je_store/*", "read,write";
+
+	permission java.util.logging.LoggingPermission "control";
+
+  in the section with the comment:
+
+   // Basic set of required permissions granted to all remaining code
+
+  You chould grant java.io.FilePermission to the server for the
+  directory where your JE environment will reside (i.e. /tmp/je_store,
+  or whatever directory you are using).
+
+- Edit <JE_HOME>/build.properties:
+
+  (1) Set j2ee.jarfile to an appropriate j2ee.jar. For example,
+
+         j2ee.jarfile = <SJSAS-HOME>/lib/j2ee.jar
+
+       The value specified for j2ee.jarfile should contain all the classes
+       necessary for proper execution of the JCA Resource Adapter (for
+       example, JNDI).  The j2ee.jar file noted here meets all the
+       necessary requirements.
+
+  (2) Set example.resources to an appropriate value, e.g.
+
+         example.resources = <SJSAS-HOME>/lib/appserv-rt.jar
+
+      The example.resources property should contain a jndi.properties file
+      that is correct for the target environment.  appserv-rt.jar contains
+      an appropriate jndi.properties.
+
+- With the current directory set to <JE_HOME>, execute
+
+     ant jca
+
+  This creates a jejca.rar Resource Adapter Archive in
+  <JE_HOME>/build/lib.  The jejca.rar contains a je.jar file.
+
+- If SJSAS is not already started, start it now.
+
+     asadmin start-domain domain1
+
+  Note:
+
+  The server can be stopped with the asadmin stop-domain command.  e.g.
+
+     asadmin stop-domain
+
+- Deploy the JE Resource Adapter (<JE_HOME>/build/lib/jejca.rar),
+  using the asadmin tool:
+
+     asadmin deploy --user admin --host localhost --port 4848 \
+             --force=true --name JEConnection --upload=true \
+	     build/lib/jejca.rar
+
+  Note:
+
+  If you redeploy the .rar file, you may need to restart the server
+  with asadmin.
+
+- Create the connector connection pool and connector resource:
+
+     asadmin create-connector-connection-pool --user admin \
+             --host localhost --port 4848 --raname JEConnection \
+	     --connectiondefinition \
+	     com.sleepycat.je.jca.ra.JEConnectionFactory \
+	     JEConnectionPool
+
+     asadmin create-connector-resource --user admin --host localhost \
+             --port 4848 --poolname JEConnectionPool ra/JEConnectionFactory
+
+  Note:
+
+  The connector resource and connection pool can be deleted with the
+  delete-connector-resource and delete-connector-connection-pool options
+  to asadmin.  For example,
+
+      asadmin delete-connector-resource --user admin --host localhost \
+              --port 4848 ra/JEConnectionFactory
+
+      asadmin delete-connector-connection-pool --user admin \
+              --host localhost --port 4848 --cascade=true JEConnectionPool
+
+Building the "SimpleBean" Example:
+----------------------------------
+
+The SimpleBean example is an EJB that has two methods, get() and
+put(), which get and put data using the JE Resource Adapter on the
+SJSAS server.  You can use this example to test the JE RA that you
+just deployed.
+
+- Edit <JE_HOME>/build.properties:
+
+  (1) Set example.jca.srcdir to <JE_HOME>/examples/jca/sjsas8_1
+
+         example.jca.srcdir = <JE_HOME>/examples/jca/sjsas8_1
+
+    This is the directory where the SJSAS specific deployment descriptor
+    for the "simple" EJB resides.
+
+  (2) Set example.jca.descriptorname to sun-ejb-jar.xml.
+
+        example.jca.desciptorname = sun-ejb-jar.xml
+
+      This is the name of the SJSAS specific deployment descriptor for the
+      "simple" EJB.
+
+- Edit the source code for SimpleBean to refer to the correct
+  directory for the JE Environment.  The JE Environment directory is
+  the same one that was specified in the ra.xml file under the
+  <security-permission-spec> tag.  This directory should exist and
+  the SJSAS server should have write permission to that directory.
+  The source code for SimpleBean is in
+
+     <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+  To set the directory, change the value of JE_ENV at the top of the
+  class.  For example,
+
+     private final String JE_ENV = "/tmp/je_store";
+
+- Edit the sun-ejb-jar.xml descriptor in
+
+     <JE_HOME>/examples/jca/sjsas8_1/sun-ejb-jar.xml
+
+  and ensure that the jndi-name and res-ref-name correspond to the
+  name of the connector resource that was created above during the RA
+  deployment.  It should be "ra/JEConnectionFactory".
+
+- Build the SimpleBean example and jar file.
+
+     ant jca-examples
+
+  This builds a jejca-example.jar file and places it in the
+  <JE_HOME>/build/lib directory.  The jar file contains the SimpleBean
+  classes, and the ejb-jar.xml and sun-ejb-jar.xml descriptor files.
+
+- Deploy the jejca-example jar using the asadmin tool.
+
+     asadmin deploy --user admin --host localhost --port 4848 \
+             --force=true --name Simple --upload=true \
+	     build/lib/jejca-example.jar
+
+Running the "SimpleBean" Example:
+---------------------------------
+
+- Verify that the SJSAS server has been started.
+
+- Run the client:
+
+    ant testex-jejcasimple -Dkey=foo -Ddata=bar
+
+  This should produce:
+
+    Buildfile: build.xml
+
+    testex-jejcasimple:
+     [java] Created Simple
+     [java] Simple.get('foo') = bar
+
+    BUILD SUCCESSFUL
+    Total time: 3 seconds
+
+If you don't see
+
+     [java] Simple.get('foo') = bar
+
+printed (for example, you see Simple.get('foo') = null), there may be
+a configuration problem.  Check the server.log for details.
+
+Implementation Notes for Applications Using the RA
+--------------------------------------------------
+
+Please refer to the SimpleBean example in
+
+    <JE_HOME>/examples/jca/simple/SimpleBean.java
+
+- Obtain a JEConnection using the
+
+     JEConnectionFactory.getConnection()
+
+  method and passing it an environment home directory and
+  EnvironmentConfig object. Once the JEConnection has been obtained,
+  you can obtain the Environment handle by calling
+
+     JEConnection.getEnvironment();
+
+- Database handle cache available
+
+Because bean business methods may be relatively short, the underlying
+ManagedConnection object for JE provides a Database handle cache.
+This speeds up the Database open operation since the handle
+(generally) already exists in the cache.  Normally, a program opens a
+database using the Environment.openDatabase() method.  In the EJB
+environment, the program should call JEConnection.openDatabase()
+instead.  Database handles obtained using this method should not be
+close()'d as the ManagedConnection code does that when the
+ManagedConnection is closed.
+
+- Databases under XA must be transactional
+
+If you are using the XATransaction environment (as specified in the
+ra.xml file), all JE Databases used in that environment must be
+transactional.

@@ -1,0 +1,21 @@
+<!--
+Common definitions imported by build.xml, ant/compile.xml, etc.
+-->
+<project basedir=".">
+    <property name="srcdir" value="${basedir}/src"/>
+    <property name="builddir" value="${basedir}/build"/>
+    <property name="destdir" value="${builddir}/classes"/>
+    <property name="libdir" value="${builddir}/lib"/>
+    <property name="extlibdir" value="${basedir}/extlib"/>
+    <property name="ivy.lib.dir" value="${extlibdir}"/>
+
+    <property name="junit.jarfile" value="${extlibdir}/junit-4.10.jar"/>
+    <property name="hamcrest.jarfile" value="${extlibdir}/hamcrest-core-1.1.jar"/>
+
+    <property name="build.debug" value="on"/>
+    <property name="build.deprecation" value="off"/>
+
+    <!-- The JDK source and target versions for compiles and javadoc -->
+    <property name="jdk.source.version" value="1.8"/>
+    <property name="jdk.target.version" value="1.8"/>
+</project>

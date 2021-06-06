@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Berkeley DB Java Edition Installation Notes</title>
+</head>
+<body>
+
+<p align=center>
+<img src="images/Oracle_BerkeleyDB_small.png" alt="Oracle">
+</p>
+
+<center><h1>Berkeley DB Java Edition<br>Installation Notes</h1></center>
+
+<!-- Note: RELEASE_VERSION and DATE are set by ant -->
+<p class="releaseInfo">7.5.11, 2017-10-31 09:36:36 UTC</p>
+<p>These installation notes describe:</p>
+<ul>
+  <li><a href="#installJE">Installing JE</a></li>
+  <li><a href="#usingJE">Using JE</a></li>
+  <li><a href="#uninstallJE">Uninstalling JE</a></li>
+  <li><a href="#building">Building JE</a></li>
+  <li><a href="#unittests">Building with the Unit Tests</a></li>
+  <li><a href="#JCA">Using JE with J2EE/JCA</a></li>
+  <li><a href="#JMX">Using JE with JMX</a></li>
+</ul>
+
+<h2><a name="installJE">Installing JE</a></h2>
+
+<p>The <a href="relnotes.html">release notes</a> document the Java versions
+that JE is compatible with and that have been used for certification.</p>
+
+<p>To install JE, use unzip or tar to unpack the JE distribution. If you are
+using unzip, be sure to use the -U option to preserve case in file names. For
+example:</p>
+
+<blockquote>
+  <pre>unzip -U je-M.N.P.zip</pre>
+</blockquote>
+<p>or</p>
+<blockquote>
+  <pre>gunzip je-M.N.P.tar.gz<br>tar xvf je-M.N.P.tar</pre>
+</blockquote>
+
+<p>Unpacking the distribution creates a je-M.N.P directory on disk,
+where M.N.P is the release's version number. This directory contains
+the following contents:</p>
+
+<blockquote>
+  <pre>docs/<br>examples/<br>lib/<br>src/<br>test/<br></pre>
+</blockquote>
+
+<p>The remainder of this document refers to the <code>je-M.N.P/</code>
+directory created in this step as JE_HOME.</p>
+
+<h2><a name="usingJE">Using JE</a></h2>
+
+<p>To compile and run a program using JE, you only need the
+<code>je-M.N.P.jar</code> file in your class path. This file can be found
+at:</p>
+
+<blockquote>
+  <pre>JE_HOME/lib/je-M.N.P.jar<br></pre>
+</blockquote>
+
+<p>When using JE within a web container, note that it is important that the JE
+jar file and your application jar files -- in particular the classes that are
+being serialized by SerialBinding -- are loaded under the same class loader.
+For running in a servlet, this typically means that you would place the JE jar
+file and your application jars in the same directory.</p>
+
+<p>Additionally, it is important to not place the JE jar file in the extensions
+directory for your JVM. Instead place the JE jar file in the same location as
+your application jars. The extensions directory is reserved for privileged
+library code.</p>
+
+<p>Compiling and running a simple example can serve as a sanity check of the
+installation.  Follow these <a href="examples.html">instructions</a> to compile
+and run the first basic example, called PersonExample.</p>
+
+<h2><a name="uninstallJE">Uninstalling JE</a></h2>
+
+<p>To uninstall, just remove the directory that you unzipped into.</p>
+
+<h2><a name="building">Building JE</a></h2>
+
+<p>
+You need Apache Ant version 1.8.0 or later in order to do builds.  You
+can download Ant from:
+<blockquote>
+http://ant.apache.org/
+</blockquote>
+<p>
+You also need Apache Ivy for loading dependencies.  You can download Ivy
+from:
+<blockquote>
+http://ant.apache.org/ivy/
+</blockquote>
+<p>
+Make sure to add the ivy JAR file to your <tt>~/.ant/lib</tt> directory
+or specify the ivy directory using the ant <tt>-lib</tt> option.
+<p>
+JE must be built with the version of Java specified as the compatibility
+requirement in the <a href="relnotes.html">release notes</a>.
+<p>
+Once ant and JUnit are installed, you can build JE using the following
+command:</p>
+<blockquote>
+<pre>
+cd JE_HOME
+ant clean jar
+</pre>
+</blockquote>
+<p>
+The JE jar file will appear in JE_HOME/build/lib/je.jar.
+
+<h2><a name="unittests">Building and Running the Unit Tests</a></h2>
+
+<p>
+You can run the unit tests using the command: <code>"ant test"</code>.
+<p>
+The ant 'test' target will automatically download a junit jar into the extlib
+directory, and this jar is needed for compiling the tests. If this command
+hangs when attempting to download the jar, due to a VPN for example, you may
+need to additionally specify an HTTP proxy host and/or port. This can be
+specified using the proxy.host and proxy.port properties, for example:
+<code>"ant test -Dproxy.host=my.proxy"</code>. By default, proxy.port is 80.
+<p>
+On Windows you may see OutOfMemoryErrors while running the unit tests. To avoid
+this, increase the JVM maximum memory size by setting the ANT_OPTS environment
+variable so that it includes <tt>-Xmx256M</tt>.
+
+<h2><a name="JCA">Using JE with J2EE/JCA</a></h2>
+
+<p>JE can be used as a J2EE/JCA Resource Adapter.  It has been tested
+with Oracle Application Server (OC4J) 10.1.3.2.0, JBoss 3.2.6 and Sun
+Java System Application Server 8.1.  For cookbook style "HOWTO's"
+using the JE J2EE/JCA Resource Adapter see <tt>
+JE_HOME/examples/jca/HOWTO-oc4j.txt</tt>, <tt>
+JE_HOME/examples/jca/HOWTO-jboss.txt</tt> and
+<tt>JE_HOME/examples/jca/HOWTO-sjsas.txt</tt>.</p>
+
+<h2><a name="JMX">Using JE with JMX</a></h2>
+
+<p>JE supplies a ready to install JMX (Java Management Extensions) MBean
+as well as a JConsole plugin for viewing the mbean. See the <a href="jconsole/JConsole-plugin.html">JConsole README</a>
+
+<font size="1">Copyright (c) 2002, 2017 Oracle and/or its affiliates.  All rights reserved.</font>
+
+</body>
+</html>

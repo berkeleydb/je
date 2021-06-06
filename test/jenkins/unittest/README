@@ -1,0 +1,101 @@
+This series test contains 11 projects in Jenkins. 6 weekly running tests run on slc04arq and  5 daily running tests run on slc04atb.
+    Daily running tests:
+        je_unit_jdk7
+        je_unit_jdk8
+        je_unit_jdk7_branch_5098
+        je_unit_jdk6_branch_5098
+        je_unit_jdk8_always_default_repository    
+    
+    Weekly running tests:
+        je_unit_aix
+        je_unit_jdk7_iso
+        je_unit_jdk7_je_rep_pre
+        je_unit_jdk7_no_embedded_ln
+        je_unit_jdk8_je_rep_pre
+        je_unit_secondassociation
+        
+
+Jenkins Machine: slc04ark
+Emails: adam.qian@oracle.com, mark.hayes@oracle.com, dwayne.chung@oracle.com, dave.rubin@oracle.com, sam.haradhvala@oracle.com, linda.q.lee@oracle.com, tim.blackman@oracle.com, nosql_eng_cn_grp@oracle.com, markos.zaharioudakis@oracle.com, junyi.xie@oracle.com
+
+Daily running tests:
+    je_unit_jdk7:
+        Current Duration: 3hours
+            
+    je_unit_jdk8:
+        Current Duration: 2.5hours
+            
+    je_unit_jdk7_branch_5098:
+        Current Duration: 2hours
+            
+    je_unit_jdk6_branch_5098 
+        Current Duration: 2hours
+
+    je_unit_jdk8_always_default_repository
+        Current Duration: 3hours
+
+Weekly running tests:
+    je_unit_aix
+        Test Machine: stuzx68
+        Current Duration: 3hours 42minutes
+        Issued Time: 00:00 UTC Every Sunday
+            
+    je_unit_jdk7_iso
+        Test Machine: slc04arq
+        Current Duration: 2.5hours
+        Issued Time: 14:00 UTC Every Friday
+            
+    je_unit_jdk7_je_rep_pre
+        Test Machine: slc04arq
+        Current Duration: 5hours
+        Issued Time: 18:00 UTC Every Friday
+            
+    je_unit_jdk7_no_embedded_ln
+        Test Machine: slc04arq
+        Current Duration: 2.5hours
+        Issued Time: 06:00 UTC Every Saturday
+            
+    je_unit_jdk8_je_rep_pre
+        Test Machine: slc04arq
+        Current Duration: 4.5hours
+        Issued Time: 00:00 UTC Every Saturday
+        
+    je_unit_secondassociation:
+        Test Machine: slc04arq
+        Current Duration: 1hours
+        Issued Time: 11:00 UTC Every Thursday
+
+Usage:
+je_unit_jdk7_iso
+    ssh -l tests slc04arq "bash je_unit.sh -t je_unit_jdk7_iso -j 7 -l INFO -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true -DisolationLevel=serializable -Dlogging.config.file=logging.properties'"
+    
+je_unit_jdk7_je_rep_pre
+    ssh -l tests slc04arq "bash je_unit.sh -t je_unit_jdk7_je_rep_pre -j 7 -l INFO -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true -Dlogging.config.file=logging.properties -Dreponly=1' -p TRUE"
+    
+je_unit_jdk7_no_embedded_ln
+    ssh -l tests slc04arq "bash je_unit.sh -t je_unit_jdk7_no_embedded_ln -j 7 -l INFO -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true -Dlogging.config.file=logging.properties' -p TRUE"
+    
+je_unit_jdk8_je_rep_pre
+    ssh -l tests slc04arq "bash je_unit.sh -t je_unit_jdk8_je_rep_pre -j 8 -l INFO -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true -Dlogging.config.file=logging.properties -Dreponly=1' -p TRUE"
+    
+je_aix_unit_test
+    ssh -l nosql stuzx68 "bash je_unit.sh -t je_unit_aix -R ${je_repo} -b ${je_branch} -r ${je_version}"
+    TEST_ARG="-Dproxy.host=www-proxy -Dproxy.port=80 -Djvm=${JAVA_HOME}/bin/java"
+    
+je_unit_jdk7
+    ssh -l tests slc04atb "bash je_unit.sh -t je_unit_jdk7 -j 7 -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true'"
+    
+je_unit_jdk8
+    ssh -l tests slc04atb "bash je_unit.sh -t je_unit_jdk8 -j 8 -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dalltests=true'"
+    
+je_unit_jdk7_branch_5098
+    ssh -l tests slc04atb "bash je_unit.sh -t je_unit_jdk7_branch_5098 -j 7 -R ${je_repo} -b je-5.0.98_branch -r ${je_version} -O '-Dalltests=true'"
+    
+je_unit_jdk6_branch_5098
+    ssh -l tests slc04atb "bash je_unit.sh -t je_unit_jdk6_branch_5098 -j 6 -R ${je_repo} -b je-5.0.98_branch -r ${je_version} -O '-Dalltests=true'"
+    
+je_unit_secondassociation
+    ssh -l tests slc04arq "bash je_unit.sh -t je_unit_secondassociation -R ${je_repo} -b ${je_branch} -r ${je_version} -O '-Dlongtest=true 
+
+je_unit_jdk8_always_default_repository
+	ssh -l tests slc04atb "bash je_unit.sh -t je_unit_jdk8 -j 8 -R 'sleepycat-scm.us.oracle.com//a/hgroot/je' -b ${je_branch} -r ${je_version} -O '-Dalltests=true'"

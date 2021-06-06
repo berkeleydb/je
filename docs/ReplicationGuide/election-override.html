@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Appendix A. Managing a Failure of the Majority</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="groupreset.html" title="Resetting a Replication Group" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Appendix A. Managing a Failure of the Majority</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="groupreset.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> </td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="appendix" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="election-override"></a>Appendix A. Managing a Failure of the Majority</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        Normal operation of JE HA requires that at least a simple majority
+        of electable nodes be available to form a quorum for election of a
+        new Master, or when committing a transaction with default
+        durability requirements. The number of electable nodes (the
+        Electable Group Size) is obtained from persistent internal metadata
+        that is stored in the environment and replicated across all
+        members.  See <a class="xref" href="lifecycle.html" title="Replication Group Life Cycle">Replication Group Life Cycle</a> for details.
+    </p>
+      <p>
+        Under exceptional circumstances, a simple majority of electable nodes may
+        become unavailable for some period of time.  With only a minority
+        of electable nodes available, the overall availability of the group can be
+        adversely affected.  For example, the group may be unavailable for
+        writes because a master cannot be elected. Also, the Master may be
+        unable to satisfy the durability requirements for a transaction
+        commit. The group may also be unavailable for reads, because the
+        absence of a Master might cause a Replica to be unable to meet
+        consistency requirements. 
+    </p>
+      <p>
+        To deal with this exceptional circumstance
+        — especially if the situation is likely to persist for an
+        unacceptably long period of time — JE HA provides a
+        mechanism by which you can modify the way in which the number of
+        electable nodes, and consequently the quorum requirements for
+        elections and commit acknowledgments, is calculated. The escape
+        mechanism provides a way to override the normal computation of the
+        Electable Group Size. The override is accomplished by specifying
+        the size using the mutable replication configuration parameter
+        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a>.
+    </p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+            You should use this parameter sparingly, if at all. Overriding
+            your Electable Group Size can have the consequence of allowing
+            your replication group's election participants to elect two Masters
+            simultaneously. This is especially likely to occur if a
+            majority of the nodes are unavailable due to a network
+            partition event, and so all nodes are running but are simply
+            not communicating with one another.
+        </p>
+        <p>
+            <span class="emphasis"><em>Be very cautious when using this configuration
+            option.</em></span>
+        </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="override-groupsize"></a>Overriding the Electable Group Size</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="election-override.html#set-gsize-override">Setting the Override</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="election-override.html#gsize-override-restore">Restoring the Default State</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="election-override.html#override-example">Override Example</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            When you set <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> to a non-zero value, the
+            number that you provide identifies the number of electable nodes that
+            are required to meet quorum requirements. This means that the
+            internally stored Electable Group Size value is ignored (but
+            not changed) when this option is non-zero. By setting
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> to the number of electable nodes known to be
+            available, the remaining replication group participants can
+            make forward progress, both in terms of electing a new
+            Master (if this is required) and in terms of meeting durability
+            and consistency requirements.
+        </p>
+        <p>
+            When this option is zero (0), then the node will behave
+            normally, and the internal Electable Group Size is honored by
+            the node.  This is the default value and behavior.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="set-gsize-override"></a>Setting the Override</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                To override the internal Electable Group Size value:
+            </p>
+          <div class="orderedlist">
+            <ol type="1">
+              <li>
+                <p>
+                        Verify that the simple majority of electable nodes are in fact
+                        down and cannot elect their own independent Master. 
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Set <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> to the number of
+                        electable nodes known to be available. For best
+                        results, set this override on all available
+                        electable nodes.
+                    </p>
+                <p>
+                        It might be sufficient to set <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a>
+                        on just one electable node in order to hold an election, because
+                        the proposer at that one node can conclude the
+                        election. However, if the election results in 
+                        Master that is not configured with this override, it
+                        might result in <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a>s at the Master.
+                        So, again, set the override on all available
+                        electable nodes.
+                    </p>
+              </li>
+            </ol>
+          </div>
+          <p>
+                Having set the override, the available electable members of the
+                replication group can now meet quorum requirements.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="gsize-override-restore"></a>Restoring the Default State</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Having restored the group to a functioning state by use of
+                the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> override, it is desirable
+                to return the group to its normal state as soon as possible. The
+                normal operating state is one where the Electable Group
+                Size is maintained by JE HA, and the override is no longer
+                used. 
+            </p>
+          <p>
+                To restore the group to its normal operational state, do
+                one of the following:
+            </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                        Remove from the group any electable nodes that you 
+                        know will be down for an extended period of time.
+                        Remove the nodes using the
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#removeMember(java.lang.String)" target="_top">ReplicationGroupAdmin.removeMember()</a> API. 
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Bring up electable nodes as they once again come on
+                        line, so that they can join the functioning group.
+                        This must be done carefully one node at a time in
+                        order to avoid the small possibility that a majority of the
+                        downed nodes hold an election amongst themselves
+                        and elect a second Master. 
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Perform some combination of node removal and
+                        bringing up nodes which were previously down.
+                    </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                As soon as there is a sufficient number of electable nodes
+                up and running that election quorum requirements can be met in the
+                absence of the override, the override can be removed, and
+                normal HA operations resumed. 
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="override-example"></a>Override Example</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Consider a group consisting of 5 electable nodes:
+                <code class="literal">n1</code>-<code class="literal">n5</code>. Suppose a
+                simple majority of the nodes
+                (<code class="literal">n3</code>-<code class="literal">n5</code>) have become
+                unavailable. 
+            </p>
+          <p>
+                If one of the nodes in
+                <code class="literal">n3</code>-<code class="literal">n5</code> was the
+                Master, then nodes <code class="literal">n1</code> and
+                <code class="literal">n2</code> will try to hold an election, and
+                fail due to the lack of a quorum. We now carry out the steps described, above:
+            </p>
+          <div class="orderedlist">
+            <ol type="1">
+              <li>
+                <p>
+                        Verify that <code class="literal">n3</code>-<code class="literal">n5</code> are down.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Set <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> to 2. Do this
+                        at both <code class="literal">n1</code> and <code class="literal">n2</code>.
+                        You can do this dynamically using JConsole, or by
+                        setting the property in the <code class="filename">je.properties</code> file and
+                        restarting the node.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        <code class="literal">n1</code> and <code class="literal">n2</code>
+                        will choose a new Master, say, <code class="literal">n1</code>.
+                        <code class="literal">n1</code> can now process write
+                        operations, and <code class="literal">n2</code> can
+                        acknowledge transaction commits.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Suppose that <code class="literal">n3</code> is now repaired.
+                        You can bring it back online and it will
+                        automatically locate the new Master and join the
+                        group. As is normal, it will catch up to
+                        <code class="literal">n1</code> and <code class="literal">n2</code> in
+                        the replication stream, and then begin
+                        acknowledging commits as requested by
+                        <code class="literal">n1</code>.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        We now have three electable nodes that are operational.  Because 
+                        we have a true simple majority of electable nodes available, we
+                        can now reset <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationMutableConfig.html#ELECTABLE_GROUP_SIZE_OVERRIDE" target="_top">ELECTABLE_GROUP_SIZE_OVERRIDE</a> to 0
+                        (do this on <code class="literal">n1</code> and <code class="literal">n2</code>),
+                        which causes the replication group to resume normal
+                        operations. Note that <code class="literal">n1</code> remains
+                        the Master.
+                    </p>
+              </li>
+            </ol>
+          </div>
+          <p>
+                If <code class="literal">n2</code> was the Master at the time of the
+                failure, then the situation is similar, except that an
+                election is not held. In this case, <code class="literal">n2</code> will continue to
+                remain the Master throughout the entire process described
+                above. However, <code class="literal">n2</code> might not be able to meet quorum
+                requirements for transaction commits until step 2 (above) is
+                performed.
+            </p>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="groupreset.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> </td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Resetting a Replication Group </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

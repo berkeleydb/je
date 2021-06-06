@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Performing Backups</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="backuprestore.html" title="Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="backuprestore.html" title="Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications" />
+    <link rel="next" href="catastrophicrecovery.html" title="Performing Catastrophic Recovery" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Performing Backups</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="backuprestore.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="catastrophicrecovery.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="backup"></a>Performing Backups</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="backup.html#partialBackup">Performing a Hot Backup</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="backup.html#completeBackup">Performing an Offline Backup</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="backup.html#dbbackuphelper">Using the DbBackup Helper Class</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            This section describes how to backup your JE database(s) such that catastrophic recovery is possible for
+            non-transactional applications. Note that this same material is repeated in the 
+            <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em>
+            guide, but for transactional applications. If you are writing transactional
+            applications, you may want to skip the rest of this chapter and go straight to that book.
+        </p>
+      <p>
+            To backup your database, you can either take a hot backup or an offline backup. A hot
+            backup is performed while database write operations are in progress. 
+        </p>
+      <p>
+            Do not confuse hot and offline backups with the concept of a full and incremental backup.  Both a
+            hot and an offline backup are full backups – you back up the entire database. The only difference
+            between them is how much of the contents of the in-memory cache are contained in them. On the other hand, 
+            an incremental backup is a backup of just those log files modified or created since the time of the last
+            backup.  Most backup software
+            is capable of performing both full and incremental backups for you.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="partialBackup"></a>Performing a Hot Backup</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                To perform a hot backup of your JE databases, copy all log files 
+                (<code class="filename">*.jdb</code> files) from your environment directory to
+                your archival location or backup media. The files must be copied
+                in alphabetical order (numerical in effect). You do not have to 
+                stop any database operations in order to do this.
+            </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                    If you are using subdirectories to store your log files, then you must backup
+                    the subdirectories, making sure to keep log files in the subdirectory in which
+                    JE placed them. For information on using subdirectories to store your log
+                    files, see <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a>. 
+                </p>
+        </div>
+        <p>
+               To make this process a bit easier, you may want to make use of the
+               <code class="classname">DbBackup</code> helper class. See 
+               <a class="xref" href="backup.html#dbbackuphelper" title="Using the DbBackup Helper Class">Using the DbBackup Helper Class</a>
+               for details.
+            </p>
+        <p>
+                Note that any modifications made to the database since the time of the last
+                environment sync are not guaranteed to be contained in these log files.  In this
+                case, you may want to consider running an offline backup in order to guarantee the
+                availability of all modifications made to your database.
+            </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="completeBackup"></a>Performing an Offline Backup</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                An offline backup guarantees that you have captured the database in its entirety, including all contents
+                of your in-memory cache, at the moment that the
+                backup was taken. To do this, you must make sure that no write operations are in progress and all
+                database modifications have been written to your log files
+                on disk.  To obtain an offline backup:
+			</p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                        Stop writing your databases.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        Run <code class="methodname">Environment.sync()</code> so as to
+                        ensure that all database modifications are written to disk. Note that cleanly closing your
+                        environment will also ensure that all database modifications are written to disk.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        Copy all log files (<code class="filename">*.jdb</code>) from your environment
+                        directory to your archival location or backup media.  To make this process a
+                        bit easier, you may want to make use of the <code class="classname">DbBackup</code>
+                        helper class. See the next section for details.
+                    </p>
+              <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+                <h3 class="title">Note</h3>
+                <p>
+                            If you are using subdirectories to store your log files, then you must backup
+                            the subdirectories, making sure to keep log files in the subdirectory in which
+                            JE placed them. For information on using subdirectories to store your log
+                            files, see <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a>.
+                        </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <p>
+                You can now resume normal database operations.
+            </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="dbbackuphelper"></a>Using the DbBackup Helper Class</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                        In order to simplify backup operations, JE
+                        provides the <code class="classname">DbBackup</code> helper
+                        class. This class stops and restarts JE background activity 
+                        in an open environment. It also lets the application create a 
+                        backup which can support restoring the environment to 
+                        a specific point in time.
+                </p>
+        <p>
+                    Because you do not have to stop JE write activity
+                    in order to take a backup, it is usually necessary to
+                    examine your log files twice before you decide that
+                    your backup is complete. This is because JE may
+                    create a new log file while you are running your
+                    backup. A second pass over your log files allows you to
+                    ensure that no new files have been created and so you
+                    can declare your backup complete.
+                </p>
+        <p>
+                    For example:
+                </p>
+        <pre class="programlisting"> time    files in                    activity
+         environment
+
+  t0     000000001.jdb     Backup starts copying file 1
+         000000003.jdb
+         000000004.jdb
+
+  t1     000000001.jdb     JE log cleaner migrates portion of file 3 to
+         000000004.jdb     newly created file 5 and deletes file 3. 
+         000000005.jdb     Backup finishes file 1, starts copying file 4.
+                           Backup MUST include file 5 for a consistent 
+                           backup!
+
+  t2     000000001.jdb     Backup finishes copying file 4, starts and 
+         000000004.jdb     finishes file 5, has caught up. Backup ends.
+         000000005.jdb
+</pre>
+        <p>
+                    <code class="classname">DbBackup</code> works around this
+                    problem by defining the set of files that must be
+                    copied for each backup operation, and freezes all
+                    changes to those files. The application can copy that
+                    defined set of files and finish operation without
+                    checking for the ongoing creation of new files. Also,
+                    there will be no need to check for a newer version of
+                    the last file on the next backup.
+            </p>
+        <p>
+                    In the example above, if <code class="classname">DbBackup</code> was used at t0,
+                    the application would only have to copy files 1, 3 and
+                    4 to back up. On a subsequent backup, the application
+                    could start its copying at file 5. There would be no
+                    need to check for a newer version of file 4.
+            </p>
+        <p>
+                The following code fragment illustrates this class' usage.
+                See the <code class="classname">DbBackup</code> javadoc for additional
+                examples and more information on incremental backups.
+            </p>
+        <pre class="programlisting">package je.gettingStarted;
+
+...
+import com.sleepycat.je.util.DbBackup;
+...
+
+    // Find the file number of the last file in the previous backup
+    // persistently, by either checking the backup archive, or saving
+    // state in a persistent file.
+    long lastFileCopiedInPrevBackup =  ...
+
+    Environment env = new Environment(...);
+    DbBackup backupHelper = new DbBackup(env, lastFileCopiedInPrevBackup);
+
+    // Start backup, find out what needs to be copied.
+    // If multiple environment subdirectories are in use,
+    // the getLogFilesInBackupSet returns the log file
+    // name prefixed with the dataNNN/ directory in which
+    // it resides.
+    backupHelper.startBackup();
+    try {
+        String[] filesForBackup = backupHelper.getLogFilesInBackupSet();
+
+        // Copy the files to archival storage.
+        myApplicationCopyMethod(filesForBackup)
+        // Update our knowlege of the last file saved in the backup set,
+        // so we can copy less on the next backup
+        lastFileCopiedInPrevBackup = backupHelper.getLastFileInBackupSet();
+        myApplicationSaveLastFile(lastFileCopiedInBackupSet);
+    }
+    finally {
+        // Remember to exit backup mode, or all log files won't be cleaned
+        // and disk usage will bloat.
+       backupHelper.endBackup();
+   } </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="backuprestore.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="backuprestore.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="catastrophicrecovery.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Performing Catastrophic Recovery</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

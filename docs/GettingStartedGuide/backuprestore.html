@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="admin.html" title="Part III. Administering JE Applications" />
+    <link rel="prev" href="admin.html" title="Part III. Administering JE Applications" />
+    <link rel="next" href="backup.html" title="Performing Backups" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="admin.html">Prev</a> </td>
+          <th width="60%" align="center">Part III. Administering JE Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="backup.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="backuprestore"></a>Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="backuprestore.html#databaselogs">Databases and Log Files</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="backuprestore.html#lognames">Log File Overview</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backuprestore.html#logcleaning">Cleaning the Log Files</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backuprestore.html#btree">The BTree</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backuprestore.html#syncs">Database Modifications and Syncs</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backuprestore.html#normalrecovery">Normal Recovery</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="backup.html">Performing Backups</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="backup.html#partialBackup">Performing a Hot Backup</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backup.html#completeBackup">Performing an Offline Backup</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="backup.html#dbbackuphelper">Using the DbBackup Helper Class</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="catastrophicrecovery.html">Performing Catastrophic Recovery</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="hotfailover.html">Hot Standby</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        Fundamentally, you backup your databases by copying JE log files off to a safe storage location. To restore
+        your database from a backup, you copy those files to an appropriate directory on disk and reopen your JE
+        application   
+    </p>
+      <p>
+        Beyond these simple activities, there are some differing backup strategies that you may want to consider. These
+        topics are described in this chapter.
+    </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="databaselogs"></a>Databases and Log Files</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="backuprestore.html#lognames">Log File Overview</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="backuprestore.html#logcleaning">Cleaning the Log Files</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="backuprestore.html#btree">The BTree</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="backuprestore.html#syncs">Database Modifications and Syncs</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="backuprestore.html#normalrecovery">Normal Recovery</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            Before describing JE backup and restore, it is necessary to describe some of JE's internal workings. In
+            particular, a high-level understanding of JE log files and the in-memory cache is required. You also need
+            to understand a little about how JE is using its internal data structures in order to understand why
+            checkpoints and/or syncs are required.
+        </p>
+        <p>
+            You can skip this section so long as you understand that:
+        </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                    JE databases are stored in log files contained in your environment directory.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Every time a JE environment is opened, normal recovery is run. 
+                </p>
+            </li>
+            <li>
+              <p>
+                    For transactional applications, checkpoints should be run in order to bound normal recovery time.
+                    Checkpoints are normally run by the checkpointer thread. Transactional applications and the
+                    checkpointer thread are described in the
+                    <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide.
+                </p>
+            </li>
+            <li>
+              <p>
+                    For non-transactional applications, environment syncs must be performed if you want to guarantee the
+                    persistence of your database modifications. Environment syncs are manually performed by the
+                    application developer. See <a class="xref" href="usingDbt.html#datapersist" title="Data Persistence">Data Persistence</a> for details.
+                </p>
+            </li>
+          </ul>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="lognames"></a>Log File Overview</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Your JE database is stored on-disk in a series of log files. 
+                JE uses no-overwrite log files, which is to say that JE only ever appends data to the end of a log
+                file. It will never delete or modify an existing log file record. 
+            </p>
+          <p>
+                JE log files are named
+                <code class="literal">NNNNNNNN.jdb</code> where <code class="literal">NNNNNNNN</code> is an 8-digit hexadecimal number that
+                increases by 1 (starting from <code class="literal">00000000</code>) for each log file written to disk.
+            </p>
+          <p>
+                JE creates a new log file whenever the current log file has reached a pre-configured size (10000000
+                bytes by default). This size is controlled by the <code class="literal">je.log.fileMax</code> properties
+                parameter. See <a class="xref" href="administration.html#propertyfile" title="The JE Properties File">The JE Properties File</a> for information on setting 
+                JE properties.
+            </p>
+          <p>
+                By default, log files are placed in the environment home directory. However, you can
+                cause JE to place log files in subdirectories within the environment home
+                directory. For more information, see
+                <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a>.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="logcleaning"></a>Cleaning the Log Files</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Because JE uses no-overwrite log files, the logs must be compacted or cleaned so as to conserve disk space.
+            </p>
+          <p>
+                JE uses the cleaner background thread to perform this task. When it runs, the cleaner thread picks
+                the log file with the smallest number of active records and scans each log record in it. 
+                If the record is no longer
+                active in the database tree, the cleaner does nothing. If the record is still active in the tree, then
+                the cleaner copies the record forward to a newer log file. 
+            </p>
+          <p>
+                Once a log file is no longer needed (that is, it no longer contains active records), then the cleaner
+                thread deletes the log file for you. Or, optionally, the cleaner thread can simply rename the discarded
+                log file with a <code class="literal">del</code> suffix.
+            </p>
+          <p>
+				JE uses a minimum log utilization property to determine how much cleaning to perform. The log files
+				contain both obsolete and utilized records. Obsolete records are records that are no longer in use, either
+				because they have been modified or because they have been deleted. Utilized records are those records
+				that are currently in use. The  <code class="literal">je.cleaner.minUtilization</code> property identifies the
+				minimum percentage of log space that must be used by utilized records. If this minimum percentage is not
+				met, then log files are cleaned until the minimum percentage is met.
+			</p>
+          <p>
+                For information on managing the cleaner thread, see <a class="xref" href="backgroundthreads.html#cleaner" title="The Cleaner Thread">The Cleaner Thread</a>.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="btree"></a>The BTree</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+            JE databases are internally organized as a BTree. In order to operate, JE requires the complete BTree
+            be available to it. 
+            </p>
+          <p>
+            When database records are created, modified, or deleted,  the modifications are represented in the BTree's 
+            leaf nodes. Beyond leaf
+            node changes, database record modifications can also cause changes to other BTree nodes and structures.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="syncs"></a>Database Modifications and Syncs</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                When a write operation is performed in JE, the modified data
+                is written to a leaf node contained in the in-memory cache. If
+                your JE writes are performed without transactions, then the
+                in-memory cache is the only location guaranteed to receive a
+                database modification without further intervention on the part
+                of the application developer. 
+            </p>
+          <p>
+            For some class of applications, this lack of a guaranteed write to disk is ideal. By not writing these modifications to
+            the on-disk logs, the application can avoid most of the overhead caused by disk I/O.
+            </p>
+          <p>
+                However, if the application requires its data to persist persist at a specific point in time, then the developer must
+                manually sync database modifications to the on-disk log files (again, this is only necessary for
+                non-transactional applications). This is done using <code class="classname">Environment.sync()</code>.
+            </p>
+          <p>
+            Note that syncing the cache causes JE to write all modified objects in the cache 
+            to disk. This is probably the most expensive operation that you can perform in JE.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="normalrecovery"></a>Normal Recovery</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Every time a JE environment is opened, normal recovery is run. 
+            Because of the way that JE organizes and manages its BTrees, all it needs is leaf nodes in order to
+            recreate the rest of the BTree. Essentially, this is what <span class="emphasis"><em>normal recovery</em></span> is
+            doing – recreating any missing parts of the internal BTree from leaf node information stored in the
+            log files.
+            </p>
+          <p>
+                Unlike a traditional database system, JE performs recovery for both transactional
+                and non-transactional operations.  The integrity of the Btree is
+                guaranteed by JE in the face of both application and OS crashes.
+            </p>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="admin.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="admin.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="backup.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Part III. Administering JE Applications </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Performing Backups</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

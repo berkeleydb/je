@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Opening a Replicated Environment</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="prev" href="exceptions.html" title="HA Exceptions" />
+    <link rel="next" href="replicawrites.html" title="Managing Write Requests at a Replica" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Opening a Replicated Environment</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="exceptions.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Replication API First Steps</th>
+          <td width="20%" align="right"> <a accesskey="n" href="replicawrites.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="repenvironmentopen"></a>Opening a Replicated Environment</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            In the previous two sections we looked at the basics of how to create a
+            replicated environment, and what exceptions you can expect to see in a JE HA
+            application. Now we need to combine these two topics in order to examine how you should
+            open a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle to an existing replicated
+            environment.
+        </p>
+      <p>
+            When you open the handle, the underlying HA code will attempt to open a TCP/IP
+            connection to other nodes in the replication group, based on the node's stored
+            replication group metadata or the helper host information that you provide. In doing so,
+            the node will attempt to locate a Master or, failing that, will hold an election in order
+            to select a new Master, if it is an electable node.
+        </p>
+      <p>
+            Due to issues of timing and network performance, the node may or may not be able to:
+        </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                    locate the master; and
+                </p>
+          </li>
+          <li>
+            <p>
+                    hold an election.
+                </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+            This can happen if there simply are not enough electable nodes available in order for the current
+            node to start up, find the current master, or hold an election. Remember that a majority
+            of the electable nodes registered in the replication group must be available in order to hold an
+            election.
+        </p>
+      <p>
+            If this situation occurs, the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> constructor will throw an
+            <a class="ulink" href="../java/com/sleepycat/je/rep/UnknownMasterException.html" target="_top">UnknownMasterException</a>. Therefore, typically, it is best that you prepare for this
+            situation by performing the handle creation in a retry loop, as shown in the following
+            code snippet.
+        </p>
+      <p>
+            In addition, if the Replica has been down for a long enough
+            period of time, it might be so far out of date that it cannot
+            be brought up to date using the normal replication stream. In
+            this case, the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> constructor will throw
+            an <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientLogException.html" target="_top">InsufficientLogException</a>. See <a class="xref" href="logfile-restore.html" title="Restoring Log Files">Restoring Log Files</a> for information on how to handle this
+            exception.
+        </p>
+      <pre class="programlisting">private static int REP_HANDLE_RETRY_MAX = 100;
+
+   ...
+
+ReplicatedEnvironment getEnvironment(File envHome, String groupName, 
+                                     String nodeName, String nodeHost,
+                                     String helperHosts) 
+     throws IllegalStateException, InterruptedException {
+
+   EnvironmentConfig envConfig = new EnvironmentConfig();
+   envConfig.setAllowCreate(true);
+   envConfig.setTransactional(true);
+
+   // Identify the node
+   ReplicationConfig repConfig = 
+        new ReplicationConfig();
+   repConfig.setGroupName(groupName);
+   repConfig.setNodeName(nodeName);
+   repConfig.setNodeHostPort(nodeHost);
+   repConfig.setHelperHosts(helperHosts);
+
+   for (int i = 0; i &lt; REP_HANDLE_RETRY_MAX; i++) {
+        try {
+            return new 
+                ReplicatedEnvironment(envHome, repConfig, envConfig);
+        } catch (UnknownMasterException ume) {
+            /*
+             * Insert application specific code here to indicate that
+             * this problem was encountered, such as writing the 
+             * condition to a log file.
+             */
+
+            Thread.sleep(5 * 1000);
+            continue;
+        } catch (InsufficientLogException ile) {
+            /* A network restore is required, make the necessary calls */
+        }
+
+   }
+   throw new 
+        IllegalStateException("getEnvironment: reached max retries");
+} </pre>
+      <p>
+        Note that for production code, you may want to retry the handle open without any maximum
+        retry limit.
+    </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="exceptions.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="progoverview.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="replicawrites.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">HA Exceptions </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Managing Write Requests at a Replica</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

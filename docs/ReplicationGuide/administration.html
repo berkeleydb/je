@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 7. Administration</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="repexample.html" title="Chapter 6. Replication Examples" />
+    <link rel="next" href="admintimesync.html" title="Time Synchronization" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 7. Administration</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="repexample.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="admintimesync.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="administration"></a>Chapter 7. Administration</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="administration.html#hardware">Hardware</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="admintimesync.html">Time Synchronization</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="nodeconfig.html">Node Configuration</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="backups.html">Running Backups</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="addremovenodes.html">Adding and Removing Nodes</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="hotupgrade.html">Upgrading a JE Replication Group</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="hotupgrade.html#idp1912848">Upgrade Process</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="hotupgrade.html#idp1949392">Things To Remember While Upgrading</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="hotupgrade.html#idp1959392">Handling Problems While Upgrading</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="groupreset.html">Resetting a Replication Group</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+      This chapter describes issues pertaining to running a JE
+      replication application. The topics discussed here have to do with
+      hardware configuration, backups, node configuration, and other
+      management issues that exist once the application has been
+      placed into production.
+  </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="hardware"></a>Hardware</h2>
+            </div>
+          </div>
+        </div>
+        <p>
+          A JE replicated application should run well on typical
+          commodity multi-core hardware, although greater hardware
+          requirements than this may be driven by the architecture of your
+          particular application. Check with the software developers who
+          wrote your JE replicated application for any additional
+          requirements they may have over and above typical
+          multi-core hardware.
+      </p>
+        <p>
+          That said, keep the following in mind when putting a JE
+          replication application into production:
+      </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                  Examine the hardware you intend to use, and review it for
+                  common points of failure between nodes in the replication
+                  groups, such as shared power supplies, routers and so
+                  forth.
+              </p>
+            </li>
+            <li>
+              <p>
+                  The hardware that you use does not have to be identical
+                  across the entire production hardware. However, it is
+                  important to ensure that the least capable electable node
+                  has the resources to function as the Master.
+              </p>
+              <p>
+                  The Master is typically the node where demand for machine
+                  resources is the greatest. It needs to supply the
+                  replication streams for each active Replica, in addition
+                  to servicing the transaction load.
+              </p>
+              <p>
+                  Note that JE requires Monitor nodes to have minimal 
+                  resource consumption (although, again, your application
+                  developers may have written your Monitor nodes such that
+                  they need resources over and above what JE requires),
+                  because Monitor nodes only listen for changes in the
+                  replication group.
+              </p>
+            </li>
+            <li>
+              <p>
+                  Finally, your network is a critical part of your hardware
+                  requirements. It is critical that your network be capable
+                  of delivering adequate throughput under peak expected
+                  production work loads.
+              </p>
+              <p>
+                  Remember that your replicated application can consume
+                  quite a lot of network resources when a Replica starts up
+                  for the first time, or starts up after being shutdown for
+                  a long time. This is because the Replica must obtain all
+                  the data that it needs to operate. Essentially, this is a
+                  duplicate of the data contained by the Master node. So
+                  however much data the Master node holds, that much data
+                  will be transmitted across your network <span class="emphasis"><em>per
+                      node</em></span> every time you start a new node.
+              </p>
+              <p>
+                  For restarting nodes, the amount of data that will cross
+                  your network is equal to the delta between the time the
+                  Replica last shutdown and the state of your Master node
+                  at the time that the Replica is starting up again. If the
+                  Replica has been down for a long time (days or weeks),
+                  this can be quite a lot of data, depending on your Master
+                  node's workload.
+              </p>
+              <p>
+                  Be aware, however, that restarting nodes do not have to
+                  get their data from the Master node. It is possible for
+                  them to catch up, or nearly catch up, using data obtained
+                  from some other currently running Replica. See 
+                  <a class="xref" href="logfile-restore.html" title="Restoring Log Files">Restoring Log Files</a> 
+                  for more information.
+              </p>
+              <p>
+                  Good application performance also depends on the
+                  latency of network connections used by electable and
+                  monitor nodes to perform elections, report election
+                  results, and obtain acknowledgments. Consider
+                  deploying secondary nodes on machines with higher
+                  latency connections to the other members of the
+                  replication group, keeping in mind that these nodes
+                  still have the same throughput requirements as
+                  electable nodes.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="repexample.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="admintimesync.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 6. Replication Examples </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Time Synchronization</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Checkpoints</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="up" href="jebackuprestore.html" title="Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications" />
+    <link rel="prev" href="jebackuprestore.html" title="Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications" />
+    <link rel="next" href="backup.html" title="Performing Backups" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Checkpoints</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="jebackuprestore.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="backup.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="chkpoint"></a>Checkpoints</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            Running normal recovery can become expensive if over time all that is ever
+            written to disk is BTree leaf nodes. So in order to limit the time required for normal recovery, JE runs
+            checkpoints. Checkpoints write to your log files all the internal BTree nodes and structures modified as a part of
+            write operations. This means that your log files contain a complete BTree up to
+            the moment in time when the checkpoint was run. The result is that normal recovery only needs to recreate the
+            portion of the BTree that has been modified since the time of the last checkpoint.
+            </p>
+      <p>
+            Checkpoints typically write more information to disk than do transaction commits, and so they are more
+            expensive from a disk I/O perspective. You will therefore need to consider how frequently to run checkpoints
+            as a part of your performance tuning activities. When you do this, balance the cost of the checkpoints
+            against the time it will take your application to restart due to the cost of running normal recovery.
+            </p>
+      <p>
+                Checkpoints are normally performed by the checkpointer background thread, which is always running.  Like
+                all background threads, it is managed using the <code class="filename">je.properties</code> file.  Currently, the
+                only checkpointer property that you may want to manage is
+                <code class="literal">je.checkpointer.bytesInterval</code>.  This property identifies how much JE's log files
+                can grow before a checkpoint is run. Its value is specified in bytes. Decreasing this value causes the
+                checkpointer thread to run checkpoints more frequently. This will improve the time that it takes to run
+                recovery, but it also increases the system resources (notably, I/O) required by JE.
+            </p>
+      <p>
+                Note that checkpoints are also always performed when the environment is closed normally. Therefore,
+                normal recovery only has work to do if the application crashes or otherwise ends abnormally without
+                calling <code class="methodname">Environment.close()</code>.
+            </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="jebackuprestore.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="jebackuprestore.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="backup.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Performing Backups</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

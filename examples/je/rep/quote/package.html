@@ -1,0 +1,71 @@
+<html>
+<head>
+<!--
+ See the file LICENSE for redistribution information.
+
+ Copyright (c) 2002, 2014 Oracle and/or its affiliates.  All rights reserved.
+
+-->
+</head>
+<body>
+JE Replication Stock Quote example.
+
+<h2>Example Overview</h2>
+This example is a simple but complete demonstration of a replicated
+application.  The application is a mock stock ticker which stores stock values
+in a replicated JE environment. The following commands are accepted:
+<ul>
+<li>&lt;stock&gt; &lt;number&gt; : enter this stock price into the
+database</li>
+<li>print : print all the stocks and current prices held in the database</li>
+<li>quit : shut down</li>
+</ul>
+<p>
+There are three versions of the example which illustrate different application
+designs and aspects of JE functionality.  Please be sure to walk through the
+three examples in the order listed below, since the information in one example
+builds on the one before it.  The javadoc description for each class describes
+the example and explains how to run it.  More detailed information is found in
+the example source code.
+<ol>
+<li>{@link je.rep.quote.StockQuotes StockQuotes}: This example is the most
+basic demonstration of a replicated application. It's intended to help gain an
+understanding of basic HA concepts and demonstrate use of the HA APIs to create
+a replicated environment and issue read and write transactions.
+</li><br>
+<li>{@link je.rep.quote.RouterDrivenStockQuotes RouterDrivenStockQuotes} and
+{@link je.rep.quote.HARouter HARouter}: This example is based on {@code
+StockQuotes} and illustrates use of an HA-aware router (implemented by {@code
+HARouter}), in conjunction with the {@link com.sleepycat.je.rep.monitor.Monitor
+Monitor} class, to direct application requests, based upon the type of request
+(read or write) and the state (Master or Replica) of a node in the replication
+group.  This example is meant to illustrate how a software load balancer might
+be integrated with JE HA, where {@code HARouter} plays the role of the load
+balancer for purposes of the example.
+</li><br>
+<li>{@link je.rep.quote.UpdateForwardingStockQuotes
+UpdateForwardingStockQuotes} and {@link je.rep.quote.SimpleRouter
+SimpleRouter}: This example is based on {@code RouterDrivenStockQuotes} and
+illustrates use of an HA unaware router (implemented by {@code SimpleRouter}),
+that load balances requests (both read and write) across all the nodes in a
+replication group.  This example is meant to illustrate how a load balancer
+appliance might fit into the JE HA architecture, where {@code SimpleRouter}
+plays the role of the load balancer appliance for purposes of the example.
+</li>
+</ol>
+<em>Disclaimer:</em> This example is intended to be illustrative.  The example
+is single threaded, while actual applications may be multithreaded.  The
+example forwards requests as text and receives responses in text form, while
+actual applications may for example, forward HTTP requests, or use some other
+application level network protocol to forward such requests. The example opens
+and closes a socket to send each request, while actual applications will
+typically use a connection management facility.
+<p>
+The example 
+{@link je.rep.quote.StockQuotesRMIForwarding StockQuotesRMIForwarding}, 
+a minor variation to the basic {@link je.rep.quote.StockQuotes StockQuotes} 
+example is also included in this package. It's intended to help illustrate how 
+RMI could be used to forward write requests from a Replica to the Master. 
+</p>
+</body>
+</html>

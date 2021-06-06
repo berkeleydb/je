@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>JCA Support</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction to Berkeley DB Java Edition" />
+    <link rel="prev" href="restore.html" title="JE Backup and Restore" />
+    <link rel="next" href="jmx.html" title="JConsole and JMX Support" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">JCA Support</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="restore.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction to Berkeley DB Java Edition </th>
+          <td width="20%" align="right"> <a accesskey="n" href="jmx.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="jca"></a>JCA Support</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        <span class="emphasis"><em>JCA</em></span> is the <span class="emphasis"><em>Java Connector Architecture</em></span>. This architecture provides a standard for connecting
+        the J2EE platform to legacy enterprise information systems (EIS), such as ERP systems, database systems, and
+        legacy applications not written in Java. JE supports this architecture.
+    </p>
+      <p>
+        Users who want to run JE within a J2EE Application Server can use the JCA Resource Adapter to connect to
+        JE through a standard API. Note that the base API is required if you want to do this. 
+        The JE Resource Adapter supports all three J2EE application server transaction
+        types: 
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                No transaction.
+            </p>
+          </li>
+          <li>
+            <p>
+                Local transactions.
+            </p>
+          </li>
+          <li>
+            <p>
+                XA transactions.
+            </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+        JCA also includes the Java Transaction API (JTA), which means that JE supports 2 phase commit (XA).
+        Therefore, JEs can participate in distributed transactions managed by either a J2EE server or the
+        applications direct use of the JTA API.
+    </p>
+      <p>
+        The JE distribution includes an example showing JCA usage in a simple EJB. The Resource Adaptor has been
+        tested using JBoss 3.2.6, and the Sun Java System Application Server, version 8.1. Instructions for how to build
+        the Resource Adapter and run a simple "smoke test" example for each of the application servers can be found
+        here:
+    </p>
+      <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/jca/HOWTO-jboss.txt</pre>
+      <p>
+        and
+    </p>
+      <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/jca/HOWTO-sjsas.txt</pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="restore.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="jmx.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">JE Backup and Restore </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> JConsole and JMX Support</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

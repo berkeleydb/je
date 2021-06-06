@@ -1,0 +1,9 @@
+<!-- The Berkeley DB Java Edition XA transaction Resource
+     Adaptor service configuration. -->
+<connection-factories>
+   <tx-connection-factory>
+      <jndi-name>XATransJE</jndi-name>
+      <xa-transaction/>
+      <adapter-display-name>Berkeley DB Java Edition JCA Adapter</adapter-display-name>
+   </tx-connection-factory>
+</connection-factories>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Putting Records Using Cursors</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="Cursors.html" title="Chapter 9. Using Cursors" />
+    <link rel="prev" href="Positioning.html" title="Getting Records Using the Cursor" />
+    <link rel="next" href="DeleteEntryWCursor.html" title="Deleting Records Using Cursors" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Putting Records Using Cursors</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="Positioning.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 9. Using Cursors</th>
+          <td width="20%" align="right"> <a accesskey="n" href="DeleteEntryWCursor.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="PutEntryWCursor"></a>Putting Records Using Cursors</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        You can use cursors to put records into the database. JE's behavior
+        when putting records into the database differs depending on whether the
+        database supports duplicate records. If duplicates are allowed, its
+        behavior also differs depending on whether a comparator is provided for
+        the database. (Comparators are described in 
+        <a class="xref" href="comparator.html" title="Using Comparators">Using Comparators</a>).
+    </p>
+      <p>
+        Note that when putting records to the database using a cursor, the
+        cursor is positioned at the record you inserted. 
+    </p>
+      <p>
+        You can use the following methods to put records to the database:
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+            <code class="methodname">Cursor.put()</code>
+         </p>
+            <p>
+            If the provided key does not exist in the database, 
+            then the order that the record is put into the database
+            is determined by the BTree (key) comparator in use by the database. 
+         </p>
+            <p>
+            If the provided key already exists in the database, and the database
+            does not support sorted duplicates, then the existing record data is
+            replaced with the data provided on this method.
+        </p>
+            <p>
+            If the provided key already exists in the database, and the database
+            does support sorted duplicates, then the order that the record is
+            inserted into the database is determined by the duplicate comparator
+            in use by the database.
+        </p>
+            <p>
+            Note that a version of this method exists which allows you to
+            specify a Time to Live value for the record that you are
+            inserting. See <a class="xref" href="timetolive.html" title="Using Time to Live">Using Time to Live</a>
+            for more information.
+        </p>
+          </li>
+          <li>
+            <p>
+            <code class="methodname">Cursor.putNoDupData()</code>
+            
+         </p>
+            <p>
+            If the provided key <span>and data</span> already exists 
+            in the database, then this method returns 
+            <code class="literal">OperationStatus.KEYEXIST</code>.
+        </p>
+            <p>
+            If the key does not exist, then the order that the record is put into the database 
+            is determined by the 
+                <span>
+                    BTree (key) comparator in use by the database. 
+                </span>
+                
+         </p>
+            <span></span>
+          </li>
+          <li>
+            <p>
+            <code class="methodname">Cursor.putNoOverwrite()</code>
+         </p>
+            <p>
+            If the provided key already exists 
+            in the database, then this method returns 
+            <code class="literal">OperationStatus.KEYEXIST</code>.
+        </p>
+            <p>
+            If the key does not exist, then the order that the record is put into the database 
+            is determined by the BTree (key) comparator in use by the database. 
+         </p>
+          </li>
+        </ul>
+      </div>
+      <p>For example:</p>
+      <a id="je_cursor7"></a>
+      <pre class="programlisting">package je.gettingStarted;
+    
+import com.sleepycat.je.Cursor;
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.OperationStatus; 
+
+...
+  
+// Create the data to put into the database
+String key1str = "My first string";
+String data1str = "My first data";
+String key2str = "My second string";
+String data2str = "My second data";
+String data3str = "My third data";
+  
+Cursor cursor = null;
+try {
+    ...
+    // Database and environment open omitted for brevity
+    ...
+
+    DatabaseEntry key1 = new DatabaseEntry(key1str.getBytes("UTF-8"));
+    DatabaseEntry data1 = new DatabaseEntry(data1str.getBytes("UTF-8"));
+    DatabaseEntry key2 = new DatabaseEntry(key2str.getBytes("UTF-8"));
+    DatabaseEntry data2 = new DatabaseEntry(data2str.getBytes("UTF-8"));
+    DatabaseEntry data3 = new DatabaseEntry(data3str.getBytes("UTF-8"));
+
+    // Open a cursor using a database handle
+    cursor = myDatabase.openCursor(null, null);
+
+    // Assuming an empty database.
+
+    OperationStatus retVal = cursor.put(key1, data1); // SUCCESS
+    retVal = cursor.put(key2, data2); // SUCCESS
+    retVal = cursor.put(key2, data3); // SUCCESS if dups allowed, 
+                                      // KEYEXIST if not.    
+                                              
+} catch (Exception e) {
+    // Exception handling goes here
+} finally {
+   // Make sure to close the cursor
+   cursor.close();
+}</pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="Positioning.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="Cursors.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="DeleteEntryWCursor.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Getting Records Using the Cursor </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Deleting Records Using Cursors</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

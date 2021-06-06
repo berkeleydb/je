@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 7. Databases</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="baseapi.html" title="Part II. Programming with the Base API" />
+    <link rel="prev" href="baseapi.html" title="Part II. Programming with the Base API" />
+    <link rel="next" href="dbprops.html" title="Database Properties" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 7. Databases</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="baseapi.html">Prev</a> </td>
+          <th width="60%" align="center">Part II. Programming with the Base API</th>
+          <td width="20%" align="right"> <a accesskey="n" href="dbprops.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="databases"></a>Chapter 7. Databases</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="databases.html#DBOpen">Opening Databases</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="databases.html#dwdatabase">Deferred Write Databases</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="databases.html#tempdbje">Temporary Databases</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="databases.html#dbclose">Closing Databases</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="dbprops.html">Database Properties</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="DBAdmin.html">Administrative Methods</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="dbUsage.html">Database Example</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>In Berkeley DB Java Edition, a database is a collection of <span class="emphasis"><em>records</em></span>. Records,
+  in turn, consist of key/data pairings.
+  </p>
+      <p>
+	Conceptually, you can think of a 
+		<code class="classname">Database</code>
+		 
+	as containing a two-column table where column 1 contains a key and column 2
+	contains data.  Both the key and the data are managed using 
+		<code class="classname">DatabaseEntry</code> 
+		
+		
+		<span>class instances</span>
+		
+	(see <a class="xref" href="DBEntry.html" title="Chapter 8. Database Records">Database Records</a> for details on this 
+	    <span>class</span>
+	    ).
+	So, fundamentally, using a JE 
+		<code class="classname">Database</code> 
+		 
+	involves putting, getting, and deleting database records, which in turns involves efficiently 
+	managing information 
+		<span>encapsulated by </span>
+		
+		
+		<code class="classname">DatabaseEntry</code> 
+		
+		
+		
+		<span>objects.</span>
+		
+	The next several chapters of this book are dedicated to those activities.
+  </p>
+      <p>
+	Note that on disk, databases are stored in sequentially numerically
+    named log files in the directory where the opening 
+	environment is located.  JE log files are described 
+	<a class="xref" href="backuprestore.html#databaselogs" title="Databases and Log Files">Databases and Log Files</a>.
+  </p>
+      <p>
+        Also, note that in the previous section of this book, <a class="xref" href="dpl.html" title="Part I. Programming with the Direct Persistence Layer">Programming with the Direct Persistence Layer</a>, 
+        we described the DPL The DPL handles all database management
+        for you, including creating all primary and secondary databases as is
+        required by your application. That said, if you are using the DPL
+        you can access the underlying database for a given index if
+        necessary. See the Javadoc for the DPL for more information.
+  </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="DBOpen"></a>Opening Databases</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="databases.html#dwdatabase">Deferred Write Databases</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="databases.html#tempdbje">Temporary Databases</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="databases.html#dbclose">Closing Databases</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+		You open a database by using the 
+		<code class="methodname">Environment.openDatabase()</code>
+    	method (environments are described in <a class="xref" href="env.html" title="Chapter 2. Database Environments">Database Environments</a>). This 
+		method creates and returns a <code class="classname">Database</code> 
+		object handle.
+    	You must provide <code class="methodname">Environment.openDatabase()</code>
+    	with a database name.
+	</p>
+        <p>
+		You can optionally provide <code class="methodname">Environment.openDatabase()</code>
+    	with a <code class="classname">DatabaseConfig()</code> object.
+    	<code class="classname">DatabaseConfig()</code> allows you to set properties for
+    	the database, such as whether it can be created if it does not currently
+    	exist, whether you are opening it read-only, and whether the database is to support transactions.
+	</p>
+        <p>
+		Note that by default, JE does not create databases if they do not already exist. 
+		To override this behavior, set the <a class="link" href="dbprops.html" title="Database Properties">creation property</a> to true.
+	</p>
+        <p>
+		Finally, if you configured your environment and database to support transactions,
+		you can optionally provide a transaction object to the
+    	<code class="methodname">Environment.openDatabase()</code>.
+    	Transactions are described in the
+        <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide.
+	</p>
+        <p>
+        The following code fragment illustrates a database open:
+        <span></span>
+    </p>
+        <a id="je_db1"></a>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+
+import java.io.File;
+...
+
+Environment myDbEnvironment = null;
+Database myDatabase = null;
+
+...
+
+try {
+    // Open the environment. Create it if it does not already exist.
+    EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setAllowCreate(true);
+    myDbEnvironment = new Environment(new File("/export/dbEnv"), 
+                                      envConfig);
+
+    // Open the database. Create it if it does not already exist.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setAllowCreate(true);
+    myDatabase = myDbEnvironment.openDatabase(null, 
+                                              "sampleDatabase", 
+                                              dbConfig); 
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+}</pre>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="dwdatabase"></a>Deferred Write Databases</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                By default, JE database operations that modify the
+                database are written (logged) at the time of the operation.  For transactional
+                databases, changes become durable when the transaction is committed.
+        </p>
+          <p>
+                However, deferred write databases operations are not written at the time
+                of the operation.  Writing is deferred for as long as possible.  The
+                changes are only guaranteed to be durable after the 
+                <code class="methodname">Database.sync()</code> method
+                is called or the database is properly closed.
+        </p>
+          <p>
+                Deferring writes in this manner has two performance advantages when performing
+                database modifications:
+        </p>
+          <div class="orderedlist">
+            <ol type="1">
+              <li>
+                <p>
+                                When multiple threads are performing writes, Concurrency is increased 
+                                because the bottleneck of writing to the log is avoided.
+                        </p>
+              </li>
+              <li>
+                <p>
+                                Less total writing takes place.  If a single record is modified more
+                                than once, or modified and deleted, then only the final result must
+                                be written.  If a record is inserted and deleted before a
+                                database sync or close occurs, nothing at all is written to disk.
+                                The same advantage holds for writing internal index
+                                information.
+                        </p>
+              </li>
+            </ol>
+          </div>
+          <p>
+                Deferred write databases are useful for applications that perform a
+                great deal of database modifications, record additions, deletions, and
+                so forth. By delaying the data write, you delay the disk I/O. Depending
+                on your workload, this can improve your data throughput by quite a lot.
+        </p>
+          <p>
+                While the durability of a deferred write database is only
+                <span class="emphasis"><em>guaranteed</em></span> when 
+                <code class="methodname">Database.sync()</code>
+                is called or the database is properly closed, writing may also occur at other times.
+                For example, a JE checkpoint will effectively perform a 
+                <code class="methodname">Database.sync()</code> on all deferred
+                write databases that are open at the time of the checkpoint.  If you are
+                using deferred write to load a large data set, and you want to reduce
+                writing as much as possible during the load, consider disabling the JE checkpointer.
+        </p>
+          <p>
+                Also, if the JE cache overflows as database modifications occur, information discarded
+                from the cache is written to disk in order to avoid losing the changes. If you wish to reduce this
+                writing to a minimum, configure your cache to be large enough to hold the entire
+                data set being modified, or as large as possible.
+        </p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                Despite the examples noted in the previous paragraphs, there is no guarantee that changes 
+                to a deferred write database are durable unless <code class="methodname">Database.sync()</code>
+                is called or the database is closed. If you need guaranteed
+                durability for an operation, consider using transactions instead of deferred write.
+             </p>
+          </div>
+          <p>
+                You should also be aware that <code class="methodname">Database.sync()</code> is a 
+                relatively expensive operation because all outstanding changes to the 
+                database are written, including internal index information. If you find 
+                that you are calling <code class="methodname">Database.sync()</code> 
+                frequently, consider using transactions.
+        </p>
+          <p>
+            All other rules of behavior pertain to deferred write databases
+            as they do to normal databases. Deferred write databases must be
+            named and created just as you would a normal database. If you want to
+            delete the deferred write database, you must remove it just as
+            you would a normal database. This is true even if the deferred 
+            write database is empty because its name persists in the
+            environment's namespace until such a time as the database is
+            removed.
+        </p>
+          <p>
+            Note that determining whether a database is deferred write is a
+            configuration option. It is therefore possible to switch a
+            database between "normal" mode and deferred write database. You
+            might want to do this if, for example, you want to load a lot
+            of data to the database. In this case, loading data to the
+            database while it is in deferred write state is faster than
+            in "normal" state, because you can avoid a lot of the normal disk 
+            I/O overhead during the load process. Once the load is
+            complete, sync the database, close it, and and then reopen it 
+            as a normal database. You can then continue operations 
+            as if the database had been created as a "normal" database.
+        </p>
+          <p>
+                To configure a database as deferred write, set
+                <code class="methodname">DatabaseConfig.setDeferredWrite()</code>
+                to <code class="literal">true</code> and then open the database with
+                that <code class="classname">DatabaseConfig</code> option.
+        </p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                    If you are using the DPL, then you configure your entire
+                    store to be deferred write using
+                    <code class="methodname">StoreConfig.setDeferredWrite()</code>.
+                    You can also sync every database in your store using
+                    <code class="methodname">EntityStore.sync()</code>.
+                </p>
+          </div>
+          <p>
+                For example, the following code fragment opens and closes a
+                deferred write database:
+        </p>
+          <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+
+import java.io.File;
+...
+
+Environment myDbEnvironment = null;
+Database myDatabase = null;
+
+...
+
+try {
+    // Open the environment. Create it if it does not already exist.
+    EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setAllowCreate(true);
+    myDbEnvironment = new Environment(new File("/export/dbEnv"), 
+                                      envConfig);
+
+    // Open the database. Create it if it does not already exist.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setAllowCreate(true);
+    // Make it deferred write
+    dbConfig.setDeferredWrite(true);
+    myDatabase = myDbEnvironment.openDatabase(null, 
+                                              "sampleDatabase", 
+                                              dbConfig); 
+
+    ...
+    // do work
+    ...
+    // Do this when you want the work to be persistent at a
+    // specific point, prior to closing the database.
+    myDatabase.sync();
+
+    // then close the database and environment here
+    // (described later in this chapter).
+
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+}</pre>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="tempdbje"></a>Temporary Databases</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                By default, all JE databases are durable; that is, the data that you put in them
+                will remain in them across program runs, unless you explicitly delete the data. 
+                However, it is possible to configure a
+                <span class="emphasis"><em>temporary</em></span> database that is not durable. A temporary database is
+                automatically deleted when it is closed or after a crash occurs.
+        </p>
+          <p>
+                Temporary databases are essentially in-memory only databases. Therefore,
+                they are particularly useful for applications that want databases which
+                are truly temporary.
+        </p>
+          <p>
+                Note that temporary databases do not always avoid disk I/O. It is particularly
+                important to realize that temporary databases can page to disk if the cache is not
+                large enough to hold the database's entire contents. Therefore, temporary database
+                performance is best when your in-memory cache is large enough to hold the database's
+                entire data-set.
+        </p>
+          <p>
+                A temporary database operates internally in deferred write mode and has
+                the same performance advantages as described above for deferred write
+                databases (see <a class="xref" href="databases.html#dwdatabase" title="Deferred Write Databases">Deferred Write Databases</a>).
+                However, unlike deferred write databases, a temporary database is not written
+                during checkpoints and this provides an additional performance advantage.
+        </p>
+          <p>
+                Temporary databases must be named and created just as you would a normal database.
+                To configure a database as temporary, set 
+                <code class="methodname">DatabaseConfig.setTemporary</code> to 
+                <code class="literal">true</code> and then open the database with that 
+                <code class="classname">DatabaseConfig</code> instance.
+        </p>
+          <p>
+                For example:
+        </p>
+          <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+
+import java.io.File;
+...
+
+Environment myDbEnvironment = null;
+Database myDatabase = null;
+
+...
+
+try {
+    // Open the environment. Create it if it does not already exist.
+    EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setAllowCreate(true);
+    myDbEnvironment = new Environment(new File("/export/dbEnv"), 
+                                      envConfig);
+
+    // Open the database. Create it if it does not already exist.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setAllowCreate(true);
+    // Make it a temporary database
+    dbConfig.setTemporary(true);
+    myDatabase = myDbEnvironment.openDatabase(null, 
+                                              "sampleDatabase", 
+                                              dbConfig); 
+
+    ...
+    // do work
+    ...
+
+    // then close the database and environment here
+    // (see the next section)
+
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+}</pre>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="dbclose"></a>Closing Databases</h3>
+              </div>
+            </div>
+          </div>
+          <p>Once you are done using the database, you must close it. You use the
+    <code class="methodname">Database.close()</code> method to do this.</p>
+          <p>Closing a database causes it to become unusable until it is opened
+    again. If any cursors are opened for the database, 
+	JE warns you about the open cursors, and then closes them for you. 
+    Active cursors during a database
+    close can cause unexpected results, especially if any of those cursors are
+    writing to the database in another thread. You should always make sure that all your
+    database accesses have completed before closing your database.</p>
+          <p>It is recommended that you close all your
+    databases before closing the environment to which they belong.</p>
+          <p>Cursors are described in <a class="xref" href="Cursors.html" title="Chapter 9. Using Cursors">Using Cursors</a> later in this manual.</p>
+          <p>
+        The following illustrates database and environment close:
+    </p>
+          <a id="je_db2"></a>
+          <pre class="programlisting">import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Database;
+import com.sleepycat.je.Environment;
+
+...
+
+try {
+        if (myDatabase != null) {
+            myDatabase.close();
+        }
+
+        if (myDbEnvironment != null) {
+            myDbEnvironment.close();
+        }
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+} </pre>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="baseapi.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="baseapi.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="dbprops.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Part II. Programming with the Base API </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Database Properties</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

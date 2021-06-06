@@ -1,0 +1,10 @@
+This series test only contain one project in Jenkins.
+
+Jenkins Machine: slc04ark
+Test Machine: slc04arm
+Current Duration: 21hours
+Issued Time: 04:33 UTC Every day
+Usage:
+	scp /scratch/jenkins/bin/je_cover.sh tests@slc00brq:~/
+	ssh -l tests slc00brq "bash je_cover.sh -t je_cover -h /scratch/tests/bin -j 8 -R ${je_repo} -b ${je_branch} -r ${je_version}"
+Emails: adam.qian@oracle.com, mark.hayes@oracle.com, dwayne.chung@oracle.com, dave.rubin@oracle.com, sam.haradhvala@oracle.com, linda.q.lee@oracle.com, tim.blackman@oracle.com, nosql_eng_cn_grp@oracle.com, markos.zaharioudakis@oracle.com, junyi.xie@oracle.com

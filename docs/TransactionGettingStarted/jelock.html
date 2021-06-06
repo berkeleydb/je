@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>JE Lock Management</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="up" href="txnconcurrency.html" title="Chapter 4. Concurrency" />
+    <link rel="prev" href="blocking_deadlocks.html" title="Locks, Blocks, and Deadlocks" />
+    <link rel="next" href="isolation.html" title="Isolation" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">JE Lock Management</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="blocking_deadlocks.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 4. Concurrency</th>
+          <td width="20%" align="right"> <a accesskey="n" href="isolation.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="jelock"></a>JE Lock Management</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="jelock.html#jelocktimeout">Managing JE Lock Timeouts</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="jelock.html#jedeadlock">Managing Deadlocks and other Lock Conflicts</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            To manage locks in JE, you must do two things:
+        </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                    Manage lock timeouts.
+                </p>
+          </li>
+          <li>
+            <p>
+                    Detect and respond to lock conflicts. Conceptually,
+                    these are deadlocks. But from a coding point of view
+                    there is no difference between what you do if a lock
+                    times out, and what you do if you encounter a deadlock.
+                    In fact, in JE, you cannot tell the difference
+                    based on the exceptions that are thrown.
+                </p>
+          </li>
+        </ol>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="jelocktimeout"></a>Managing JE Lock Timeouts</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                Like transaction timeouts (see <a class="xref" href="maxtxns.html" title="Configuring the Transaction Subsystem">Configuring the Transaction Subsystem</a>),
+                JE allows you to identify the longest period of time that it is allowed to hold a lock.
+                This value plays an important part in performing deadlock detection, because the only way JE can
+                identify a deadlock is if a lock is held past its timeout value.
+            </p>
+        <p>
+                However, unlike transaction timeouts, lock timeouts are on a true timer. Transaction
+                timeouts are only identified when JE is has a reason to examine its lock table; that is, 
+                when it is attempting to acquire a lock. If no such activity is
+                occurring in your application, a transaction can exist for a long time past its expiration timeout.
+                Conversely, lock timeouts are managed by a timer maintained by the JVM. Once this timer has expired,
+                your application will be notified of the event (see the next section on deadlock detection for more
+                information).
+            </p>
+        <p>
+                You can set the lock timeout on a transaction by transaction basis, or for the entire environment. To
+                set it on a transaction basis, use <code class="methodname">Transaction.setLockTimeout()</code>.
+                To set it for your entire environment, use <code class="methodname">EnvironmentConfig.setLockTimeout()</code>
+                or use the <code class="literal">je.lock.timeout</code> parameter in the <code class="filename">je.properties</code> file.
+            </p>
+        <p>
+                The value that you specify for the lock timeout is in microseconds. <code class="literal">500000</code> is used by
+                default.
+            </p>
+        <p>
+                Note that changing this value can have an affect on your application's performance. If you set it too
+                low, locks may expire and be considered deadlocked even though the thread is in fact making
+                forward progress. This will cause your application to abort and retry transactions unnecessarily, which
+                can ultimately harm application throughput. 
+                If you set it too high, threads may deadlock for too long before your application receives notification
+                and is able to take corrective action. Again, this can harm application throughput.
+            </p>
+        <p>
+                Note that for applications in which you will have extremely long-lived locks, you
+                may want to set this value to <code class="literal">0</code>. Doing so disables lock timeouts
+                entirely.  Be aware that disabling lock timeouts can be dangerous because then your
+                application will never be notified of deadlocks. So, alternatively, you might want
+                to set this value to a very large timeout (such as ten minutes) if your application
+                is using extremely long-lived locks.
+            </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="jedeadlock"></a>Managing Deadlocks and other Lock Conflicts</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                A deadlock is the result of a lock conflict that cannot be
+                resolved by the underlying JE code before the lock
+                times out. Generically, we consider this situation a
+                <span class="emphasis"><em>lock conflict</em></span> because there is no way
+                to tell if the lock timed out because of a true deadlock,
+                or if it timed out because a long-running operation simply
+                held the lock for too long a period of time.
+            </p>
+        <p>
+                When a lock conflict occurs in JE, the thread of control holding
+                that lock is notified of the event using a
+                <code class="classname">LockConflictException</code> exception. Note
+                that this exception is actual a common base class for several
+                exception classes that might be able to give you more of a
+                hint as to what the actual problem is. However, the
+                response that you make for any of these exceptions is
+                probably going to be the same, so the best thing to do is
+                simply catch and manage <code class="classname">LockConflictException</code>.
+            </p>
+        <p>
+                When a <code class="classname">LockConflictException</code> is
+                thrown, the thread must:
+            </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                        Cease all read and write operations.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        Close all open cursors.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        Abort the transaction.
+                    </p>
+            </li>
+            <li>
+              <p>
+                        Optionally retry the operation. If your application
+                        retries operations that are aborted due to a lock
+                        conflict, the new attempt must be made using a new transaction.
+                    </p>
+            </li>
+          </ol>
+        </div>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                    If a thread has encountered a lock conflict, it may not make any
+                    additional database calls using the transaction handle that has
+                    experienced the lock conflict.
+                </p>
+        </div>
+        <p>
+                For example:
+            </p>
+        <pre class="programlisting">// retry_count is a counter used to identify how many times
+// we've retried this operation. To avoid the potential for 
+// endless looping, we won't retry more than MAX_DEADLOCK_RETRIES 
+// times.
+
+// txn is a transaction handle.
+// key and data are DatabaseEntry handles. Their usage is not shown here.
+while (retry_count &lt; MAX_DEADLOCK_RETRIES) {
+    try {
+        txn = myEnv.beginTransaction(null, null);
+        myDatabase.put(txn, key, data);
+        txn.commit();
+        return 0;
+    } catch (LockConflictException le) {
+        try {
+            // Abort the transaction and increment the
+            // retry counter
+            if (txn != null) {
+                txn.abort();
+            }
+            retry_count++;
+            if (retry_count &gt;= MAX_DEADLOCK_RETRIES) {
+                System.err.println("Exceeded retry limit. Giving up.");
+                return -1;
+            }
+        } catch (DatabaseException ae) {
+            System.err.println("txn abort failed: " + ae.toString());
+            return -1;    
+        }
+    } catch (DatabaseException e) {
+        // If we catch a generic DatabaseException instead of
+        // a LockConflictException, we simply abort and give
+        // up -- we don't retry the operation.
+        try {
+            // Abort the transaction.
+            if (txn != null) {
+                txn.abort();
+            }
+        } catch (DatabaseException ae) {
+            System.err.println("txn abort failed: " + ae.toString());
+        }
+        return -1;    
+    }
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="blocking_deadlocks.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txnconcurrency.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="isolation.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Locks, Blocks, and Deadlocks </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Isolation</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

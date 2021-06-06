@@ -1,0 +1,15 @@
+/* Javadoc style sheet for Java 7 and later versions */
+
+/* Import standard style sheet for defaults */
+@import url('standard-stylesheet.css');
+
+/*
+ * Modify the style for code samples to use a pale blue background with
+ * a thin, medium blue border that matches the style of various
+ * headings.
+ */
+pre.code {
+  border: 1px solid #9eadc0;    /* Medium blue */
+  padding: 2px;
+  background-color: #dee3e9;    /* Pale blue */
+}

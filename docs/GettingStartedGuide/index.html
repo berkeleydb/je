@@ -1,0 +1,1101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Getting Started with Berkeley DB Java Edition</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="next" href="preface.html" title="Preface" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Getting Started with Berkeley DB Java Edition</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="preface.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="book" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h1 class="title"><a id="idp1267152"></a>Getting Started with Berkeley DB Java Edition</h1>
+          </div>
+          <div>
+            <div class="legalnotice">
+              <a id="idp2069840"></a>
+              <p class="legalnotice-title">
+                <b>Legal Notice</b>
+              </p>
+              <p>
+            Copyright © 2002 - 2017 Oracle and/or its affiliates. All rights
+            reserved.
+        </p>
+              <p>
+            This software and related documentation are provided under a
+            license agreement containing restrictions on use and disclosure
+            and are protected by intellectual property laws. Except as
+            expressly permitted in your license agreement or allowed by
+            law, you may not use, copy, reproduce, translate, broadcast,
+            modify, license, transmit, distribute, exhibit, perform,
+            publish, or display any part, in any form, or by any means.
+            Reverse engineering, disassembly, or decompilation of this
+            software, unless required by law for interoperability, is
+            prohibited.
+        </p>
+              <p>
+            The information contained herein is subject to change without
+            notice and is not warranted to be error-free. If you find any
+            errors, please report them to us in writing.
+        </p>
+              <p>
+                Berkeley DB,
+                
+                <span>Berkeley DB Java Edition</span>
+                and
+                Sleepycat are trademarks or registered trademarks of
+                Oracle. All rights to these marks are reserved.
+                No third-party use is permitted without the
+                express prior written consent of Oracle.
+        </p>
+              <p>
+            Other names may be trademarks of their respective owners.
+        </p>
+              <p>
+            If this is software or related documentation that is delivered
+            to the U.S. Government or anyone licensing it on behalf of the
+            U.S. Government, the following notice is applicable:
+        </p>
+              <p>
+            U.S. GOVERNMENT END USERS: Oracle programs, including any
+            operating system, integrated software, any programs installed
+            on the hardware, and/or documentation, delivered to U.S.
+            Government end users are "commercial computer software"
+            pursuant to the applicable Federal Acquisition Regulation and
+            agency-specific supplemental regulations. As such, use,
+            duplication, disclosure, modification, and adaptation of the
+            programs, including any operating system, integrated software,
+            any programs installed on the hardware, and/or documentation,
+            shall be subject to license terms and license restrictions
+            applicable to the programs. No other rights are granted to the
+            U.S. Government.
+        </p>
+              <p>
+            This software or hardware is developed for general use in a
+            variety of information management applications. It is not
+            developed or intended for use in any inherently dangerous
+            applications, including applications that may create a risk of
+            personal injury. If you use this software or hardware in
+            dangerous applications, then you shall be responsible to take
+            all appropriate fail-safe, backup, redundancy, and other
+            measures to ensure its safe use. Oracle Corporation and its
+            affiliates disclaim any liability for any damages caused by use
+            of this software or hardware in dangerous applications.
+        </p>
+              <p>
+            Oracle and Java are registered trademarks of Oracle and/or its
+            affiliates. Other names may be trademarks of their respective
+            owners.
+        </p>
+              <p>
+            Intel and Intel Xeon are trademarks or registered trademarks of
+            Intel Corporation. All SPARC trademarks are used under license
+            and are trademarks or registered trademarks of SPARC
+            International, Inc. AMD, Opteron, the AMD logo, and the AMD
+            Opteron logo are trademarks or registered trademarks of
+            Advanced Micro Devices. UNIX is a registered trademark of The
+            Open Group.
+        </p>
+              <p>
+            This software or hardware and documentation may provide access
+            to or information on content, products, and services from third
+            parties. Oracle Corporation and its affiliates are not
+            responsible for and expressly disclaim all warranties of any
+            kind with respect to third-party content, products, and
+            services. Oracle Corporation and its affiliates will not be
+            responsible for any loss, costs, or damages incurred due to
+            your access to or use of third-party content, products, or
+            services.
+        </p>
+            </div>
+          </div>
+          <div>
+            <p class="pubdate">31-Oct-2017</p>
+          </div>
+        </div>
+        <hr />
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="preface">
+              <a href="preface.html">Preface</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect1">
+                  <a href="preface.html#conventions">Conventions Used in this Book</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="moreinfo.html">For More Information</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect2">
+                      <a href="moreinfo.html#contact_us">Contact Us</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            <span class="chapter">
+              <a href="introduction.html">1. Introduction to Berkeley DB Java Edition </a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect1">
+                  <a href="introduction.html#features">Features</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect2">
+                      <a href="introduction.html#dplfeatures">DPL Features</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="introduction.html#basefeatures">Base API Features</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="introduction.html#whichapi">Which API Should You Use?</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="sect1">
+                  <a href="applicationoverview.html">The JE Application</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#dbIntro">Database Environments</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#key-data">Key-Data Pairs</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#storing-intro">Storing Data</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#duplicatesintro">Duplicate Data</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#replacedeleteIntro">Replacing and Deleting Entries</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#secondary">Secondary Keys</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#transactionIntro">Transactions</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#resourcesIntro">JE Resources</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="applicationoverview.html#applicationConsiderations">
+        Application Considerations
+       </a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="sect1">
+                  <a href="restore.html">JE Backup and Restore</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="jca.html">JCA Support</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="jmx.html">JConsole and JMX Support</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="gettingit.html">Getting and Using JE </a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="jeexceptions.html">JE Exceptions</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="logfilesrevealed.html">Six Things Everyone Should Know about JE Log Files</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="chapter">
+              <a href="env.html">2. Database Environments</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect1">
+                  <a href="env.html#envopen">Opening Database Environments</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect2">
+                      <a href="env.html#multienv">Multiple Environments</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="env.html#multisubdir">Multiple Environment Subdirectories</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="env.html#multienvsharedcache">Configuring a Shared Cache for Multiple Environments</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="sect1">
+                  <a href="envclose.html">Closing Database Environments</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="EnvProps.html">Environment Properties</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect2">
+                      <a href="EnvProps.html#envconfig">The EnvironmentConfig Class</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect2">
+                      <a href="EnvProps.html#envhandleconfig">EnvironmentMutableConfig</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="sect1">
+                  <a href="envStats.html">Environment Statistics</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="dbenvUsageExample.html">Database Environment Management Example</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="part">
+              <a href="dpl.html">I. Programming with the Direct Persistence Layer</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="chapter">
+                  <a href="persist_first.html">3. Direct Persistence Layer First Steps</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="persist_first.html#entitystore">Entity Stores</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="persist_first.html#persist-open">Opening and Closing Environments and Stores</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="persistobject.html">Persistent Objects</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="saveret.html">Saving and Retrieving Data</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="persist_index.html">4. Working with Indices</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="persist_index.html#dplindexaccess">Accessing Indexes</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="persist_index.html#primaryindexaccess">Accessing Primary Indices</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="persist_index.html#secondaryindexaccess">Accessing Secondary Indices</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dplindexcreate.html">Creating Indexes</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="dplindexcreate.html#dplprimaryidxdecl">Declaring Primary Indexes</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="dplindexcreate.html#dplsecondaryidxdecl">Declaring Secondary Indexes</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="dplindexcreate.html#foreignkey">Foreign Key Constraints</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="persist_access.html">5. Saving and Retrieving Objects</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="persist_access.html#simpleentity">A Simple Entity Class</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="simpleda.html">SimpleDA.class</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="simpleput.html">Placing Objects in an Entity Store</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="simpleget.html">Retrieving Objects from an Entity Store</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="getmultiple.html">Retrieving Multiple Objects</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="getmultiple.html#dpl_cursor_initialize">Cursor Initialization</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="getmultiple.html#dpl_dups">Working with Duplicate Keys</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="getmultiple.html#dpl_cursor_range">Key Ranges</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_entityjoin.html">Join Cursors</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_delete.html">Deleting Entity Objects</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_replace.html">Replacing Entity Objects</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="dpl_example.html">6. A DPL Example</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_example.html#vendorclass">Vendor.java</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="inventoryclass.html">Inventory.java</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="mydbenv-persist.html">MyDbEnv</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dataaccessorclass.html">DataAccessor.java</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_exampledatabaseput.html">ExampleDatabasePut.java</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dpl_exampleinventoryread.html">ExampleInventoryRead.java</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            <span class="part">
+              <a href="baseapi.html">II. Programming with the Base API</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="chapter">
+                  <a href="databases.html">7. Databases</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="databases.html#DBOpen">Opening Databases</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="databases.html#dwdatabase">Deferred Write Databases</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="databases.html#tempdbje">Temporary Databases</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="databases.html#dbclose">Closing Databases</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dbprops.html">Database Properties</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="DBAdmin.html">Administrative Methods</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dbUsage.html">Database Example</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="DBEntry.html">8. Database Records</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="DBEntry.html#usingDbEntry">Using Database Records</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="usingDbt.html">Reading and Writing Database Records</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="usingDbt.html#databaseWrite">Writing Records to the Database</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="usingDbt.html#databaseRead">Getting Records from the Database</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="usingDbt.html#recordDelete">Deleting Records</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="usingDbt.html#datapersist">Data Persistence</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="timetolive.html">Using Time to Live</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="timetolive.html#ttl-specify">Specifying a TTL Value</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="timetolive.html#ttl-update">Updating a TTL Value</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="timetolive.html#ttl-remove">Deleting TTL Expiration</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="bindAPI.html">Using the BIND APIs</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="bindAPI.html#bindPrimitive">Numerical and String Objects</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="bindAPI.html#object2dbt">Serializable Complex Objects</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="bindAPI.html#customTuple">Custom Tuple Bindings</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="comparator.html">Using Comparators</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="comparator.html#writeCompare">Writing Comparators</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="comparator.html#setCompare">Setting Comparators</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="dbtUsage.html">Database Record Example</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="Cursors.html">9. Using Cursors</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="Cursors.html#openCursor">Opening and Closing Cursors</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="Positioning.html">Getting Records Using the Cursor</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="Positioning.html#diskorderedcursors">Disk Ordered Cursors</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="Positioning.html#cursorsearch">Searching for Records</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="Positioning.html#getdups">Working with Duplicate Records</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="PutEntryWCursor.html">Putting Records Using Cursors</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="DeleteEntryWCursor.html">Deleting Records Using Cursors</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="ReplacingEntryWCursor.html">Replacing Records Using Cursors</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="cursorUsage.html">Cursor Example</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="indexes.html">10. Secondary Databases</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="indexes.html#DbAssociate">Opening and Closing Secondary Databases</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="keyCreator.html">Implementing Key 
+        <span>Creators</span>
+        
+        </a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="secondaryProps.html">Secondary Database Properties</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="readSecondary.html">Reading Secondary Databases</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="secondaryDelete.html">Deleting Secondary Database Records</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="secondaryCursor.html">
+        <span>Using Secondary Cursors</span>
+        
+    </a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="joins.html">Database Joins</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="joins.html#joinUsage">Using Join Cursors</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="joins.html#joinconfig">JoinCursor Properties</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="indexusage.html">Secondary Database Example</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="indexusage.html#secondaryMyDbEnv">Opening Secondary Databases with
+      MyDbEnv</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="indexusage.html#exampleReadSecondaries">Using Secondary Databases with ExampleInventoryRead</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                </dl>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            <span class="part">
+              <a href="admin.html">III. Administering JE Applications</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="chapter">
+                  <a href="backuprestore.html">11. Backing up and Restoring Berkeley DB Java Edition Applications</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="backuprestore.html#databaselogs">Databases and Log Files</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backuprestore.html#lognames">Log File Overview</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backuprestore.html#logcleaning">Cleaning the Log Files</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backuprestore.html#btree">The BTree</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backuprestore.html#syncs">Database Modifications and Syncs</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backuprestore.html#normalrecovery">Normal Recovery</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="backup.html">Performing Backups</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backup.html#partialBackup">Performing a Hot Backup</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backup.html#completeBackup">Performing an Offline Backup</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backup.html#dbbackuphelper">Using the DbBackup Helper Class</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="catastrophicrecovery.html">Performing Catastrophic Recovery</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="hotfailover.html">Hot Standby</a>
+                    </span>
+                  </dt>
+                </dl>
+              </dd>
+              <dt>
+                <span class="chapter">
+                  <a href="administration.html">12. Administering Berkeley DB Java Edition Applications</a>
+                </span>
+              </dt>
+              <dd>
+                <dl>
+                  <dt>
+                    <span class="sect1">
+                      <a href="administration.html#propertyfile">The JE Properties File</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="backgroundthreads.html">Managing the Background Threads</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backgroundthreads.html#cleaner">The Cleaner Thread</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="backgroundthreads.html#checkpointer">The Checkpointer Thread</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="cachesize.html">Sizing the Cache</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="diskthreshold.html">Setting Disk Thresholds</a>
+                    </span>
+                  </dt>
+                  <dt>
+                    <span class="sect1">
+                      <a href="commandlinetools.html">The Command Line Tools</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="commandlinetools.html#DbDump">DbDump</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="commandlinetools.html#DbLoad">DbLoad</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="commandlinetools.html#DbVerify">DbVerify</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                  <dt>
+                    <span class="sect1">
+                      <a href="managelogging.html">Logging</a>
+                    </span>
+                  </dt>
+                  <dd>
+                    <dl>
+                      <dt>
+                        <span class="sect2">
+                          <a href="managelogging.html#logginglevels">Managing Logging Levels</a>
+                        </span>
+                      </dt>
+                      <dt>
+                        <span class="sect2">
+                          <a href="managelogging.html#handlerlevels">Managing Handler Levels</a>
+                        </span>
+                      </dt>
+                    </dl>
+                  </dd>
+                </dl>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            <span class="appendix">
+              <a href="concurrentProcessing.html">A. Concurrent Processing in Berkeley DB Java Edition</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect1">
+                  <a href="concurrentProcessing.html#multithreaded">Multithreaded Applications</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect1">
+                  <a href="multiprocess.html">Multiprocess Applications</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+        </dl>
+      </div>
+      <div class="list-of-examples">
+        <p>
+          <b>List of Examples</b>
+        </p>
+        <dl>
+          <dt>2.1. <a href="dbenvUsageExample.html#mydbenv">Database Environment Management Class</a></dt>
+          <dt>7.1. <a href="dbUsage.html#mydbenvWDatabase">Database Management with MyDbEnv</a></dt>
+          <dt>8.1. <a href="dbtUsage.html#inventory">Inventory.java</a></dt>
+          <dt>8.2. <a href="dbtUsage.html#vendor">Vendor.java</a></dt>
+          <dt>8.3. <a href="dbtUsage.html#InventoryBinding">InventoryBinding.java</a></dt>
+          <dt>8.4. <a href="dbtUsage.html#dbenvStoredClass">Stored Class Catalog Management with MyDbEnv</a></dt>
+          <dt>8.5. <a href="dbtUsage.html#EDP">ExampleDatabasePut.java</a></dt>
+          <dt>9.1. <a href="cursorUsage.html#EIR"> ExampleInventoryRead.java</a></dt>
+          <dt>10.1. <a href="indexusage.html#ItemNameKeyCreator">ItemNameKeyCreator.java</a></dt>
+          <dt>10.2. <a href="indexusage.html#mydbenvSecondary">SecondaryDatabase Management with MyDbEnv</a></dt>
+          <dt>10.3. <a href="indexusage.html#secondaryWithEIR">SecondaryDatabase usage with ExampleInventoryRead</a></dt>
+        </dl>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="preface.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top"> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right" valign="top"> Preface</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

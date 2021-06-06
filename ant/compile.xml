@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+
+<project name="compile" default="compile" basedir=".">
+    <description>Shared compile target.</description>
+
+    <import file="${basedir}/build-common.xml"/>
+
+    <property name="include" value="com/sleepycat/**/*.java"/>
+    <property name="exclude1" value="com/sleepycat/**/jca/**/*.java"/>
+    <property name="exclude3" value="com/sleepycat/je/jmx/plugin/*.java"/>
+    <property name="exclude4" value="com/sleepycat/je/rep/jmx/plugin/*.java"/>
+
+    <!--
+    The sourcepath="" line must be specified in that way to clear out the field
+    and ensure that excludes takes effect.
+
+    jdk.source.version and jdk.target.version can be set to 1.6 to
+    compile for Java 6 source and bytecode, but this won't enforce the
+    runtime library. Use the compile-java6 target (below) instead when
+    building a release.
+    -->
+    <target name="compile" depends="get-jdk-source-boot-classpath">
+        <javac sourcepath=""
+               srcdir="${srcdir}"
+               includes="${include}"
+               excludes="${exclude1}, ${exclude2}, ${exclude3}, ${exclude4},
+                         ${exclude5}"
+               destdir="${destdir}"
+               classpathref="compile.classpath"
+               debug="${build.debug}"
+               deprecation="${build.deprecation}"
+               optimize="on"
+               includeantruntime="true"
+               source="${jdk.source.version}"
+               target="${jdk.target.version}"
+               bootclasspath="${jdk.source.boot.classpath}">
+            <!--
+            <compilerarg value="-Xlint:unchecked"/>
+            -->
+        </javac>
+    </target>
+
+    <!--
+    Compile for Java 6 source, bytecode and runtime libraries. This uses the
+    approach from the "Cross-Compilation Example" in the man page for javac,
+    version 1.7. The jdk6.home property must be set to use this target.
+    -->
+    <target name="compile-java6" depends="get-jdk6-boot-classpath">
+        <javac sourcepath=""
+               srcdir="${srcdir}"
+               includes="${include}"
+               excludes="${exclude1}, ${exclude2}, ${exclude3}, ${exclude4},
+                         ${exclude5}"
+               destdir="${destdir}"
+               classpathref="compile.classpath"
+               debug="${build.debug}"
+               deprecation="${build.deprecation}"
+               optimize="on"
+               includeantruntime="true"
+               source="1.6"
+               target="1.6"
+               bootclasspath="${jdk6.boot.classpath}"
+               extdirs="">
+            <!--
+            <compilerarg value="-Xlint:unchecked"/>
+            -->
+        </javac>
+    </target>
+
+    <!--
+    Store the Java 8 boot classpath in jdk.source.boot.classpath,
+    computing it by calling PrintBootClassPath using the Java 8 JVM
+    available in jdk8.home, if set.
+    -->
+    <target name="get-jdk-source-boot-classpath"
+            depends="compile-print-boot-classpath"
+            if="jdk8.home">
+        <java fork="yes"
+              jvm="${jdk8.home}/bin/java"
+              failonerror="true"
+              logerror="true"
+              classname="PrintBootClassPath"
+              classpath="${builddir}/tmp"
+              outputproperty="jdk.source.boot.classpath"/>
+    </target>
+
+    <!--
+    Store the Java 6 boot classpath in jdk6.boot.classpath, computing it
+    by calling PrintBootClassPath using the Java 6 JVM available in
+    jdk6.home, if set.
+    -->
+    <target name="get-jdk6-boot-classpath"
+            depends="compile-print-boot-classpath"
+            if="jdk6.home">
+        <java fork="yes"
+              jvm="${jdk6.home}/bin/java"
+              failonerror="true"
+              logerror="true"
+              classname="PrintBootClassPath"
+              classpath="${builddir}/tmp"
+              outputproperty="jdk6.boot.classpath"/>
+    </target>
+
+    <!--
+    Compile the PrintBootClassPath utility class, with 1.6 as the
+    target, so that we can use this with the Java 6 JVM.
+    -->
+    <target name="compile-print-boot-classpath">
+      <mkdir dir="${builddir}/tmp"/>
+      <javac srcdir="${basedir}/ant"
+             includes="PrintBootClassPath.java"
+             destdir="${builddir}/tmp"
+             includeantruntime="false"
+             debug="${build.debug}"
+             source="1.6"
+             target="1.6">
+          <!-- Ignore boot classpath warnings -->
+          <compilerarg value="-Xlint:-options"/>
+      </javac>
+    </target>
+</project>

@@ -1,0 +1,17 @@
+This directory backups all the test scripts of JE tests that run on Jenkins.
+
+There are 4 serious of tests for JE:
+  Coverage Test
+  Dbsim Test
+  Unit Test
+  Standalone Test
+
+The description and usage about these 4 serious of tests are in the README file at their own directory.
+
+In addition, the file JE_test_deploy.xlsx gives the visualization of some information about all JE tests, including the test machine, the issued time and the duration time of each test.
+
+All 15 JE Standalone tests run on slc04arq and they use the same test script je_standalone.sh.
+All 11 JE Unit tests run on slc04arq and slc04atb, where slc04arq runs 6 weekly running tests and slc04atb runs 5 daily running tests. They use the same test script je_unit.sh. Note that one daily running test will be always run with the default repository.
+All 5 JE DBsim tests run on slc04aro and they use the same test script je_dbsim.sh.
+
+JE Standalone tests and JE DBsim tests need to extract and check error from log file. They use the same error extract script error_extract_je.sh.

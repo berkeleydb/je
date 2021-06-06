@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Sizing the Cache</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="backgroundthreads.html" title="Managing the Background Threads" />
+    <link rel="next" href="diskthreshold.html" title="Setting Disk Thresholds" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Sizing the Cache</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="backgroundthreads.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 12. Administering Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="diskthreshold.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="cachesize"></a>Sizing the Cache</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        By default, your cache is limited to a percentage of the JVM maximum
+        memory as specified by the <code class="literal">-Xmx</code> parameter. You can
+        change this percentage by using the <code class="literal">je.maxMemoryPercent</code> property
+        or through <code class="methodname">EnvironmentMutableConfig.setCachePercent()</code>.
+        That is, the maximum amount of memory available to your cache is
+        normally calculated as:
+      </p>
+      <pre class="programlisting">je.maxMemoryPercent * JVM_maximum_memory</pre>
+      <p>
+        You can find out what the value for this property is by using
+        <code class="methodname">EnvironmentConfig.getCachePercent()</code>.
+     </p>
+      <p>
+        Note that you can cause JE to use a fixed maximum cache size by
+        using <code class="literal">je.maxMemory</code> or by using 
+        <code class="methodname">EnvironmentConfig.setCacheSize()</code>.
+     </p>
+      <p>
+        Also, not every JVM is capable of identifying the amount of memory requested via
+        the <code class="literal">-Xmx</code> parameter. For those JVMs you must use
+        <code class="literal">je.maxMemory</code> to change your maximum cache size. The
+        default maximum memory available to your cache in this case is 38M.
+     </p>
+      <p>
+        Of the amount of memory allowed for your cache, 93% is used for the internal BTree and the other 7% is
+        used for internal buffers. When your application first starts up, the 7% for buffers is immediately allocated.
+        The remainder of the cache grows lazily as your application reads and writes data. 
+     </p>
+      <p>
+        In order for your application to start up successfully, the Java virtual machine must have enough memory
+        available to it (as identified by the <code class="literal">-Xmx</code> command line switch) for both your application and
+        7% of your maximum cache value. In order for your application to run continuously (all the while loading data
+        into the cache), you must make sure your JVM has enough memory for your application plus the maximum cache size.
+     </p>
+      <p>
+        The best way to determine how large your cache needs to be is to put your application into a production
+        environment and watch to see how much disk I/O is occurring. If the application is going to disk quite a lot to
+        retrieve database records, then you should increase the size of your cache (provided that you have enough memory
+        to do so). 
+     </p>
+      <p>
+         You can also use the
+         <code class="methodname">com.sleepycat.je.util.DbCacheSize</code> utility
+         to obtain a rough estimate of how large your cache needs to be for
+         a given number of records and record characteristics. The utility
+         returns an estimate of the cache size to hold
+         the specified number of records in memory. See the 
+         <a class="ulink" href="../java/com/sleepycat/je/util/DbCacheSize.html" target="_top">DbCacheSize javadoc</a> 
+         for information on the utility's usage.
+     </p>
+      <p>
+        In order to determine how frequently your application is going to disk for database records not found in the
+        cache, you can examine the value returned by <code class="methodname">EnvironmentStats.getNCacheMiss()</code>. 
+     </p>
+      <p>
+         <code class="methodname">EnvironmentStats.getNCacheMiss()</code> identifies the total number of requests for 
+         database objects that were
+        not serviceable from the cache. This value is cumulative since the application started. The faster this number grows, 
+        the more your application is going to disk to service database operations. Upon application startup you can
+        expect this value to grow quite rapidly. However, as time passes and your cache is seeded with your most
+        frequently accessed database records, what you want is for this number's growth to be zero or at least very
+        small.
+     </p>
+      <p>
+        Note that this statistic can only be collected from within the application itself or using the JMX extension
+        (see <a class="xref" href="jmx.html" title="JConsole and JMX Support">JConsole and JMX Support</a>). 
+     </p>
+      <p>
+        For more information on collecting this statistic, see <a class="xref" href="envStats.html" title="Environment Statistics">Environment Statistics</a>.
+     </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="backgroundthreads.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="diskthreshold.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Managing the Background Threads </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Setting Disk Thresholds</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

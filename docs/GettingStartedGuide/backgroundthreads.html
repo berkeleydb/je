@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Managing the Background Threads</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+    <link rel="next" href="cachesize.html" title="Sizing the Cache" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Managing the Background Threads</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="administration.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 12. Administering Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="cachesize.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="backgroundthreads"></a>Managing the Background Threads</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="backgroundthreads.html#cleaner">The Cleaner Thread</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="backgroundthreads.html#checkpointer">The Checkpointer Thread</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        JE uses some background threads to keep your database resources within pre-configured limits. If they are
+        going to run, the background threads are started once per application per process. That is, if your application
+        opens the same environment multiple times, the background threads will be started just once for that process.
+        See the following list for the default conditions that gate whether an individual thread is run. Note that you
+        can prevent a background thread from running by using the appropriate <code class="filename">je.properties</code>
+        parameter, but this is not recommended for production use and those parameters are not described here. 
+    </p>
+      <p>
+        The background threads are:
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                Cleaner thread.
+            </p>
+            <p>
+                Responsible for cleaning and deleting unused log files. See <a class="xref" href="backgroundthreads.html#cleaner" title="The Cleaner Thread">The Cleaner Thread</a> for more information.
+            </p>
+            <p>
+                This thread is run only if the environment is opened for write access.
+            </p>
+          </li>
+          <li>
+            <p>
+                Compressor thread.
+            </p>
+            <p>
+                Responsible for cleaning up the internal BTree as database records are deleted. The compressor thread
+                ensures that the BTree does not contain unused nodes. There is no need for you to manage the
+                compressor and so it is not described further in this manual.
+            </p>
+            <p>
+                This thread is run only if the environment is opened for write access.
+            </p>
+          </li>
+          <li>
+            <p>
+                Checkpointer thread.
+            </p>
+            <p>
+                Responsible for running checkpoints on your environment. See 
+                <a class="xref" href="backgroundthreads.html#checkpointer" title="The Checkpointer Thread">The Checkpointer Thread</a> for more information.
+            </p>
+            <p>
+                This thread always runs.
+            </p>
+          </li>
+        </ul>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="cleaner"></a>The Cleaner Thread</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+            The cleaner thread is responsible for cleaning, or compacting, your log files for you.
+            Log file cleaning is described in <a class="xref" href="backuprestore.html#logcleaning" title="Cleaning the Log Files">Cleaning the Log Files</a>.
+        </p>
+        <p>
+			The following two properties may be of interest to you when managing the cleaner thread:
+		</p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+					<code class="literal">je.cleaner.minUtilization</code>
+				</p>
+              <p>
+					Identifies the percentage of the log file space that must be used for utilized records. If the
+					percentage of log file space used by utilized records is too low, then the cleaner removes 
+					obsolete records until this threshold is reached. Default is 50%.
+				</p>
+            </li>
+            <li>
+              <p>
+					<code class="literal">je.cleaner.expunge</code>
+				</p>
+              <p>
+					Identifies the cleaner's behavior in the event that it is able to remove a log file. If 
+                    <code class="literal">true</code>, the log files that have been cleaned are deleted from the file system. If
+                    <code class="literal">false</code>, the log files that have been cleaned are renamed from
+                    <code class="literal">NNNNNNNN.jdb</code> to <code class="literal">NNNNNNNN.del</code>. You are then responsible for
+                    deleting the renamed files.
+					
+				</p>
+            </li>
+          </ul>
+        </div>
+        <p>
+            Note that the cleaner thread runs only if the environment is opened for write access. Also, be aware that
+            the cleaner is not guaranteed to finish running before the environment is closed, which can result in
+            unexpectedly large log files. See
+            <a class="xref" href="envclose.html" title="Closing Database Environments">Closing Database Environments</a> for more information.
+        </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="checkpointer"></a>The Checkpointer Thread</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+            Automatically runs checkpoints. Checkpoints and the administration of this thread are described in 
+            the <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide.
+        </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="administration.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="cachesize.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 12. Administering Berkeley DB Java Edition Applications </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Sizing the Cache</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

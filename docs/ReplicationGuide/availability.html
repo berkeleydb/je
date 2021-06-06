@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Availability</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="txn-management.html" title="Chapter 3. Transaction Management" />
+    <link rel="prev" href="consistency.html" title="Managing Consistency" />
+    <link rel="next" href="cons_and_dur.html" title="Consistency and Durability Use Cases" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Availability</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="consistency.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Transaction Management</th>
+          <td width="20%" align="right"> <a accesskey="n" href="cons_and_dur.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="availability"></a>Availability</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="availability.html#writeavailability">Write Availability</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="availability.html#readavailability">Read Availability</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+              A key difference between standalone JE and JE HA is
+              that for standalone JE the environment is available for
+              both reads and writes as long as the application (including
+              the underlying hardware) is functioning correctly. That is,
+              the availability of a standalone JE application is
+              independent of the local durability policy set for the
+              transaction.  However, the distributed nature of JE HA, means
+              that availability can be dependent upon the state of other
+              nodes in the replication group. It can also be dependent upon
+              the policies you set for your HA application.
+          </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="writeavailability"></a>Write Availability</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  JE HA requires that a simple majority of electable nodes be
+                  available to elect a Master. If a simple majority of those
+                  nodes is not available, the group is not available for
+                  writes because the group is unable to elect a Master. 
+              </p>
+        <p>
+                  In the presence of a Master, the availability of a
+                  replicated environment (at the Master) for write
+                  operations is determined by the durability
+                  requirements associated with the transaction: 
+              </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                        If the transaction's durability requirements
+                        specify an acknowledgement policy of NONE, the
+                        Master is always available for write operations,
+                        just as is the case for standalone JE
+                        applications. 
+                      </p>
+            </li>
+            <li>
+              <p>
+                        If the durability requirements are made more
+                        stringent and specify a simple majority for
+                        acknowledgements, or if all
+                        the electable group members must acknowledge transaction
+                        commits, the environment might not be available for
+                        writes when one or more of the Electable Replicas is unable
+                        to provide an acknowledgment. This loss of write
+                        availability can occur even in the absence of
+                        hardware failures.
+                    </p>
+              <p>
+                        Replicas might be unable to provide
+                        acknowledgements because a node is down. It could
+                        also occur if the Replica is simply lagging
+                        too far behind in the replication stream and so
+                        needs to commit earlier transactions before it can
+                        commit the current transaction. Note that in the
+                        absence of system level failures, the Replica will
+                        eventually commit the transaction, it just can not
+                        do so in the window of time required to indicate a
+                        successful commit of the transaction to the Master.
+                    </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+                  In other words, a durability policy that calls for commit
+                  acknowledgments can result in decreased availability of
+                  the system for write operations. It is important for
+                  you to keep this tradeoff in mind when choosing a
+                  durability policy.
+              </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="readavailability"></a>Read Availability</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  A Master is always available for read operations because
+                  the data on it is always absolutely consistent. However,
+                  Replica read availability can be affected by the
+                  consistency policy that you are using:
+              </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                        A Replica is always available for read operations
+                        that do not have any read consistency requirements.
+                        That is, when the Replica is allowed to lag
+                        arbitrarily far behind the Master, then the Replica
+                        will always be available to service read requests. 
+                      </p>
+            </li>
+            <li>
+              <p>
+                        If you are using higher levels of read consistency,
+                        then Replicas might not be available for read
+                        operations. This occurs when the Replica is forced
+                        to wait until it has caught up far enough in the
+                        replication stream before it can service a read
+                        operation. For example, if you choose a time
+                        consistency policy, and the the Replica cannot meet
+                        that consistency policy for a specific read
+                        operation, then the operation might be delayed or
+                        even abandoned entirely until the consistency
+                        policy can be met. This represents a loss of read
+                        availability.
+                      </p>
+              <p>
+                          There are many reasons why a Replica might not be
+                          able to meet a consistency policy. For example,
+                          the Master might be very busy and so is unable to
+                          supply the Replica with the replication stream
+                          fast enough. Or, it could be because the Replica
+                          is experiencing very heavy read loads and so
+                          the replication stream might not be fast enough
+                          to keep up. It is also possible that the Replica
+                          has been down and is trying to catch up, which
+                          means that it might not be able to meet a
+                          consistency policy.
+                      </p>
+              <p>
+                          All of these scenarios represent a loss of read
+                          availability, albeit a temporary one.
+                      </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+                  In other words, a consistency policy that requires the
+                  Replica to match the state of the Master to one degree or
+                  another can affect the Replica's read availability.  It
+                  is important for you to keep this tradeoff in mind when
+                  choosing a consistency policy.
+              </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="consistency.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txn-management.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="cons_and_dur.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Managing Consistency </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Consistency and Durability Use Cases</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

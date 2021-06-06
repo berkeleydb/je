@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Secondary Database Example</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="indexes.html" title="Chapter 10. Secondary Databases" />
+    <link rel="prev" href="joins.html" title="Database Joins" />
+    <link rel="next" href="admin.html" title="Part III. Administering JE Applications" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Secondary Database Example</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="joins.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 10. Secondary Databases</th>
+          <td width="20%" align="right"> <a accesskey="n" href="admin.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="indexusage"></a>Secondary Database Example</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="indexusage.html#secondaryMyDbEnv">Opening Secondary Databases with
+      MyDbEnv</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="indexusage.html#exampleReadSecondaries">Using Secondary Databases with ExampleInventoryRead</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>In previous chapters in this book, we built applications that load
+    and display several JE databases. In this example, we will extend those
+    examples to use secondary databases. Specifically:</p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>In <a class="xref" href="dbtUsage.html#dbenvStoredClass" title="Example 8.4 Stored Class Catalog Management with MyDbEnv">Stored Class Catalog Management with MyDbEnv</a> we built a
+        class that we can use to open and manage a 
+		JE <code class="classname">Environment</code> and one or more <code class="classname">Database</code> objects.
+        In <a class="xref" href="indexusage.html#secondaryMyDbEnv" title="Opening Secondary Databases with MyDbEnv">Opening Secondary Databases with
+      MyDbEnv</a> we will extend 
+        that class to also open and manage a <code class="classname">SecondaryDatabase</code>.
+        </p>
+          </li>
+          <li>
+            <p>In <a class="xref" href="cursorUsage.html" title="Cursor Example">Cursor Example</a> we
+        built an application to display our inventory database (and related
+        vendor information). In <a class="xref" href="indexusage.html#exampleReadSecondaries" title="Using Secondary Databases with ExampleInventoryRead">Using Secondary Databases with ExampleInventoryRead</a> we will extend that application to
+        show inventory records based on the index we cause to be loaded using
+        <code class="classname">ExampleDatabasePut</code>.
+        </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+            Before we can use a secondary database, we must implement a class to extract secondary keys for us. 
+            We use <code class="classname">ItemNameKeyCreator</code> for this purpose.
+        </p>
+      <div class="example">
+        <a id="ItemNameKeyCreator"></a>
+        <p class="title">
+          <b>Example 10.1 ItemNameKeyCreator.java</b>
+        </p>
+        <div class="example-contents">
+          <p>
+        This class assumes the primary database
+        uses <code class="classname">Inventory</code> objects for the record data. The
+        <code class="classname">Inventory</code> class is described in <a class="xref" href="dbtUsage.html#inventory" title="Example 8.1 Inventory.java">Inventory.java</a>.</p>
+          <p>In our key creator class, we make use of a custom tuple binding
+        called <code class="classname">InventoryBinding</code>. This class is described in <a class="xref" href="dbtUsage.html#InventoryBinding" title="Example 8.3 InventoryBinding.java">InventoryBinding.java</a>.</p>
+          <p>You can find the following class in: </p>
+          <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/je/gettingStarted/ItemNameKeyCreator.java</pre>
+          <p>
+        where <code class="literal"><span class="emphasis"><em>JE_HOME</em></span></code> is the location where you
+        placed your JE distribution.
+    </p>
+          <a id="je_index11"></a>
+          <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.bind.tuple.TupleBinding;
+import com.sleepycat.db.SecondaryKeyCreator;
+import com.sleepycat.db.DatabaseEntry;
+import com.sleepycat.db.DatabaseException;
+import com.sleepycat.db.SecondaryDatabase;
+
+public class ItemNameKeyCreator implements SecondaryKeyCreator {
+
+    private TupleBinding theBinding;
+
+    // Use the constructor to set the tuple binding
+    ItemNameKeyCreator(TupleBinding binding) {
+        theBinding = binding;
+    }
+
+    // Abstract method that we must implement
+    public boolean createSecondaryKey(SecondaryDatabase secDb,
+        DatabaseEntry keyEntry,    // From the primary
+        DatabaseEntry dataEntry,   // From the primary
+        DatabaseEntry resultEntry) // set the key data on this.
+        throws DatabaseException {
+
+        if (dataEntry != null) {
+            // Convert dataEntry to an Inventory object
+            Inventory inventoryItem =
+                  (Inventory)theBinding.entryToObject(dataEntry);
+            // Get the item name and use that as the key
+            String theItem = inventoryItem.getItemName();
+            resultEntry.setData(theItem.getBytes());
+        }
+        return true;
+    }
+} </pre>
+        </div>
+      </div>
+      <br class="example-break" />
+      <p>Now that we have a key creator, we can use it to generate keys for a secondary database. We will now extend
+      <code class="classname">MyDbEnv</code> to manage a secondary database, and to use <code class="classname">ItemNameKeyCreator</code>
+      to generate keys for that secondary database.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="secondaryMyDbEnv"></a>Opening Secondary Databases with
+      MyDbEnv</h3>
+            </div>
+          </div>
+        </div>
+        <p>In <a class="xref" href="dbtUsage.html#dbenvStoredClass" title="Example 8.4 Stored Class Catalog Management with MyDbEnv">Stored Class Catalog Management with MyDbEnv</a> we built
+      <code class="classname">MyDbEnv</code> as an example of a class that
+      encapsulates <code class="classname">Environment</code> and
+      <code class="classname">Database</code> opens and closes. We will now extend
+      that class to manage a <code class="classname">SecondaryDatabase</code>.</p>
+        <div class="example">
+          <a id="mydbenvSecondary"></a>
+          <p class="title">
+            <b>Example 10.2 SecondaryDatabase Management with MyDbEnv</b>
+          </p>
+          <div class="example-contents">
+            <p>We start by importing two additional classes needed to support secondary databases. 
+		We also add a global variable to use as a handle for our secondary database.
+        </p>
+            <a id="je_index12"></a>
+            <pre class="programlisting">// File MyDbEnv.java
+
+package je.gettingStarted;
+
+import com.sleepycat.bind.tuple.TupleBinding;
+import com.sleepycat.bind.serial.StoredClassCatalog;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+<strong class="userinput"><code>import com.sleepycat.je.SecondaryConfig;</code></strong>
+<strong class="userinput"><code>import com.sleepycat.je.SecondaryDatabase;</code></strong>
+
+import java.io.File;
+
+public class MyDbEnv {
+
+    private Environment myEnv;
+
+    // The databases that our application uses
+    private Database vendorDb;
+    private Database inventoryDb;
+    private Database classCatalogDb;
+    <strong class="userinput"><code>private SecondaryDatabase itemNameIndexDb;</code></strong>
+
+    // Needed for object serialization
+    private StoredClassCatalog classCatalog;
+
+    // Our constructor does nothing
+    public MyDbEnv() {}</pre>
+            <p>
+        Next we update the <code class="methodname">MyDbEnv.setup()</code> method to open the 
+		secondary database. As a part of this, we have to pass an 
+		<code class="classname">ItemNameKeyCreator</code> object on the call to open the secondary
+        database. Also, in order to instantiate <code class="classname">ItemNameKeyCreator</code>, we need an
+        <code class="classname">InventoryBinding</code> object (we described this class in <a class="xref" href="dbtUsage.html#InventoryBinding" title="Example 8.3 InventoryBinding.java">InventoryBinding.java</a>). We do all this work together inside of
+        <code class="methodname">MyDbEnv.setup()</code>.
+    </p>
+            <a id="je_index13"></a>
+            <pre class="programlisting">    public void setup(File envHome, boolean readOnly)
+        throws DatabaseException {
+
+        EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+        DatabaseConfig myDbConfig = new DatabaseConfig();
+        <strong class="userinput"><code>SecondaryConfig mySecConfig = new SecondaryConfig();</code></strong>
+
+        // If the environment is read-only, then
+        // make the databases read-only too.
+        myEnvConfig.setReadOnly(readOnly);
+        myDbConfig.setReadOnly(readOnly);
+        <strong class="userinput"><code>mySecConfig.setReadOnly(readOnly);</code></strong>
+
+        // If the environment is opened for write, then we want to be
+        // able to create the environment and databases if
+        // they do not exist.
+        myEnvConfig.setAllowCreate(!readOnly);
+        myDbConfig.setAllowCreate(!readOnly);
+        <strong class="userinput"><code>mySecConfig.setAllowCreate(!readOnly);</code></strong>
+
+        ...
+        // Environment and database opens omitted for brevity
+        ...
+
+        <strong class="userinput"><code>// Open the secondary database. We use this to create a
+        // secondary index for the inventory database
+
+        // We want to maintain an index for the inventory entries based
+        // on the item name. So, instantiate the appropriate key creator
+        // and open a secondary database.
+        ItemNameKeyCreator keyCreator =
+            new ItemNameKeyCreator(new InventoryBinding());
+
+        // Set up the secondary properties
+        mySecConfig.setAllowPopulate(true); // Allow autopopulate
+        mySecConfig.setKeyCreator(keyCreator);
+        // Need to allow duplicates for our secondary database
+        mySecConfig.setSortedDuplicates(true);
+
+        // Now open it
+        itemNameIndexDb =
+            myEnv.openSecondaryDatabase(
+                    null,     
+                    "itemNameIndex", // Index name
+                    inventoryDb,     // Primary database handle. This is
+                                     // the db that we're indexing. 
+                    mySecConfig);    // The secondary config</code></strong>
+    } </pre>
+            <p>
+        Next we need an additional getter method for returning the secondary database.
+    </p>
+            <a id="je_index14"></a>
+            <pre class="programlisting">    public SecondaryDatabase getNameIndexDB() {
+        return itemNameIndexDb;
+    } </pre>
+            <p>Finally, we need to update the <code class="methodname">MyDbEnv.close()</code>
+        method to close the new secondary database. We want to make sure that
+        the secondary is closed before the primaries. While
+        this is not necessary for this example because our
+        closes are single-threaded, it is still a good habit to adopt.</p>
+            <a id="je_index15"></a>
+            <pre class="programlisting">    public void close() {
+        if (myEnv != null) {
+            try {
+                //Close the secondary before closing the primaries
+                <strong class="userinput"><code>itemNameIndexDb.close();</code></strong>
+                vendorDb.close();
+                inventoryDb.close();
+                classCatalogDb.close();
+
+                // Finally, close the environment.
+                myEnv.close();
+            } catch(DatabaseException dbe) {
+                System.err.println("Error closing MyDbEnv: " +
+                                    dbe.toString());
+                System.exit(-1);
+            }
+        }
+    }
+} </pre>
+            <p>That completes our update to <code class="classname">MyDbEnv</code>. You
+        can find the complete class implementation in:
+        </p>
+            <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/je/gettingStarted/MyDbEnv.java </pre>
+            <p>
+        where <code class="literal"><span class="emphasis"><em>JE_HOME</em></span></code> is the location where you
+        placed your JE distribution.
+    </p>
+          </div>
+        </div>
+        <br class="example-break" />
+      </div>
+      <p>Because we performed all our secondary database configuration management in
+        <code class="classname">MyDbEnv</code>, we do not need to modify <code class="classname">ExampleDatabasePut</code> at all in
+        order to create our secondary indices. When <code class="classname">ExampleDatabasePut</code> calls 
+        <code class="methodname">MyDbEnv.setup()</code>, all of the necessary work is performed for us.
+        </p>
+      <p>
+            However, we still need to take advantage of the new secondary indices. We do this by updating 
+            <code class="classname">ExampleInventoryRead</code> to allow us to query for an inventory record based on its name.
+            Remember that the primary key for an inventory record is the item's SKU. The item's name is contained in the 
+            <code class="classname">Inventory</code> object that is stored as each record's data in the inventory database. But
+            our new secondary index now allows us to easily query based on the item's name.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="exampleReadSecondaries"></a>Using Secondary Databases with ExampleInventoryRead</h3>
+            </div>
+          </div>
+        </div>
+        <p>In the previous section we changed <code class="classname">MyDbEnv</code>
+      to cause a secondary database to be built using inventory item names as
+      the secondary keys. In this section, we will update
+      <code class="classname">ExampleInventoryRead</code> to allow us to query our
+      inventory records based on the item name. To do this, we will modify
+      <code class="classname">ExampleInventoryRead</code> to accept a new command line switch,
+      <code class="literal">-s</code>, whose argument is the name of an inventory item.
+      If the switch is present on the command line call to
+      <code class="classname">ExampleInventoryRead</code>, then the application will
+      use the secondary database to look up and display all the inventory
+      records with that item name. Note that we use a <code class="classname">SecondaryCursor</code>
+      to seek to the item name key and then display all matching records.</p>
+        <p>Remember that you can find the following class in: </p>
+        <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/je/gettingStarted/ExampleInventoryRead.java</pre>
+        <p>
+        where <code class="literal"><span class="emphasis"><em>JE_HOME</em></span></code> is the location where you
+        placed your JE distribution.
+    </p>
+        <div class="example">
+          <a id="secondaryWithEIR"></a>
+          <p class="title">
+            <b>Example 10.3 SecondaryDatabase usage with ExampleInventoryRead</b>
+          </p>
+          <div class="example-contents">
+            <p>First we need to import a few additional classes in order to use
+        secondary databases and cursors, and then we add a single global variable:</p>
+            <a id="je_index16"></a>
+            <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Cursor;
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.OperationStatus;
+<strong class="userinput"><code>import com.sleepycat.je.SecondaryCursor;</code></strong>
+
+import com.sleepycat.bind.EntryBinding;
+import com.sleepycat.bind.serial.SerialBinding;
+import com.sleepycat.bind.tuple.TupleBinding;
+
+import java.io.File;
+import java.io.IOException; 
+
+public class ExampleInventoryRead {
+
+    private static File myDbEnvPath =
+        new File("/tmp/JEDB");
+
+    // Encapsulates the database environment and databases.
+    private static MyDbEnv myDbEnv = new MyDbEnv();
+
+    private static TupleBinding inventoryBinding;
+    private static EntryBinding vendorBinding;
+
+    <strong class="userinput"><code>// The item to locate if the -s switch is used
+    private static String locateItem;</code></strong> </pre>
+            <p>Next we update <code class="methodname">ExampleInventoryRead.run()</code> to
+        check to see if the <code class="literal">locateItem</code> global variable a
+        value. If it does, then we show just those records related to the item
+        name passed on the <code class="literal">-s</code> switch.</p>
+            <a id="je_index18"></a>
+            <pre class="programlisting">    private void run(String args[]) 
+        throws DatabaseException {
+            // Parse the arguments list
+            parseArgs(args);
+            myDbEnv.setup(myDbEnvPath, // path to the environment home
+                          true);      // is this environment read-only?
+
+            // Setup our bindings.
+            inventoryBinding = new InventoryBinding();
+            vendorBinding =
+                 new SerialBinding(myDbEnv.getClassCatalog(),
+                                   Vendor.class);
+
+            <strong class="userinput"><code>if (locateItem != null) {
+                showItem();
+            } else {</code></strong>
+                showAllInventory();
+            <strong class="userinput"><code>}</code></strong>
+    } </pre>
+            <p>
+            Finally, we need to implement <code class="methodname">ExampleInventoryRead.showItem()</code>. 
+            This is a fairly simple method that opens a secondary cursor,
+            and then displays every primary record that is related to the secondary
+            key identified by the <code class="literal">locateItem</code> global variable.
+        </p>
+            <a id="je_index19"></a>
+            <pre class="programlisting">    private void showItem() throws DatabaseException {
+            SecondaryCursor secCursor = null;
+            try {
+                // searchKey is the key that we want to find in the 
+                // secondary db.
+                DatabaseEntry searchKey = 
+                    new DatabaseEntry(locateItem.getBytes("UTF-8"));
+
+                // foundKey and foundData are populated from the primary
+                // entry that is associated with the secondary db key.
+                DatabaseEntry foundKey = new DatabaseEntry();
+                DatabaseEntry foundData = new DatabaseEntry();
+
+                // open a secondary cursor
+                secCursor =
+                  myDbEnv.getNameIndexDB().openSecondaryCursor(null, null);
+
+                // Search for the secondary database entry.
+                OperationStatus retVal =
+                    secCursor.getSearchKey(searchKey, foundKey,
+                        foundData, LockMode.DEFAULT);
+
+                // Display the entry, if one is found. Repeat until no more
+                // secondary duplicate entries are found
+                while(retVal == OperationStatus.SUCCESS) {
+                    Inventory theInventory =
+                      (Inventory)inventoryBinding.entryToObject(foundData);
+                    displayInventoryRecord(foundKey, theInventory);
+                    retVal = secCursor.getNextDup(searchKey, foundKey,
+                        foundData, LockMode.DEFAULT);
+                }
+            } catch (Exception e) {
+                System.err.println("Error on inventory secondary cursor:");
+                System.err.println(e.toString());
+                e.printStackTrace();
+            } finally {
+                if (secCursor != null) {
+                    secCursor.close();
+                }
+            }
+        }</pre>
+            <p>The only other thing left to do is to update 
+        <code class="methodname">ExampleInventoryRead.parseArgs()</code> to support the <code class="literal">-s</code> command
+        line switch. To see how this is done, see:
+        </p>
+            <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/je/gettingStarted/ExampleInventoryRead.java</pre>
+            <p>
+        where <code class="literal"><span class="emphasis"><em>JE_HOME</em></span></code> is the location where you
+        placed your JE distribution.
+    </p>
+          </div>
+        </div>
+        <br class="example-break" />
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="joins.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="indexes.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="admin.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Database Joins </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Part III. Administering JE Applications</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

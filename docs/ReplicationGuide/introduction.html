@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 1. Introduction</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="preface.html" title="Preface" />
+    <link rel="next" href="datamanagement.html" title="Managing Data Guarantees" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 1. Introduction</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="preface.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="datamanagement.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="introduction"></a>Chapter 1. Introduction</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="introduction.html#overview">Overview</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="introduction.html#intro_repgroup">Replication Group Members</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="introduction.html#repenvirons">Replicated Environments</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="introduction.html#masterselect">Selecting a Master</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="introduction.html#replicationstreams">Replication Streams</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="datamanagement.html">Managing Data Guarantees</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="datamanagement.html#durability-intro">Durability</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="datamanagement.html#consistency-intro">Managing Data Consistency</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="lifecycle.html">Replication Group Life Cycle</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#lifecycle-terms">Terminology</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#nodestates">Node States</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#lifecycle-new">New Replication Group Startup</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#lifecycle-established">Subsequent Startups</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#lifecycle-nodestartup">Replica Startup</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#lifecycle-masterfailover">Master Failover</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="lifecycle.html#twonode">Two Node Groups</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+        </dl>
+      </div>
+      <p>
+    This book provides a thorough introduction to
+    replication as used with Berkeley DB, Java Edition (JE). It begins by offering a
+    general overview to replication and the benefits it provides. It also
+    describes the APIs that you use to implement replication, and it
+    describes architecturally the things that you need to do to your
+    application code in order to use the replication APIs. 
+  </p>
+      <p>
+    You should understand the concepts from the <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em>
+     guide before reading this book.
+  </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="overview"></a>Overview</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="introduction.html#intro_repgroup">Replication Group Members</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="introduction.html#repenvirons">Replicated Environments</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="introduction.html#masterselect">Selecting a Master</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="introduction.html#replicationstreams">Replication Streams</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            Welcome to the JE High Availability (HA) product. JE HA
+            is a replicated, single-master, embedded database engine based
+            on Berkeley DB, Java Edition.  JE HA offers important improvements in
+            application availability, as well as offering improved read
+            scalability and performance. JE HA does this by extending
+            the data guarantees offered by a traditional transactional
+            system to processes running on multiple physical hosts.
+        </p>
+        <p>
+            The JE replication APIs allow you to distribute your
+            database contents (performed on a read-write Master) to one or 
+            more read-only <span class="emphasis"><em>Replicas</em></span>.  
+            For this reason, JE's replication implementation is said to be a
+            <span class="emphasis"><em>single master, multiple replica</em></span> replication strategy.
+        </p>
+        <p>
+            Replication offers your application a number of benefits that
+            can be a tremendous help. Primarily, replication's benefits
+            revolve around performance, but there is also a benefit in
+            terms of data durability guarantees.
+        </p>
+        <p>
+            Briefly, some of the reasons why you might choose to implement
+            replication in your JE application are:
+        </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                       Improved application availability.
+               </p>
+              <p>
+                       By spreading your data across multiple
+                       machines, you can ensure that your
+                       application's data continues to be
+                       available even in the event of a
+                       hardware failure on any given machine in
+                       the replication group.
+               </p>
+            </li>
+            <li>
+              <p>
+                    Improve read performance.
+                </p>
+              <p>
+                    By using replication you can spread data reads across
+                    multiple machines on your network. Doing so allows you
+                    to vastly improve your application's read performance.
+                    This strategy might be particularly interesting for
+                    applications that have readers on remote network nodes;
+                    you can push your data to the network's edges thereby
+                    improving application data read responsiveness.
+                </p>
+            </li>
+            <li>
+              <p>
+                   Improve transactional commit performance
+                </p>
+              <p>
+                   In order to commit a transaction and achieve a
+                   transactional durability guarantee, the commit must be
+                   made <span class="emphasis"><em>durable</em></span>. That is, the commit
+                   must be written to disk (usually, but not always,
+                   synchronously) before the application's thread of
+                   control can continue operations.
+                </p>
+              <p>
+                    Replication allows you to batch disk I/O so that it is
+                    performed as efficiently as possible while still
+                    maintaining a degree of durability by <span class="emphasis"><em>committing
+                    to the network</em></span>. In other words, you relax
+                    your transactional durability guarantees on the machine
+                    where you perform the database write,
+                    but by virtue of replicating the data across the
+                    network you gain some additional durability guarantees
+                    beyond what is provided locally. 
+                </p>
+            </li>
+            <li>
+              <p>
+                   Improve data durability guarantee.        
+                </p>
+              <p>
+                    In a traditional transactional application, you commit your
+                    transactions such that data modifications are saved to
+                    disk. Beyond this, the durability of your data is
+                    dependent upon the backup strategy that you choose to
+                    implement for your site.
+                </p>
+              <p>
+                    Replication allows you to increase this durability
+                    guarantee by ensuring that data modifications are
+                    written to multiple machines. This means that multiple
+                    disks, disk controllers, power supplies, and CPUs are
+                    used to ensure that your data modification makes it to
+                    stable storage. In other words, replication allows you
+                    to minimize the problem of a single point of failure
+                    by using more hardware to guarantee your data writes.
+                </p>
+              <p>
+                    If you are using replication for this reason, then you
+                    probably will want to configure your application such
+                    that it waits to hear about a successful commit from 
+                    one or more replicas before continuing with the next
+                    operation. This will obviously impact your
+                    application's write performance to some degree 
+                    — with the performance penalty being largely dependent
+                    upon the speed and stability of the network connecting
+                    your replication group.
+                </p>
+            </li>
+          </ul>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="intro_repgroup"></a>Replication Group Members</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Processes that take part in a JE HA application are
+                generically called <span class="emphasis"><em>nodes</em></span>. Most nodes
+                serve as a read-only Replica. One node in the HA
+                application can perform database writes. This is the Master node.
+            </p>
+          <p>
+                The sum totality of all the nodes taking part in the
+                replicated application is called the <span class="emphasis"><em>replication
+                    group</em></span>. While it is only a logical entity
+                (there is no object that you instantiate and destroy which
+                represents the replication group), the replication group is
+                the first-order element of management for a replicated HA
+                application. It is very important to remember that the
+                replication group is persistent in that it exists
+                regardless of whether its member nodes are currently
+                running. In fact, nodes that have been added to a replication
+                group (with the exception of Secondary nodes) will remain in
+                the group until they are manually removed from the group by
+                you or your application's administrator.
+            </p>
+          <p>
+                Replication groups consist of electable nodes and,
+                optionally, Monitor and Secondary nodes.
+            </p>
+          <p>
+              <span class="emphasis"><em>Electable</em></span> nodes are replication group
+              members that can be elected to become the group's Master node
+              through a <span class="emphasis"><em>replication election</em></span>.  Electable
+              nodes are also the group members that vote in these elections.
+              If an electable node is not a Master, then it serves in the
+              replication group as a read-only Replica. Electable nodes have
+              access to a JE environment, and are persistent members of
+              the replication group.  Electable nodes that are Replicas also
+              participate in transaction durability decisions by providing the
+              master with acknowledgments of transaction commits.
+            </p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                    Beyond Master and Replica, a node can also be in 
+                    several other states. See
+                    <a class="xref" href="lifecycle.html" title="Replication Group Life Cycle">Replication Group Life Cycle</a>
+                    for more information.
+                </p>
+          </div>
+          <p>
+                Most of the nodes in a replication group are electable
+                nodes, but it is possible to have nodes of the other types
+                as well.
+            </p>
+          <p>
+                <span class="emphasis"><em>Secondary nodes</em></span> also have access to a
+                JE environment, but can only serve as read-only replicas,
+                not masters, and do not participate in elections.  Secondary
+                nodes can be used to provide read-only data access from
+                locations with higher latency network connections to the rest
+                of the replication group without introducing communication
+                delays into elections. Secondary nodes are not persistent
+                members of the replication group; they are only considered
+                members when they are connected to the current master.
+                Secondary nodes do not participate in transaction durability
+                decisions.
+            </p>
+          <p>
+                <span class="emphasis"><em>Monitor nodes</em></span> do not have access to a
+                JE environment and do not participate in elections. For
+                this reason, they cannot serve as either a Master or a
+                Replica. Instead, they merely monitor the composition of the
+                replication group as changes are made by adding and removing
+                electable nodes, joining and leaving of electable and
+                secondary nodes, and as elections are held to select a new
+                Master. Monitor nodes are therefore used by applications
+                external to the JE replicated application to route data
+                requests to the various members of the replication
+                group. Monitor nodes are persistent members of the
+                replication group. Monitor nodes do not participate in
+                transaction durability decisions.
+            </p>
+          <p>
+                Note that all nodes in a replication group have a unique
+                group-wide name. Further, all replication groups are also
+                assigned a unique name. This is necessary because it is
+                possible for a single process to have access to multiple
+                replication groups. Further, any given collection of
+                hardware can be running multiple replication groups (a
+                production and a test group, for example.) By uniquely
+                identifying the replication group with a unique name, it is
+                possible for JE HA to internally check that nodes have
+                not been misconfigured and so make sure that messages are
+                being routed to the correct location.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="repenvirons"></a>Replicated Environments</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                All electable and secondary nodes must have access to a
+                database environment. Further, no node can share a database
+                environment with another node.
+            </p>
+          <p>
+                More to the point, in order to create an electable or
+                secondary node in a replication group, you use a
+                specialized form of the environment handle:
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a>.
+            </p>
+          <p>
+                There is no JE-specified limit to the number of
+                environments which can join a replication group.
+                The only limitation here is one of resources —
+                network bandwidth, for example.
+            </p>
+          <p>
+                We discuss <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle usage in 
+                <a class="xref" href="progoverview.html#repenv" title="Using Replicated Environments">Using Replicated Environments</a>.
+                For an introduction to database environments, see the 
+                <em class="citetitle">Getting Started with Berkeley DB, Java Edition</em> guide.  
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="masterselect"></a>Selecting a Master</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                    Every replication group is allowed one and only one
+                    Master. Masters are selected by
+                    holding an <span class="emphasis"><em>election</em></span>.  All such
+                    elections are performed by the underlying Berkeley DB, Java Edition
+                    replication code.
+                </p>
+          <p>
+                    When a node joins a replication group, it attempts to
+                    locate the Master. If it is the first electable node added
+                    to the replication group, then it automatically becomes
+                    the Master. If it is an electable node, but is not the
+                    first to startup in the replication group and it cannot
+                    locate the Master, it calls for an election. Further, if
+                    at any time the Master becomes unavailable to the
+                    replication group, the electable replicas will call for an
+                    election.
+                </p>
+          <p>
+                    When holding an election, election participants vote on
+                    who should be the Master. Among the electable nodes
+                    participating in the election, the node with the most
+                    up-to-date set of logs will win the election. In order
+                    to win an election, a node must win a simple majority
+                    of the votes.
+                </p>
+          <p>
+                    Usually JE requires a majority of electable nodes to be
+                    available to hold an election. If a simple majority is
+                    not available, then the replication group will no
+                    longer be able to accept write requests as there will
+                    be no Master.
+                </p>
+          <p>
+                    Note that an electable node is part of the replication
+                    group even if it is currently not running or is
+                    otherwise unreachable by the rest of the replication
+                    group. Membership of electable nodes in the replication
+                    group is persistent; once an electable node joins the
+                    group, it remains in the group regardless of its current
+                    state. The only way an electable node leaves a
+                    replication group is if you manually remove it from the
+                    group (see
+                    <a class="xref" href="utilities.html#node-addremove" title="Adding and Removing Nodes from the Group">Adding and Removing Nodes from the Group</a>
+                    for details). This is a very important point to remember
+                    when considering elections. <span class="emphasis"><em>An election cannot be held
+                    if the majority of electable nodes in the group are not
+                    running or are otherwise unreachable.</em></span>
+                </p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                        There are two circumstances under which a majority
+                        of electable nodes need not be available in order
+                        to hold an election. The first is for the special
+                        circumstance of the two-node group. See <a class="xref" href="two-node.html" title="Configuring Two-Node Groups">Configuring Two-Node Groups</a> for
+                        details.
+                    </p>
+            <p>
+                        The second circumstance is if you explicitly relax
+                        the requirement for a majority of electable nodes to
+                        be available in order to hold an election. This is a
+                        dangerous thing to do, and your replication group
+                        should rarely (if ever) be configured this way. See
+                        <a class="xref" href="election-override.html" title="Appendix A. Managing a Failure of the Majority">Managing a Failure of the Majority</a>
+                        for more information.
+                    </p>
+          </div>
+          <p>
+                    Once a node has been elected Master, it remains in that
+                    role until the replication group has a reason to hold
+                    another election. Currently, the only reason why the group
+                    will try to elect a new Master is if the current Master
+                    becomes unavailable to the group. This can happen 
+                    because you shutdown the current Master, the current Master
+                    crashes due to bugs in your application code, or a network
+                    outage causes the current Master to be unreachable by a
+                    majority of the electable nodes in your replication group.
+                </p>
+          <p>
+                    In the event of a tie in the number of votes, JE's
+                    underlying implementation of the election code will
+                    pick the Master. Moreover, the election code will
+                    always make a consistent choice when settling a tie.
+                    That is, all things being even, the same node will
+                    always be picked to win a tied election.
+                </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="replicationstreams"></a>Replication Streams</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Write transactions can only be performed at the Master.
+                The results of these transactions are replicated to
+                Replicas using a logical replication stream.
+            </p>
+          <p>
+                Logical replication streams are performed over a TCP/IP
+                connection. The stream contains a description of the
+                logical changes (for example, insert, update or delete)
+                operations that were performed on the database as a result
+                of the transaction commit.  Each such replicated change is
+                assigned a group-wide unique identifier called a Virtual
+                Log Sequence Number (VLSN). The VLSN can be used to locate
+                the replicated change in the log files associated with any
+                member of the group.  Through the use of the VLSN, each
+                operation described by the replication stream can be
+                replayed at each Replica using an efficient internal replay
+                mechanism.
+            </p>
+          <p>
+                A consequence of this logical replaying of a transaction is
+                that physical characteristics of the log files contained at
+                the Replicas can be different across the replication group.
+                The data contents of the environments found across the replication
+                group, however, should be identical. 
+            </p>
+          <p>
+                Note that there is a process by which a non-replicated
+                environment can be converted such that it has the log
+                structure and metadata required for replication. See
+                <a class="xref" href="enablerep.html" title="Converting Existing Environments for Replication">Converting Existing Environments for Replication</a>
+                for more information.
+            </p>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="preface.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="datamanagement.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Preface </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Managing Data Guarantees</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

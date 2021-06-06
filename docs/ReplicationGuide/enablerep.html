@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Converting Existing Environments for Replication</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="utilities.html" title="Chapter 4. Utilities" />
+    <link rel="prev" href="dbbackup.html" title="Backing up a Replicated Application" />
+    <link rel="next" href="monitors.html" title="Chapter 5. Writing Monitor Nodes" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Converting Existing Environments for Replication</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="dbbackup.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 4. Utilities</th>
+          <td width="20%" align="right"> <a accesskey="n" href="monitors.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="enablerep"></a>Converting Existing Environments for Replication</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            JE HA environments log files contain information and data
+            used only by replication. Non-replicated environments are
+            lacking this information, so in order to use a
+            previously-existing non-replicated environment in an HA
+            application, it must undergo a one time conversion.
+        </p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+                If you try to open a non-replicated environment as a
+                replicated environment, the operation will throw an
+                <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/UnsupportedOperationException.html" target="_top">UnsupportedOperationException</a>. This is the only way your
+                code can tell if an environment needs to be converted.
+            </p>
+      </div>
+      <p>
+            You use the <a class="ulink" href="../java/com/sleepycat/je/rep/util/DbEnableReplication.html" target="_top">DbEnableReplication</a> class to perform this
+            one-time conversion. This class is particularly useful if you
+            want to prototype a standalone transactional application, and
+            then add in replication after the transactional application is
+            working as desired.
+        </p>
+      <p>
+            The conversion process is one-way; once an environment
+            directory is converted, the rules that govern
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> apply. This means the environment can
+            no longer be opened for writes by a standalone <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handle
+            (however, it still can be opened by a standalone
+            <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handle in read-only mode).
+        </p>
+      <p>
+            Note that <a class="ulink" href="../java/com/sleepycat/je/rep/util/DbEnableReplication.html" target="_top">DbEnableReplication</a> only adds a minimum amount of
+            replication metadata. The conversion process is not in any way
+            dependent on the size of the environment you are converting.
+        </p>
+      <p>
+            The converted environment can be used to start a new
+            replication group. After conversion, the environment can be
+            opened as a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a>. Additional nodes that join
+            the group are then populated with data from the converted
+            environment.
+        </p>
+      <p>
+            For example:
+        </p>
+      <pre class="programlisting">// Create the first node using an existing environment 
+DbEnableReplication converter = 
+    new DbEnableReplication(envDirMars,          // env home dir
+                            "UniversalRepGroup", // group name
+                            "nodeMars",          // node name
+                            "mars:5001");        // node host,port
+converter.convert();
+
+ReplicatedEnvironment nodeMars =
+           new ReplicatedEnvironment(envDirMars, ...);
+
+// Bring up additional nodes, which will be initialized from 
+// nodeMars.
+ReplicationConfig repConfig = new ReplicationConfig();
+try {
+    repConfig.setGroupName("UniversalRepGroup");
+    repConfig.setNodeName("nodeVenus");
+    repConfig.setNodeHostPort("venus:5008");
+    repConfig.setHelperHosts("mars:5001");
+
+    nodeVenus = new ReplicatedEnvironment(envDirVenus, 
+                                          repConfig, 
+                                          envConfig);
+} catch (InsufficientLogException insufficientLogEx) {
+
+    // log files will be copied from another node in the group
+    NetworkRestore restore = new NetworkRestore();
+    restore.execute(insufficientLogEx, new NetworkRestoreConfig());
+
+    // try opening the node now
+    nodeVenus = new ReplicatedEnvironment(envDirVenus, 
+                                          repConfig,
+                                          envConfig);
+} </pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="dbbackup.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="utilities.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="monitors.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Backing up a Replicated Application </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 5. Writing Monitor Nodes</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

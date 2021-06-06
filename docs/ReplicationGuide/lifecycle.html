@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Replication Group Life Cycle</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction" />
+    <link rel="prev" href="datamanagement.html" title="Managing Data Guarantees" />
+    <link rel="next" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Replication Group Life Cycle</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="datamanagement.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction</th>
+          <td width="20%" align="right"> <a accesskey="n" href="progoverview.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="lifecycle"></a>Replication Group Life Cycle</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#lifecycle-terms">Terminology</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#nodestates">Node States</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#lifecycle-new">New Replication Group Startup</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#lifecycle-established">Subsequent Startups</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#lifecycle-nodestartup">Replica Startup</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#lifecycle-masterfailover">Master Failover</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="lifecycle.html#twonode">Two Node Groups</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+              This section describes how your replication group behaves
+              over the course of the application's lifetime. Startup is
+              described, both for new nodes as well as for existing nodes
+              that are restarting. This section also describes Master
+              failover.
+          </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="lifecycle-terms"></a>Terminology</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                    Before continuing, it is necessary to define some terms
+                    used in this document as they relate to
+                    node membership in a replication group.
+              </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                          Add/Remove
+                      </p>
+              <p>
+                          When we say that a node has been persistently
+                          <span class="emphasis"><em>added</em></span> to a replication group,
+                          this means that it has become a persistent member of
+                          the group. Regardless of whether the node is running
+                          or otherwise reachable by the group, once it has been
+                          added to the group it remains a member of the group.
+                          If the added node is an electable node, the group size
+                          used during elections, or transaction commit
+                          acknowledgements, is increased by one. Note that
+                          secondary nodes are not persistent members of the
+                          replication group, so they are not considered to be
+                          persistently added or removed.
+                      </p>
+              <p>
+                          A node that has been persistently added to a
+                          replication group remains a member of that group
+                          until it is explicitly <span class="emphasis"><em>removed</em></span>
+                          from the group. Once a node has been removed from
+                          the group, it is no longer a member of the group. If
+                          the node that was removed was an electable node, the
+                          group size used during elections, or transaction
+                          commit acknowledgements, is decreased by one.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Join/Leave
+                      </p>
+              <p>
+                          We say that a member has <span class="emphasis"><em>joined</em></span> the
+                          replication group when it starts up and begins
+                          operating in the group as an active node.
+                          Electable and secondary nodes join a replication
+                          group by successfully opening a
+                          <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle. Monitor nodes are
+                          not considered to join a replication group because
+                          they do not actively participate in replication or
+                          elections.
+                      </p>
+              <p>
+                          A member, then, <span class="emphasis"><em>leaves</em></span> a
+                          replication group by shutting down, or losing the
+                          network contact that allows it to operate as an
+                          active member of the group.  When operating
+                          normally, member nodes leave a replication group by
+                          closing their last <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle.
+                      </p>
+              <p>
+                          Joining or leaving a group does not change the
+                          electable group size, and so the number of nodes
+                          required to hold an election, as well as the
+                          number of nodes required to acknowledge
+                          transaction commits, does not change.
+                      </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="nodestates"></a>Node States</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  Member nodes can be in the following states:
+              </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                          Master
+                      </p>
+              <p>
+                          When in the Master state, a member node can service read and
+                          write requests. At any given time, there can be only one node in the
+                          Master state in the replication group.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Replica
+                      </p>
+              <p>
+                          Member nodes in the Replica state can only service
+                          read requests. All of the electable nodes other
+                          than the Master, and all of the secondary nodes,
+                          should be in the Replica state.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Unknown
+                      </p>
+              <p>
+                          The member node is not aware of a Master and is actively
+                          trying to discover or elect a Master. A node in this
+                          state is constantly striving to transition to the
+                          more productive Master or Replica state. 
+                      </p>
+              <p>
+                          A node in the Unknown state can still process read
+                          transactions if the node can satisfy its transaction
+                          consistency requirements.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Detached
+                      </p>
+              <p>
+                          The member node has been shutdown (that is, it has
+                          left the group, but it has not been removed from the
+                          group — see the previous section). It is still
+                          a member of the replication group, but is not active
+                          in elections or replicating data. Note that
+                          secondary nodes do not remain members when they are
+                          in the detached state; when they lose contact with
+                          the Master, they are no longer considered members of
+                          the group.
+                      </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+                  Note that from time to time this documentation uses the
+                  term <span class="emphasis"><em>active node</em></span>. An active node is a
+                  member node that is in the Master, Replica or Unknown
+                  state. More to the point, an active node is a node that is
+                  available to participate in elections — if it is an
+                  electable node — and in data replication. Monitor
+                  nodes are not considered active and do not report their
+                  state.
+              </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="lifecycle-new"></a>New Replication Group Startup</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  The first time you start up a replication group using an
+                  electable node, the group
+                  exists (for at least a small time) as a group of size one. At
+                  this time, the single node belonging to the group becomes the
+                  Master. So long as there is only one electable node in the
+                  replication group, that one node behaves as if it is a
+                  non-replicated application. There are some differences in the
+                  format of the log file that the application maintains, but it
+                  otherwise behaves identically to a non-replicated transactional
+                  application.
+              </p>
+        <p>
+                  Subsequently, upon startup a new node must be given the contact
+                  information for at least one currently active node in the
+                  replication group in order for it to be added to the
+                  group.  The new node contacts this active node
+                  who will identify the Master for the new node.
+              </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                      As is the case with elections, an electable node cannot
+                      be added to the replication group unless a simple
+                      majority of electable nodes are active at the time that
+                      it starts up. If too many nodes are down or otherwise
+                      unavailable, you cannot add a new electable node to the
+                      group.
+                  </p>
+        </div>
+        <p>
+                  The new node then contacts the Master, and provides all
+                  necessary identification information about itself to the
+                  Master. This includes host and port information, the
+                  node's unique name, and the replication group name. For
+                  electable nodes, the Master stores this identifying
+                  information about the node persistently, meaning the
+                  effective number of electable members of the replication
+                  group has just grown by one. For secondary nodes, the
+                  information about the node is only maintained while the
+                  secondary node is active; the number of electable
+                  members does not change.
+              </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                      Note that the new electable node is now a permanent member
+                      of the replication group until you manually remove
+                      it. This is true even if you shutdown the node for a long
+                      time. See <a class="xref" href="utilities.html#node-addremove" title="Adding and Removing Nodes from the Group">Adding and Removing Nodes from the Group</a> for details.
+                  </p>
+        </div>
+        <p>
+                  Once the new node is an established member of the group, the
+                  Master provides the Replica with the logical logs needed to
+                  replicate the environment. The sequence of logical log
+                  records sent from the Master to the Replica constitutes the
+                  <span class="emphasis"><em>Replication Stream</em></span>. At this time, the
+                  node is said to have <span class="emphasis"><em>joined</em></span> the group. 
+                  Once a replication stream is established, it is maintained until either the
+                  Replica or the Master goes down. 
+              </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="lifecycle-established"></a>Subsequent Startups</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  Each node stores information about
+                  other persistent replication group members in its replicated
+                  environment so that this information is available to it
+                  upon restart.
+              </p>
+        <p>
+                  When a node that is already an established
+                  member of a replication group is restarted, the node uses its
+                  knowledge of other members of the replication group to
+                  locate the Master. It does this by by querying the
+                  members of the group to locate the current Master. If it
+                  finds a Master, the node joins the group and proceeds to operate in the
+                  group as a Replica.
+              </p>
+        <p>
+                  If a Master is not available and the restarting node is an
+                  electable node, the node initiates an election so as to
+                  establish a Master. If a simple majority of electable
+                  nodes are available for the election, a Master is
+                  elected. If the restarting node is elected Master, it then
+                  waits for Replicas to connect to it so that it can supply
+                  them a replication stream. If the restarting node is a
+                  secondary node, then it continues to try to find the
+                  Master, waiting for the electable nodes to elect a Master
+                  as needed.
+              </p>
+        <p>
+                  Under ordinary circumstances, if a Master cannot be
+                  determined for some reason, the restarting node will fail to
+                  open.  However, you can permit the node to instead open
+                  in the UNKOWN state. While in this state, the node is
+                  persistently attempting to find a Master, but it is also
+                  available for read-only requests.
+              </p>
+        <p>
+                  To configure a node in this way, use the
+                  <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setConfigParam(java.lang.String,java.lang.String)" target="_top">ReplicationConfig.setConfigParam()</a> method to set the
+                  <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#ENV_UNKNOWN_STATE_TIMEOUT" target="_top">ReplicationConfig.ENV_UNKNOWN_STATE_TIMEOUT</a> parameter.
+                  This parameter requires you to define a Master election
+                  timeout period. If this election timeout expires while
+                  the node is attempting to restart, then the node opens in
+                  the UNKNOWN state instead of failing its open operation
+                  entirely.
+              </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="lifecycle-nodestartup"></a>Replica Startup</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  Regardless of how it happens, when a node joins
+                  a replication group, it contacts the
+                  Master and then goes through the following three steps:
+              </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                          Handshake
+                      </p>
+              <p>
+                          The Replica sends the Master its configuration
+                          information, along with the unique name
+                          associated with the Replica's environment. This
+                          name is a pseudo-randomly generated Universal
+                          Unique Identifier (UUID). 
+                      </p>
+              <p>
+                          This handshake establishes the node as a valid
+                          member of the group. It is used both by new nodes
+                          joining the group for the first time, and by
+                          existing nodes that are simply restarting.
+                      </p>
+              <p>
+                          In addition, during this handshake process, the
+                          Master and Replica nodes will compare their
+                          clocks. If the clocks are too far off from one
+                          another, the handshake will fail and the Replica
+                          node will fail to start up.  See
+                          <a class="xref" href="timesync.html" title="Time Synchronization">Time Synchronization</a>
+                          for more information.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Replication Stream Sync-Up
+                      </p>
+              <p>
+                          The Replica sends the Master its current position
+                          in the replication stream sequence. The Master
+                          and Replica then negotiate a point in the
+                          replication stream that the Master can use as a
+                          starting point to resume the flow of logical
+                          records to the Replica.
+                      </p>
+              <p>
+                          Note that normally this sync-up process will be
+                          transparent to your application. However, in rare
+                          cases the sync-up may require that committed
+                          transactions be undone.
+                      </p>
+              <p>
+                          Also, if the Replica has been offline for a long
+                          time, it is possible that the Master can no
+                          longer supply the Replica with the required contiguous
+                          interval of the replication stream. (This can
+                          happen due to log cleaning on the Master.) In
+                          this case, the log files must be copied to the
+                          restarting node from some other up-to-date node
+                          in the replication group. See 
+                          <a class="xref" href="logfile-restore.html" title="Restoring Log Files">Restoring Log Files</a>
+                          for details.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          Steady state replication stream flow
+                      </p>
+              <p>
+                          Once the Replica has successfully started up and
+                          joined the group, the
+                          Master maintains a flow of log records to the
+                          Replica. Beyond that, the Master will request
+                          acknowledgements from electable Replicas whenever the
+                          Master needs to meet transaction commit
+                          durability requirements.
+                      </p>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="lifecycle-masterfailover"></a>Master Failover</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  A Master failing or shutting down causes all of the replication streams
+                  between the Master and its various Replicas to terminate.
+                  In reaction, the Replicas transition to the Unknown state
+                  and the electable nodes initiate an election.
+              </p>
+        <p>
+                  An election can be held if at least a simple majority of
+                  the replication group's electable nodes are active. The
+                  electable node
+                  that wins the election transitions to the Master state,
+                  and all other active nodes transition to the Replica
+                  state.
+              </p>
+        <p>
+                  Upon transitioning to the Replica state, nodes connect to
+                  the new Master and proceed through the handshake,
+                  sync-up, replication replay process described in the
+                  previous section.
+              </p>
+        <p>
+                  If no Master can be elected (because a majority of electable nodes
+                  are not available to participate in the election), then
+                  the nodes remain in the Unknown state until such a time
+                  as a Master can be elected. In this state, the nodes
+                  might be able to service read-only requests, but the
+                  replication group is incapable of servicing write
+                  requests. Read requests can be serviced so long as the
+                  transaction's consistency requirements can be met (see 
+                  <a class="xref" href="consistency.html" title="Managing Consistency">Managing Consistency</a>). 
+              </p>
+        <p>
+                  Note that the JE Replication application needs to make
+                  provisions for the following state transitions after
+                  failover:
+              </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                          A node that transitions from the Replica state to
+                          the Master state as a result of a failover needs
+                          to start accepting update requests. There are
+                          several ways to determine whether a node can
+                          handle update requests. See
+                          <a class="xref" href="replicawrites.html" title="Managing Write Requests at a Replica">Managing Write Requests at a Replica</a>
+                          for more information.
+                      </p>
+            </li>
+            <li>
+              <p>
+                          If a node remains in the Replica state after a
+                          failover, the failover should be transparent to
+                          the application. However, an application may need
+                          to take corrective action in the rare situation
+                          where the sync-up process has to roll back
+                          committed transactions.
+                      </p>
+              <p>
+                          See <a class="xref" href="txnrollback.html" title="Managing Transaction Rollbacks">Managing Transaction Rollbacks</a> 
+                          for an example of how handle a transaction commit roll back.
+                      </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="twonode"></a>Two Node Groups</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                  Replication groups comprised of just two electable nodes
+                  represents a unique corner case for JE replication. In
+                  order to elect a master, usually a simple majority of
+                  electable nodes must be available to participate in an
+                  election. However, for replication groups of size two, if
+                  even one electable node is unavailable for the election then
+                  by default it is impossible to hold an election.
+              </p>
+        <p>
+                  However, for some classes of application, it is desirable
+                  for the application to proceed with operations using just
+                  one electable node.  That is, the application trades off the
+                  durability guarantees offered by using two electable nodes
+                  for the higher availability permissible by allowing the
+                  application to run with just one of the nodes.
+              </p>
+        <p>
+                  JE allows you to do this by designating one of the nodes
+                  in a two electable node group as a <span class="emphasis"><em>primary
+                  node</em></span>.  When the non-primary node of the pair is
+                  not available, the number of nodes required for a simple
+                  majority is reduced from two to one by the primary
+                  node. Consequently, the primary node is able to elect itself
+                  as the Master. It can then commit transactions that require
+                  a simple majority to acknowledge commits. When the
+                  non-primary node becomes available again, the number of
+                  nodes required for a simple majority at the primary once
+                  again reverts to two.
+              </p>
+        <p>
+                  At any given time, there must be either zero or one
+                  electable nodes designated as the primary node, but it is up
+                  to your application to make sure both nodes are not
+                  erroneously designated as the primary. Your application must
+                  be very careful not to mistakenly designate two nodes as the
+                  primary.  If this happened, and the two nodes could not
+                  communicate with one another (due to a network malfunction
+                  of some kind, for example), they could both then consider
+                  themselves to be Masters and start accepting write
+                  requests. This violates a fundamental requirement that at
+                  any given instant in time, there should be exactly one node
+                  that is permitted to perform writes on the replicated
+                  environment.
+              </p>
+        <p>
+                  Note that the non-primary electable node always needs two
+                  electable nodes for a simple majority, so it can never
+                  become the Master in the absence of the primary node. If the
+                  primary node fails, you can make provisions to swap the
+                  primary and non-primary designations so that the surviving
+                  node is now the primary. This swap must be performed
+                  carefully so as to ensure that both nodes are not
+                  concurrently designated the primary. The most important
+                  thing is that the failed node comes up as the non-primary
+                  after it has been repaired.
+              </p>
+        <p>
+                  For more information on using two-node groups, see 
+                  <a class="xref" href="two-node.html" title="Configuring Two-Node Groups">Configuring Two-Node Groups</a>.
+              </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="datamanagement.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="progoverview.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Managing Data Guarantees </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 2. Replication API First Steps</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

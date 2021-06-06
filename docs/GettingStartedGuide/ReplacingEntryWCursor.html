@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Replacing Records Using Cursors</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="Cursors.html" title="Chapter 9. Using Cursors" />
+    <link rel="prev" href="DeleteEntryWCursor.html" title="Deleting Records Using Cursors" />
+    <link rel="next" href="cursorUsage.html" title="Cursor Example" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Replacing Records Using Cursors</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="DeleteEntryWCursor.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 9. Using Cursors</th>
+          <td width="20%" align="right"> <a accesskey="n" href="cursorUsage.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="ReplacingEntryWCursor"></a>Replacing Records Using Cursors</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        You replace the data for a database record by using
+        <span>
+            <code class="methodname">Cursor.putCurrent()</code>. 
+            This method takes just one
+            argument — the data that you want to write to the current location in the
+            database.
+        </span>
+
+        
+
+        
+            
+    </p>
+      <a id="je_cursor9"></a>
+      <pre class="programlisting">import com.sleepycat.je.Cursor;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.OperationStatus; 
+
+...
+Cursor cursor = null;
+try {
+    ...
+    // Database and environment open omitted for brevity
+    ...
+    // Create DatabaseEntry objects
+    // searchKey is some String.
+    DatabaseEntry theKey = new DatabaseEntry(searchKey.getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    // Open a cursor using a database handle
+    cursor = myDatabase.openCursor(null, null);
+
+    // Position the cursor. Ignoring the return value for clarity
+    OperationStatus retVal = cursor.getSearchKey(theKey, theData, 
+                                                LockMode.DEFAULT);
+    
+    // Replacement data
+    String replaceStr = "My replacement string";
+    DatabaseEntry replacementData = 
+        new DatabaseEntry(replaceStr.getBytes("UTF-8"));
+    cursor.putCurrent(replacementData);
+} catch (Exception e) {
+    // Exception handling goes here
+} finally {
+   // Make sure to close the cursor
+   cursor.close();
+}</pre>
+      <p>
+        Note that this method cannot be used if the record that you are trying
+        to replace is a member of a duplicate set. This is because records must
+        be sorted by their data and replacement would violate that sort order.
+    </p>
+      <p>
+            
+            <span>If</span>
+        you want to replace the data contained by a duplicate record, 
+            
+        delete the record and create a new record with the desired key and data.
+    </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="DeleteEntryWCursor.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="Cursors.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="cursorUsage.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Deleting Records Using Cursors </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Cursor Example</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

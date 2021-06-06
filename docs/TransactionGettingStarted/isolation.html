@@ -1,0 +1,759 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Isolation</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="up" href="txnconcurrency.html" title="Chapter 4. Concurrency" />
+    <link rel="prev" href="jelock.html" title="JE Lock Management" />
+    <link rel="next" href="txn_ccursor.html" title="Transactional Cursors and Concurrent Applications" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Isolation</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="jelock.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 4. Concurrency</th>
+          <td width="20%" align="right"> <a accesskey="n" href="txn_ccursor.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="isolation"></a>Isolation</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="isolation.html#degreesofisolation">Supported Degrees of Isolation</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="isolation.html#dirtyreads">Reading Uncommitted Data</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="isolation.html#readcommitted">Committed Reads</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="isolation.html#serializable">Configuring Serializable Isolation</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            Isolation guarantees are an important aspect of transactional
+            protection.  Transactions
+            ensure the data your transaction is working with will not be changed by some other transaction.
+            Moreover, the modifications made by a transaction will never be viewable outside of that transaction until
+            the changes have been committed.
+        </p>
+      <p>
+            That said, there are different degrees of isolation, and you can choose to relax your isolation
+            guarantees to one degree or another depending on your application's requirements. The primary reason why
+            you might want to do this is because of performance; the more isolation you ask your transactions to
+            provide, the more locking that your application must do. With more locking comes a greater chance of
+            blocking, which in turn causes your threads to pause while waiting for a lock. Therefore, by relaxing
+            your isolation guarantees, you can <span class="emphasis"><em>potentially</em></span> improve your application's throughput.
+            Whether you actually see any improvement depends, of course, on
+            the nature of your application's data and transactions.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="degreesofisolation"></a>Supported Degrees of Isolation</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                JE supports the following levels of isolation:
+            </p>
+        <div class="informaltable">
+          <table border="1" width="80%">
+            <colgroup>
+              <col />
+              <col />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Degree</th>
+                <th>ANSI Term</th>
+                <th>Definition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>READ UNCOMMITTED</td>
+                <td>
+                    Uncommitted reads means that one transaction will never
+                    overwrite another transaction's dirty data.  Dirty data is
+                    data that a transaction has modified but not yet committed
+                    to the underlying data store. However, uncommitted reads allows a 
+                    transaction to see data dirtied by another
+                    transaction. In addition, a transaction may read data
+                    dirtied by another transaction, but which subsequently
+                    is aborted by that other transaction. In this latter
+                    case, the reading transaction may be reading data that
+                    never really existed in the database.
+                </td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>READ COMMITTED</td>
+                <td>
+                    <p>
+                    Committed read isolation means that degree 1 is observed, except that dirty data is never read. 
+                    </p>
+                    <p>
+                    In addition, this isolation level guarantees that data will never change so long as
+                    it is addressed by the cursor, but the data may change before the reading cursor is closed.
+                    In the case of a transaction, data at the current
+                    cursor position will not change, but once the cursor
+                    moves, the previous referenced data can change. This
+                    means that readers release read locks before the cursor
+                    is closed, and therefore, before the transaction
+                    completes. Note that this level of isolation causes the
+                    cursor to operate in exactly the same way as it does in
+                    the absence of a transaction.
+                    </p>
+                </td>
+              </tr>
+              <tr>
+                <td>(undefined)</td>
+                <td>REPEATABLE READ</td>
+                <td>
+                    <p>
+                     Committed read is observed, plus the data read by a transaction, T, will never be dirtied by another
+                     transaction before T completes.  This means that both read and write locks are not
+                     released until the transaction completes.
+                    </p>
+                    <p>
+                        This is JE's default isolation level.
+                    </p>
+                </td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>SERIALIZABLE</td>
+                <td>
+                    
+                    <p>
+                        
+
+                        <span>
+                            Committed read is observed, plus
+                        </span>
+                        
+                        no transactions will see phantoms.  Phantoms are records 
+                        returned as a result of a search, but which were not seen by 
+                        the same transaction when the identical
+                        search criteria was previously used.
+                    </p>
+                    
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+
+    By default, JE transactions and transactional cursors offer 
+    
+    <span>
+        repeatable read isolation. 
+    </span>
+    
+    You can optionally reduce your isolation level by configuring JE to use
+    uncommitted read isolation. See 
+        <a class="xref" href="isolation.html#dirtyreads" title="Reading Uncommitted Data">Reading Uncommitted Data</a> 
+     for more information.
+
+        You can also configure JE to use committed read isolation. See
+            <a class="xref" href="isolation.html#readcommitted" title="Committed Reads">Committed Reads</a>
+        for more information.
+        <span>
+            Finally, you can configure your transactions and transactional cursors to use 
+            serializable isolation. See <a class="xref" href="isolation.html#serializable" title="Configuring Serializable Isolation">Configuring Serializable Isolation</a>
+            for more information.
+        </span>
+  </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="dirtyreads"></a>Reading Uncommitted Data</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                Berkeley DB allows you to configure your application to read data that has been modified but not yet
+                committed by another transaction; that is, dirty data.  When you do this, you 
+                may see a performance benefit by allowing your
+                application to not have to block waiting for write locks. On the other hand, the data that your
+                application is reading may change before the transaction has completed.
+            </p>
+        <p>
+                When used with transactions, uncommitted reads means that one transaction can see data
+                modified but not yet committed by another transaction. When
+                used with transactional cursors, uncommitted reads means
+                that any database reader can see data modified by the
+                cursor before the cursor's transaction has committed.
+            </p>
+        <p>
+                Because of this, uncommitted reads allow a transaction to read data
+                that may subsequently be aborted by another transaction. In
+                this case, the reading transaction will have read data that
+                never really existed in the database.
+            </p>
+        <p>
+                To configure your application to read uncommitted data, specify that you want to use 
+                uncommitted reads when you create a transaction or open the cursor.
+                To do this, you use the <code class="methodname">setReadUncommitted()</code>
+                method on the relevant configuration object
+                (<code class="classname">TransactionConfig</code> or <code class="classname">CursorConfig</code>).
+            </p>
+        <p>
+                For example:
+            </p>
+        <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+import java.io.File;
+
+...
+
+Database myDatabase = null;
+Environment myEnv = null;
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+    // Open the database.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setTransactional(true);
+    myDatabase = myEnv.openDatabase(null, "sampleDatabase", dbConfig);
+
+    TransactionConfig txnConfig = new TransactionConfig();
+    txnConfig.setReadUncommitted(true);          // Use uncommitted reads 
+                                                 // for this transaction.
+    Transaction txn = myEnv.beginTransaction(null, txnConfig);
+
+    // From here, you perform your database reads and writes as normal,
+    // committing and aborting the transactions as is necessary, and
+    // testing for deadlock exceptions as normal (omitted for brevity). 
+        
+    ...</pre>
+        <p>
+        If you are using the DPL:
+</p>
+        <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.StoreConfig;
+
+import java.io.File;
+
+...
+
+ myDatabase = null;
+Environment myEnv = null;
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+    // Open the store.
+    StoreConfig myStoreConfig = new StoreConfig();
+    myStoreConfig.setAllowCreate(true);
+    myStoreConfig.setTransactional(true);
+
+    myStore = new EntityStore(myEnv, "store_name", myStoreConfig);
+
+    TransactionConfig txnConfig = new TransactionConfig();
+    txnConfig.setReadUncommitted(true);          // Use uncommitted reads 
+                                                 // for this transaction.
+    Transaction txn = myEnv.beginTransaction(null, txnConfig);
+
+    // From here, you perform your store reads and writes as normal,
+    // committing and aborting the transactions as is necessary, and
+    // testing for deadlock exceptions as normal (omitted for brevity). 
+        
+    ...</pre>
+        <p>
+        You can also configure uncommitted read isolation on a read-by-read basis
+        by specifying <code class="literal">LockMode.READ_UNCOMMITTED</code>:
+    </p>
+        <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and database open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    DatabaseEntry theKey =
+        new DatabaseEntry((new String("theKey")).getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    myDb.get(txn, theKey, theData, LockMode.READ_UNCOMMITTED);
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+        <p>
+            Using the DPL:
+    </p>
+        <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+
+import com.sleepycat.persist.PrimaryIndex;
+
+...
+
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and store open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    AnEntityClass aec = aPrimaryIndex.get(txn, "pKeya", 
+                            LockMode.READ_UNCOMMITTED);
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="readcommitted"></a>Committed Reads</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                You can configure your transaction so that the data being
+                read by a transactional cursor is consistent so long as it
+                is being addressed by the cursor. However, once the cursor is done reading the 
+                    <span>
+                        record or object,
+                    </span>
+                    
+                    
+                the cursor releases its lock on that
+                    <span>
+                        record or object.
+                    </span>
+                    
+                    
+                 This means that the data the cursor has read and released
+                 may change before the cursor's transaction has completed.
+              </p>
+        <p>
+                For example,
+                suppose you have two transactions, <code class="literal">Ta</code> and <code class="literal">Tb</code>. Suppose further that
+                <code class="literal">Ta</code> has a cursor that reads <code class="literal">record R</code>, but does not modify it. Normally,
+                <code class="literal">Tb</code> would then be unable to write <code class="literal">record R</code> because
+                <code class="literal">Ta</code> would be holding a read lock on it. But when you configure your transaction for
+                committed reads, <code class="literal">Tb</code> <span class="emphasis"><em>can</em></span> modify <code class="literal">record
+                R</code> before <code class="literal">Ta</code> completes, so long as the reading cursor is no longer
+                addressing the 
+                    <span>
+                        record or object.
+                    </span>
+                    
+                    
+             </p>
+        <p>
+                When you configure your application for this level of isolation, you may see better performance
+                throughput because there are fewer read locks being held by your transactions. 
+                Read committed isolation is most useful when you have a cursor that is reading and/or writing records in
+                a single direction, and that does not ever have to go back to re-read those same records. In this case,
+                you can allow JE to release read locks as it goes, rather than hold them for the life of the
+                transaction.
+             </p>
+        <p>
+                To configure your application to use committed reads, do one of the following:
+            </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                        Create your transaction such that it allows committed reads. You do this by
+                            
+                            <span>
+                                specifying <code class="literal">true</code> to 
+                                <code class="methodname">TransactionConfig.setReadCommitted()</code>.
+                            </span>
+                    </p>
+            </li>
+            <li>
+              <p>
+                            
+                            <span>
+                                Specify <code class="literal">true</code> to 
+                                    <code class="methodname">CursorConfig.setReadCommitted()</code>.
+                            </span>
+                    </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+                For example, the following creates a transaction that allows committed reads:
+            </p>
+        <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+import java.io.File;
+
+...
+
+Database myDatabase = null;
+Environment myEnv = null;
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+    // Open the database.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setTransactional(true);
+    myDatabase = myEnv.openDatabase(null, "sampleDatabase", dbConfig);
+
+    // Open the transaction and enable committed reads. All cursors open
+    // with this transaction handle will use read committed isolation.
+    TransactionConfig txnConfig = new TransactionConfig();
+    txnConfig.setReadCommitted(true);          // Use committed reads 
+                                               // for this transaction.
+    Transaction txn = myEnv.beginTransaction(null, txnConfig);
+
+    // From here, you perform your database reads and writes as normal,
+    // committing and aborting the transactions as is necessary, and
+    // testing for deadlock exceptions as normal (omitted for brevity). 
+        
+    ...</pre>
+        <p>
+    Using the DPL:
+</p>
+        <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.StoreConfig;
+
+import java.io.File;
+
+...
+
+EntityStore myStore = null;
+Environment myEnv = null;
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+
+    // Instantiate the store.
+    StoreConfig myStoreConfig = new StoreConfig();
+    myStoreConfig.setAllowCreate(true);
+    myStoreConfig.setTransactional(true);
+
+    // Open the transaction and enable committed reads. All cursors open
+    // with this transaction handle will use read committed isolation.
+    TransactionConfig txnConfig = new TransactionConfig();
+    txnConfig.setReadCommitted(true);          // Use committed reads 
+                                               // for this transaction.
+    Transaction txn = myEnv.beginTransaction(null, txnConfig);
+
+    // From here, you perform your store reads and writes as normal,
+    // committing and aborting the transactions as is necessary, and
+    // testing for deadlock exceptions as normal (omitted for brevity). 
+        
+    ...</pre>
+        <p>
+        You can also configure read committed isolation on a read-by-read basis
+        by specifying <code class="literal">LockMode.READ_COMMITTED</code>:
+    </p>
+        <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and database open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    DatabaseEntry theKey =
+        new DatabaseEntry((new String("theKey")).getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    myDb.get(txn, theKey, theData, LockMode.READ_COMMITTED);
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+        <p>
+            Using the DPL:
+    </p>
+        <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+
+import com.sleepycat.persist.PrimaryIndex;
+
+...
+
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and store open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    // Primary index creation omitted
+    ...
+
+    AnEntityClass aec = aPrimaryIndex.get(txn, "pKeya", 
+                            LockMode.READ_COMMITTED);
+} catch (Exception e) {
+    // Exception handling goes here
+} </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="serializable"></a>Configuring Serializable Isolation</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+        You can configure JE to use serializable isolation.
+        Serializable isolation prevents transactions from seeing
+        <span class="emphasis"><em>phantoms</em></span>. Phantoms occur when a transaction obtains
+        inconsistent results when performing a given query.
+    </p>
+        <p>
+        Suppose a transaction performs a search, S, and as a result of
+        that search NOTFOUND is returned. If you are using only repeatable read
+        isolation (the default isolation level), it is possible for the same
+        transaction to perform S at a later point in time and
+        return SUCCESS instead of NOTFOUND. This can occur if another thread of
+        control modified the database in such a way as to cause S to
+        successfully locate data, where before no data was found. 
+        When this situation occurs, the results
+        returned by S are said to be a <span class="emphasis"><em>phantom.</em></span>
+    </p>
+        <p>
+        To prevent phantoms, you can use serializable isolation. Note that this
+        causes JE to perform additional locking in order to prevent keys
+        from being inserted until the transaction ends. However, this additional
+        locking can also result in reduced concurrency for your application,
+        which means that your database access can be slowed.
+    </p>
+        <p>
+        You configure serializable isolation for all transactions in your
+        environment by using
+        <code class="methodname">EnvironmentConfig.setTxnSerializableIsolation()</code>:
+    </p>
+        <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.LockMode;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Open an environment
+    EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setAllowCreate(true);
+    envConfig.setTransactional(true);
+
+    // Use serializable isolation
+    envConfig.setTxnSerializableIsolation(true);     
+
+    myEnv = new Environment(myHomeDirectory, envConfig);
+
+    // Database open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    DatabaseEntry theKey = 
+        new DatabaseEntry((new String("theKey")).getBytes("UTF-8"));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    myDb.get(txn, theKey, theData, LockMode.DEFAULT); 
+} catch (Exception e) {
+    // Exception handling goes here
+}
+</pre>
+        <p>
+        If you do not configure serializable isolation for all transactions, you
+        can configure serializable isolation for a specific transaction using
+        <code class="methodname">TransactionConfig.setSerializableIsolation()</code>:
+    </p>
+        <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+import com.sleepycat.persist.PrimaryIndex;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and store open omitted
+
+    ...
+
+    TransactionConfig tc = new TransactionConfig();
+    tc.setSerializableIsolation(true); // Use serializable isolation
+    txn = myEnv.beginTransaction(null, tc);
+
+    // Primary index creation omitted
+    ...
+
+    AnEntityClass aec = aPrimaryIndex.get(txn, "pKeya", 
+                            LockMode.DEFAULT);
+} catch (Exception e) {
+    // Exception handling goes here
+}</pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="jelock.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txnconcurrency.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="txn_ccursor.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">JE Lock Management </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Transactional Cursors and Concurrent Applications</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

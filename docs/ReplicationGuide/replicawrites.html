@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Managing Write Requests at a Replica</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="progoverview.html" title="Chapter 2. Replication API First Steps" />
+    <link rel="prev" href="repenvironmentopen.html" title="Opening a Replicated Environment" />
+    <link rel="next" href="secondary.html" title="Secondary Nodes" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Managing Write Requests at a Replica</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="repenvironmentopen.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Replication API First Steps</th>
+          <td width="20%" align="right"> <a accesskey="n" href="secondary.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="replicawrites"></a>Managing Write Requests at a Replica</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="replicawrites.html#using-statechangelistener">Using the StateChangeListener</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="replicawrites.html#repwriteexception">Catching ReplicaWriteException</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            For a replicated JE application, read requests can be
+            serviced by any electable or secondary node in the replication group, but
+            write requests can only be serviced by the Master node. For
+            this reason, your application must be prepared to deal with the
+            difference in operating behavior between read-only Replicas and
+            read-write Masters.
+        </p>
+      <p>
+            It is possible to be quite sophisticated in terms of tracking
+            which node is the Master and so which node can service write
+            requests. You can even route write requests to the Master node
+            by writing a special router process. For an example of an
+            application that does this, see <a class="ulink" href="../examples/je/rep/quote/RouterDrivenStockQuotes.html" target="_top">RouterDrivenStockQuotes</a> and
+            <a class="ulink" href="../examples/je/rep/quote/HARouter.html" target="_top">HARouter</a>, both of which are available in your JE
+            distribution in the
+            <code class="literal">&lt;JE HOME&gt;/examples/je/rep/quote</code>
+            directory.
+        </p>
+      <p>
+            However, for our purposes here, we simply want to
+            make sure our Replica nodes can gracefully handle a situation
+            where they receive a write request. The write request should be
+            rejected by the node, with some notification being returned to
+            the requester that the write activity is rejected. While not
+            the most robust solution, this is the simplest thing your
+            JE replicated application can do if it receives a write
+            request at a Replica node. 
+        </p>
+      <p>
+            There are two ways to determine whether a write request can be
+            handled at the local node:
+        </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                    Use a monitor node to implement request routing.
+                    Monitor nodes are described in <a class="xref" href="monitors.html" title="Chapter 5. Writing Monitor Nodes">Writing Monitor Nodes</a>.
+                </p>
+          </li>
+          <li>
+            <p>
+                    Use the <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html" target="_top">StateChangeListener</a> to detect when the local
+                    node becomes a Master. Otherwise, forward the write
+                    request to the Master node instead of attempting to
+                    service it locally.
+                </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+            Either way, any code that attempts database writes for an HA
+            application should always be prepared to handle a
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a>.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="using-statechangelistener"></a>Using the StateChangeListener</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                You use the <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html" target="_top">StateChangeListener</a> interface to implement a
+                class that is capable of notifying your node when it has
+                changed state. In this way, you can track whether a node
+                is in the Master, Replica or Unknown state, and so know
+                whether the node is capable of handling write requests.
+            </p>
+        <p>
+                To do this, you must implement <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html#stateChange(com.sleepycat.je.rep.StateChangeEvent)" target="_top">StateChangeListener.stateChange()</a>,
+                which receives a <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeEvent.html" target="_top">StateChangeEvent</a> object whenever it is
+                called.
+            </p>
+        <p>
+                If the node is not in the Master state, then the node
+                can either reject write requests outright or, more
+                usefully, forward write requests to the Master. For an
+                example of an HA application that forwards write requests
+                and uses the <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html" target="_top">StateChangeListener</a>, see the
+                <a class="ulink" href="../examples/je/rep/quote/UpdateForwardingStockQuotes.html" target="_top">UpdateForwardingStockQuotes</a> example.
+            </p>
+        <p>
+                Alternatively, you can write a router based on an HA
+                <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html" target="_top">Monitor</a>. See <a class="xref" href="monitors.html" title="Chapter 5. Writing Monitor Nodes">Writing Monitor Nodes</a>
+                for more information.
+            </p>
+        <p>
+                Briefly, you can implement
+                <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeListener.html" target="_top">StateChangeListener</a> as follows. Notice that this partial
+                implementation relies on <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeEvent.html#getState()" target="_top">StateChangeEvent.getState()</a> to
+                determine the state that the node has just transitioned to.
+                It then uses <a class="ulink" href="../java/com/sleepycat/je/rep/StateChangeEvent.html#getMasterNodeName()" target="_top">StateChangeEvent.getMasterNodeName()</a> to 
+                determine where write requests should be forwarded to in
+                the event that the new state is not
+                <code class="literal">MASTER</code>.
+            </p>
+        <pre class="programlisting">private class Listener implements StateChangeListener {
+
+    private String currentMaster = null;
+
+    public void stateChange(StateChangeEvent se)
+        throws RuntimeException {
+
+        switch (stateChangeEvent.getState()) {
+
+            case MASTER:
+                // Do whatever your code needs you to do when the 
+                // current node is the MASTER.  For example,
+                // set a flag to indicate that the local node
+                // is in the MASTER state. Here, we just fall
+                // through and do the same thing as if we
+                // transitioned to the REPLICA state.
+            case REPLICA:
+                // Again, do whatever your code needs done when
+                // a node is in the REPLICA state. At a minimum,
+                // you should probably capture which node is the
+                // current Master.
+                currentMaster = se.getMasterNodeName();
+                break;
+
+            // We get here if we have transitioned to the UNKNOWN
+            // state.
+            default:
+                currentmasterName = null;
+                break;
+        }
+    }
+
+    public String getCurrentMasterName() {
+        return currentMaster;
+   }
+} </pre>
+        <p>
+                In order to make use of the new listener, the application
+                must call <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html#setStateChangeListener(com.sleepycat.je.rep.StateChangeListener)" target="_top">ReplicatedEnvironment.setStateChangeListener()</a>.
+                Note that this method can be called at any time after the 
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle has been created. Also, the
+                listener is set per environment, not per handle. So if you
+                set different listeners for different
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handles, the last listener
+                configured is used environment-wide.
+            </p>
+        <pre class="programlisting">   EnvironmentConfig envConfig = new EnvironmentConfig();
+   envConfig.setAllowCreate(true);
+   envConfig.setTransactional(true);
+
+   // Identify the node   
+   ReplicationConfig repConfig = new ReplicationConfig();
+   repConfig.setGroupName("PlanetaryRepGroup");
+   repConfig.setNodeName("Saturn");
+   repConfig.setNodeHostPort("saturn.example.com:5001");
+
+   // Use the node at mars.example.com:5002 as a helper to find
+   // the rest of the group.
+   repConfig.setHelperHosts("mars.example.com:5002");
+
+   ReplicatedEnvironment repEnv =
+        new ReplicatedEnvironment(home, repConfig, envConfig); 
+   StateChangeListener listener = new Listener();
+   repEnv.setStateChangeListener(listener);  </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="repwriteexception"></a>Catching ReplicaWriteException</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                If you perform a Database write operation on a node that is not in the
+                Master state, a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a> is thrown when you attempt to commit the
+                transaction. Therefore, whenever performing database write
+                operations in an HA application, you should catch and
+                handle <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a>.
+            </p>
+        <p>
+                For example:
+            </p>
+        <pre class="programlisting">Transaction txn = null;
+try {
+    txn = env.beginTransaction(null, null);
+    /* 
+     * Perform your write operations under the protection 
+     * of the transaction handle here.
+     */
+    txn.commit();
+} catch (ReplicaWriteException replicaWrite) { 
+    /* 
+     * Perform whatever reporting (logging) activies you want
+     * to do in order to acknowledge that the write operation(s)
+     * failed. Then abort the transaction.
+     */
+
+     if (txn != null) {
+        txn.abort();
+     }
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="repenvironmentopen.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="progoverview.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="secondary.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Opening a Replicated Environment </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Secondary Nodes</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

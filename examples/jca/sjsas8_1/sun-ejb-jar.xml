@@ -1,0 +1,21 @@
+<sun-ejb-jar>
+<enterprise-beans>
+<name>EBJAR</name>
+<unique-id>1</unique-id>
+<ejb>
+     <ejb-name>SimpleBean</ejb-name>
+     <jndi-name>SimpleBean</jndi-name>
+     <pass-by-reference>false</pass-by-reference>
+     <resource-ref>
+       <res-ref-name>ra/JEConnectionFactory</res-ref-name>
+       <jndi-name>ra/JEConnectionFactory</jndi-name>
+       <!--
+       <res-type>com.sleepycat.je.jca.ra.JEConnectionFactory</res-type>
+       <res-auth>Container</res-auth>
+       -->
+     </resource-ref>
+     <is-read-only-bean>false</is-read-only-bean>
+     <gen-classes/>
+</ejb>
+</enterprise-beans>
+</sun-ejb-jar>

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 5. Writing Monitor Nodes</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="enablerep.html" title="Converting Existing Environments for Replication" />
+    <link rel="next" href="events.html" title="Listening for Events" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 5. Writing Monitor Nodes</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="enablerep.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="events.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="monitors"></a>Chapter 5. Writing Monitor Nodes</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="monitors.html#monitorclass">Monitor Class</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="events.html">Listening for Events</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+       So far in this book we have mostly discussed electable and
+       secondary nodes, which are by definition nodes that have access
+       to a JE <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a>. However, replication groups
+       can include any number of nodes that have no access to the JE
+       replicated environment in use by the replication group.
+   </p>
+      <p>
+       These type of nodes without environments are called
+       <span class="emphasis"><em>monitor nodes</em></span>. The point of a monitor node
+       is to allow a process to have some understanding of the
+       replication group's structure such as which node is the Master
+       and what nodes belong to the group as Replicas. Monitor nodes
+       also have the ability to know when certain events have happened
+       in the replication group, such as when a new Master is elected or
+       when new nodes are added to, or removed from, the group.
+   </p>
+      <p>
+       There are many uses for Monitor nodes, starting with the ability to
+       write processes that monitor the current status of your HA
+       application. But another, arguably more interesting, use for
+       Monitor nodes is for request routing. As we have explained earlier
+       in this book, Replicas can only service read-only requests; all
+       write requests must occur on the Master. However, Replicas are only
+       capable of noticing that they have been asked to process a write
+       request. At most, out of the box, they can complain about it by
+       throwing a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicaWriteException.html" target="_top">ReplicaWriteException</a>, and then completely rejecting
+       the request.
+   </p>
+      <p>
+       One way to handle this problem is by writing an request router that
+       sits on your network between the data nodes and your clients.
+       This router can send write requests to the Master, and read
+       requests to the Replicas. A robust example of this sort of thing
+       could also perform load balancing across the various Replicas, so
+       that no one Replica becomes swamped by too many read requests.
+   </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="monitorclass"></a>Monitor Class</h2>
+            </div>
+          </div>
+        </div>
+        <p>
+           You implement Monitor nodes using the <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html" target="_top">Monitor</a> class. The
+           <code class="classname">Monitor</code> class allows you to obtain
+           information about the replication group, such as its name,
+           where the Master is, and other such information. The
+           <code class="classname">Monitor</code> class also allows you to run an
+           event listener that can alert you to changes in the composition
+           of the replication group.
+       </p>
+        <p>
+           You instantiate a <code class="classname">Monitor</code> class object
+           in much the same way as you instantiate a
+           <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> class object. It is necessary to give
+           the node a name, to indicate that it is a Monitor node, to
+           identify the node's host and port information, and to identify
+           helper hosts. You use a <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/MonitorConfig.html" target="_top">MonitorConfig</a> object to do these
+           things.
+       </p>
+        <p>
+           Once the <code class="classname">Monitor</code> object has been
+           instantiated, it must be registered at least once with the
+           Master so that the replication group will know to keep the node
+           informed about changes in the group composition. (Subsequent
+           attempts to register the node are simply ignored by the
+           Master.) You use the <a class="ulink" href="../java/com/sleepycat/je/rep/monitor/Monitor.html#register()" target="_top">Monitor.register()</a> method to register a
+           Monitor node with a Master. 
+       </p>
+        <p>
+           For example:
+       </p>
+        <pre class="programlisting"> // Initialize the monitor node config
+MonitorConfig config = new MonitorConfig();
+config.setGroupName("MyRepGroupName");
+config.setNodeName("mon1");
+config.setNodeHostPort("monhost1.acme.com:7000");
+config.setHelperHosts("node1.acme.com:5000,node2.acme.com:5000");
+
+Monitor monitor = new Monitor(config);
+
+// If the monitor has not been registered as a member of the 
+// group, register it now. register() returns the current node 
+// that is the master.
+ReplicationNode currentMaster = monitor.register(); </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="enablerep.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="events.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Converting Existing Environments for Replication </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Listening for Events</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

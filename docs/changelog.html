@@ -1,0 +1,3587 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!-- Note: RELEASE_VERSION and DATE are set by ant -->
+
+<head>
+  <title>The Berkeley DB Java Edition Package: BDB JE Library Version
+  12.2.7.5 (Release 7.5.11) Change Log</title>
+  <meta name="description"
+        content="Berkeley DB, Java Edition: A database programmatic toolkit.">
+  <meta name="keywords"
+        content="embedded,database,programmatic,toolkit,b+tree,btree,transaction,transactions,locking,access method,access methods,java">
+</head>
+<body bgcolor="white">
+
+<h2 align="center">Oracle Berkeley DB Java Edition 12c R2 Change Log</h2>
+<p align="center">Release 7.5.11</p>
+
+<!-- =================================================== -->
+
+<h3>Upgrading from JE 7.4 or earlier</h3>
+
+In JE 7.5 the on-disk file format moved to 15.  The file format change is
+forward compatible in that JE files created with earlier releases can be read
+when opened with JE 7.5 or later. The change is not backward compatible in that
+files created with JE 7.5 or later cannot be read by earlier releases.  After
+an existing environment is opened read/write using JE 7.5, the environment can
+no longer be read by earlier releases.
+
+<h3>Upgrading from JE 7.3 or earlier</h3>
+
+No file format changes were included in JE 7.4 and there are no file format
+compatibility issues when upgrading from JE 7.3.
+
+<h3>Upgrading from JE 7.2 or earlier</h3>
+
+In JE 7.3 the on-disk file format moved to 14.  The file format change is
+forward compatible in that JE files created with earlier releases can be read
+when opened with JE 7.3 or later. The change is not backward compatible in that
+files created with JE 7.3 or later cannot be read by earlier releases.  After
+an existing environment is opened read/write using JE 7.3, the environment can
+no longer be read by earlier releases.
+
+<h3>Upgrading from JE 7.1 or earlier</h3>
+
+No file format changes were included in JE 7.2 and there are no file format
+compatibility issues when upgrading from JE 7.1.
+
+<h3>Upgrading from JE 7.0 or earlier</h3>
+
+In JE 7.1 the on-disk file format moved to 13.  The file format change is
+forward compatible in that JE files created with earlier releases can be read
+when opened with JE 7.1 or later. The change is not backward compatible in that
+files created with JE 7.1 or later cannot be read by earlier releases.  After
+an existing environment is opened read/write using JE 7.1, the environment can
+no longer be read by earlier releases.
+<p>
+In JE 7.1 the HA wire format also changed in order to support the durable
+transaction commits feature (see [#25057]).  Until all nodes in a replication
+group have been upgraded to JE 7.1, this optimization is not fully applied.
+ 
+<h3>Upgrading from JE 6.4 or earlier</h3>
+
+In JE 7.0 the on-disk file format moved to 12.  The file format change is
+forward compatible in that JE files created with earlier releases can be read
+when opened with JE 7.0 or later. The change is not backward compatible in that
+files created with JE 7.0 or later cannot be read by earlier releases.  After
+an existing environment is opened read/write using JE 7.0, the environment can
+no longer be read by earlier releases.
+<p>
+In JE 7.0 the HA wire format also changed in order to support the TTL feature.
+Until all nodes in a replication group have been upgraded to JE 7.0, the TTL
+feature cannot be used. An exception will be thrown if a write with a non-zero
+TTL is attempted, and not all nodes have been upgraded. See further below for
+a description of the TTL feature.
+
+<h3>Upgrading from JE 6.3 or earlier</h3>
+
+No file format changes were included in JE 6.4 and there are no file format
+compatibility issues when upgrading from JE 6.3.
+<p>
+A behavior change was made to DiskOrderedCursor that may require some
+applications to increase the JE cache size. To prevent applications from
+having to reserve memory in the Java heap for the DiskOrderedCursor, memory
+used by the DiskOrderedCursor is now subtracted from the JE cache budget. The
+maximum amount of such memory is specified, as before, using
+DiskOrderedCursorConfig.setInternalMemoryLimit. [#24291]
+
+<h3>Upgrading from JE 6.2 or earlier</h3>
+
+In JE 6.3 the on-disk file format moved to 11.  The file format change is
+forward compatible in that JE files created with earlier releases can be read
+when opened with JE 6.3 or later. The change is not backward compatible in that
+files created with JE 6.3 or later cannot be read by earlier releases.  After
+an existing environment is opened read/write using JE 6.3, the environment can
+no longer be read by earlier releases.
+
+<h3>Upgrading from JE 6.1 or earlier</h3>
+
+In JE 6.2 the on-disk file format moved to 10.  The file format change is
+forward compatible but not backward compatible, as usual.
+
+<h3>Upgrading from JE 6.0 or earlier</h3>
+
+There was no file format change in JE 6.1.
+
+An API change in JE 6.1.3 [#23330] requires application changes if write
+operations are performed on a non-replicated database in a replicated
+environment.  A code change is necessary for applications with the following
+characteristics:
+<p>
+<ul>
+    <li>A ReplicatedEnvironment is used.
+    <li>A non-replicated, transactional Database is accessed
+    (DatabaseConfig.setReplicated(false) and setTransactional(true) are called)
+    in this environment.
+    <li>When writing to this database, an explicit (non-null) Transaction is
+    specified.
+</ul>
+<p>
+In order to perform write operations in such cases, the application must now
+call TransactionConfig.setLocalWrite(true) and use this configuration to create
+a Transaction for performing writes to the non-replicated database.
+<p>
+In addition, it is no longer possible to use a single transaction to write to
+both replicated and a non-replicated databases. IllegalOperationException will
+be thrown if this is attempted.
+<p>
+These changes were necessary to prevent corruption when a transaction contains
+write operations for both replicated and non-replicated databases, and a
+failover occurs that causes a rollback of this transaction.  The probability of
+corruption is low, but it can occur under the right conditions.
+<p>
+For more information see the javadoc for TransactionConfig.setLocalWrite(true),
+and the "Non-replicated Databases in a Replicated Environment" section of the
+ReplicatedEnvironment class javadoc.
+
+<h3>Upgrading from JE 5.0 or earlier</h3>
+
+In addition to the file format changes, a change was made involving partial
+Btree and duplicate comparators.  Partial comparators are an advanced feature
+that few applications use. As of JE 6.0, using partial comparators is not
+recommended.  Applications that do use partial comparators must change their
+comparator classes to implement the new PartialComparator tag interface, before
+running the application with JE 6.  Failure to do so may cause incorrect
+behavior during transaction aborts.  See the PartialComparator javadoc for more
+information.
+
+<h3>Upgrading from JE 4.1 or earlier</h3>
+
+There are two important notes about the file format change in JE 5.0.
+<ol>
+    <li>
+    The file format change enabled significant improvements in operation
+    performance, memory and disk footprint, and concurrency of databases with
+    duplicate keys. Due to these changes, an upgrade utility must be run before
+    opening an environment with this release, if the environment was created
+    using JE 4.1 or earlier. See the Upgrade Procedure below for more
+    information.
+    </li>
+    <li>
+    An application which uses JE replication may not upgrade directly from JE
+    4.0 to JE 5.0 or later. Instead, the upgrade must be done from JE 4.0 to
+    JE 4.1 and then to JE 5.0 or later. Applications already at JE 4.1 are not
+    affected. Upgrade guidance can be found in the new chapter, "Upgrading a
+    JE Replication Group", in the "Getting Started with BDB JE High
+    Availability" guide.
+    </li>
+</ol>
+
+Due to the format changes in JE 5, a special utility program must be run for an
+environment created with JE 4.1 or earlier, prior to opening the environment
+with JE 5.0 or later.  The utility program is part of JE 4.1.  JE 4.1.20, or a
+later version of JE 4.1, must be used.
+<p>
+One of two utility programs must be used, which are available in the release
+package for JE 4.1.20, or a later release of JE 4.1.  If you are currently
+running a release earlier than JE 4.1.20, then you must download the latest JE
+4.1 release package in order to run these utilities.
+<p>
+The steps for upgrading are as follows.
+<ol>
+    <li>Stop the application using BDB JE.</li>
+    <li>Run the DbPreUpgrade_4_1 or DbRepPreUpgrade_4_1 utility.
+        If you are using a regular non-replicated <code>Environment</code>:
+<pre>    java -jar je-4.1.20.jar DbPreUpgrade_4_1 -h &lt;dir&gt;</pre>
+        If you are using a JE <code>ReplicatedEnvironment</code>:
+<pre>    java -jar je-4.1.20.jar DbRepPreUpgrade_4_1
+         -h &lt;dir&gt;
+         -groupName &lt;group name&gt;
+         -nodeName &lt;node name&gt;
+         -nodeHostPort &lt;host:port&gt;</pre></li>
+    <li>Finally, start the application using the current JE 5.0 (or later)
+    release of BDB JE.</li>
+</ol>
+<p>
+The second step -- running the utility program -- does not perform data
+conversion.  This step simply performs a special checkpoint to prepare the
+environment for upgrade.  It should take no longer than an ordinary startup and
+shutdown.
+<p>
+During the last step -- when the application opens the JE environment using the
+current release (JE 5 or later) -- all databases configured for duplicates will
+automatically be converted before the <code>Environment</code> or
+<code>ReplicatedEnvironment</code> constructor returns.  Note that a database
+might be explicitly configured for duplicates using
+<code>DatabaseConfig.setSortedDuplicates(true)</code>, or implicitly configured
+for duplicates by using a DPL MANY_TO_XXX relationship
+(<code>Relationship.MANY_TO_ONE</code> or
+<code>Relationship.MANY_TO_MANY</code>).
+<p>
+The duplicate database conversion only rewrites internal nodes in the Btree,
+not leaf nodes.  In a test with a 500 MB cache, conversion of a 10 million
+record data set (8 byte key and data) took between 1.5 and 6.5 minutes,
+depending on number of duplicates per key.  The high end of this range is when
+10 duplicates per key were used; the low end is with 1 million duplicates per
+key.
+<p>
+To make the duplicate database conversion predictable during deployment, users
+should measure the conversion time on a non-production system before upgrading
+a deployed system.  When duplicates are converted, the Btree internal nodes are
+preloaded into the JE cache.  A new configuration option,
+<code>EnvironmentConfig.ENV_DUP_CONVERT_PRELOAD_ALL</code>, can be set to false
+to optimize this process if the cache is not large enough to hold the internal
+nodes for all databases.  For more information, see the javadoc for this
+property.
+<p>
+If an application has no databases configured for duplicates, then the last
+step simply opens the JE environment normally, and no data conversion is
+performed.
+<p>
+If the user fails to run the DbPreUpgrade_4_1 or DbRepPreUpgrade_4_1 utility
+program before opening an environment with JE 5 or later for the first time, an
+exception such as the following will normally be thrown by the
+<code>Environment</code> or <code>ReplicatedEnvironment</code> constructor:
+<pre>
+  com.sleepycat.je.EnvironmentFailureException: (JE 6.0.1) JE 4.1 duplicate DB
+  entries were found in the recovery interval. Before upgrading to JE 5.0, the
+  following utility must be run using JE 4.1 (4.1.20 or later):
+  DbPreUpgrade_4_1.  See the change log.
+  UNEXPECTED_STATE: Unexpected internal state, may have side effects.
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedState(EnvironmentFailureException.java:376)
+    at com.sleepycat.je.recovery.RecoveryManager.checkLogVersion8UpgradeViolations(RecoveryManager.java:2694)
+    at com.sleepycat.je.recovery.RecoveryManager.buildTree(RecoveryManager.java:549)
+    at com.sleepycat.je.recovery.RecoveryManager.recover(RecoveryManager.java:198)
+    at com.sleepycat.je.dbi.EnvironmentImpl.finishInit(EnvironmentImpl.java:610)
+    ...  </pre>
+<p>
+If the user fails to run the DbPreUpgrade_4_1 or DbRepPreUpgrade_4_1 utility
+program, but no exception is thrown when the environment is opened with JE 5
+or later, this is probably because the application performed an
+<code>Environment.sync</code> before last closing the environment with JE 4.1
+or earlier, and nothing else happened to be written (by the application or JE
+background threads) after the sync operation.  In this case, running the
+upgrade utility is not necessary.
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.5.11</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<!--
+Use this format for changes and include JE version at the time of the change.
+Add entries in order of JE version (chronological order) within this section.
+Note the blank line between changes.
+
+<li>
+DESCRIPTION
+<p>
+[#SR] (7.5.XX)
+</li><br>
+
+<li>
+...
+</li><br>
+ -->
+
+<li>
+Removed the following incorrect javadoc for cursor read operations:
+<p style="margin-left: 2em">In a replicated environment, an explicit
+transaction must have been specified when opening the cursor, unless
+read-uncommitted isolation is specified via the CursorConfig or LockMode
+parameter.</p>
+<p>When a null Transaction parameter is specified for a read operation in a
+replicated environment, the default consistency
+(ReplicationConfig.CONSISTENCY_POLICY) is used.</p>
+[#26037] (7.5.0)
+</li><br>
+
+<li>
+The data verifier has been enhanced to perform Btree verification. Btree
+verification is performed by the background data verifier, the DbVerify
+utility, the DbVerify.verify method, the Database.verify method and the
+Environment.verify method.
+<p>
+Previously, the DbVerify utility and the DbVerify/Database/Environment.verify
+methods performed a very rudimentary and inefficient form of verification.
+Btree verification now includes several different types of integrity checks
+and is performed more efficiently than before.
+<p>
+Background verification (see EnvironmentConfig.ENV_RUN_VERIFIER and
+VERIFY_SCHEDULE) now includes basic Btree verification and secondary index
+verification by default. There are two other types of verification can be
+enabled as described below. Previously, background verification only included
+log checksum verification (see EnvironmentConfig.VERIFY_LOG).
+<p>
+The javadoc for these parameters contains a complete description of the types
+of verification. Other changes to be aware of are:
+<ul>
+    <li>Only one instance of log corruption or basic Btree corruption now will
+        be detected by data verification. Previously, the verifier would
+        attempt to skip over such a detected corruption and continue, although
+        this approach was unreliable. Now the Environment is always invalidated
+        when such corruption is detected, and it isn't possible to continue.
+    <li>When index corruption is detected, the environment is not invalidated.
+        Instead, the corrupt index (secondary database) is marked as corrupt
+        in memory. All subsequent access to a corrupt index will now throw
+        SecondaryIntegrityException. To correct the problem, the application
+        may perform a full restore or rebuild the corrupt index. This new
+        behavior applies whether the index corruption was detected during
+        Btree verification or during normal access to the index.
+    <li>When basic Btree verification or log checksum verification fails, the
+        Environment is invalidated (must be closed) and an
+        EnvironmentFailureException is thrown. If the corruption is known to be
+        persistent, the EnvironmentFailureException.isCorrupt method will
+        return true. Additionally, when a persistent corruption is detected and
+        the Environment is open for read-write access,  a marker file named
+        7fffffff.jdb is created in the Environment directory that will prevent
+        re-opening the environment. If an attempt is made to re-open the
+        Environment, the original EnvironmentFailureException will be thrown.
+        This is meant to safeguard against using a corrupt environment when the
+        original exception is accidentally overlooked. While the marker file
+        can be deleted to allow re-opening the environment, this is normally
+        unsafe and is not recommended.</li>
+    <li>The different types of verification can be enabled or disabled in the
+        background data verifier using EnvironmentConfig.VERIFY_BTREE,
+        VERIFY_SECONDARIES and VERIFY_DATA_RECORDS. Additional params control
+        the Btree verification batch size and delay between batches:
+        VERIFY_BTREE_BATCH_SIZE and VERIFY_BTREE_BATCH_DELAY.</li>
+    <li>When using the DbVerify/Database/Environment.verify methods, the
+        different types of verification can be enabled or disabled using
+        new methods in the VerifyConfig class: setVerifySecondaries and
+        setVerifyDataRecords. New methods also control the verification batch
+        size and delay between batches: setBatchSize and setBatchDelay.</li>
+    <li>When using the DbVerify command line, data record verification can be 
+        enabled using <code>-vdr</code>, and batch size/delay can be specified
+        using <code>-bs</code> and <code>-d</code>. Note that secondary
+        integrity verification is not possible using the command line because
+        this feature requires the secondary databases to have been opened by
+        the application.</li>
+    <li>The Database.verify and Environment.verify methods now throw an
+        EnvironmentFailureException (as described above) if verification fails.
+        Previously, these methods did not give any indication of failure. This
+        is a change in behavior.</li>
+    <li>Updated existing javadoc in several cases where the javadoc was
+        incorrect. Existing behavior was not changed in these cases.
+        <ul>
+            <li>Updated Environment.verify javadoc to indicate that the 'out'
+                parameter is unused and VerifyConfig.setShowProgressStream
+                should be used instead.</li>
+            <li>Updated VerifyConfig.getPrintInfo javadoc to indicate that the
+                information in printed to System.err by default (not
+                System.out) and the default is to use the stream specified by
+                VerifyConfig.getShowProgressStream.</li>
+            <li>Updated the javadoc for VerifyConfig.setPropagateExceptions and
+                VerifyConfig.setAggressive to note that these settings
+                currently have no effect.</li>
+        </ul>
+    </li>
+    <li>Log verification (checksum validation) was previously supported.
+        However, performance testing determined that log verification had a
+        a negative impact on throughput and latency for some workloads.  To
+        avoid this, a delay between reads has been added. This delay can be
+        configured using EnvironmentConfig.VERIFY_LOG_READ_DELAY,
+        VerifyLog.setReadDelay and the <code>-d</code> command line arg.</li>
+
+</ul>
+[#25960] (7.5.1)
+</li><br>
+
+<li>
+Configuration parameters for limiting disk usage have been added:
+Environment.MAX_DISK and FREE_DISK. MAX_DISK should be specified for JE HA
+applications when upgrading to this release, since data files will be reserved
+for potential replication to nodes that are out of contact.  More reserved
+files are retained for potential replication in this release, as described
+further below. If MAX_DISK is not specified, all the free space on the volume
+(minus 5GB of free space, with the default setting of FREE_DISK) will
+eventually be used. The EnvironmentMutableConfig.setMaxDisk method is provided
+as a convenience for setting MAX_DISK.
+<p>
+Disk usage is now monitored and a new exception, DiskLimitException, is thrown
+when attempting a write operation when the threshold is in danger of being
+exceeded. In this situation, read operations are still allowed. Previously, the
+Environment was invalidated and closed when the volume was filled. Allowing
+read operations now provides partial availability in this situation. The
+FREE_DISK parameter also now prevents filling the disk completely, which eases
+manual recovery.
+<p>
+Although behavior is now improved when available space has been used, the
+application-level goal must be to prevent the situation entirely by monitoring
+disk usage and taking recourse before the situation occurs. To support this,
+new JE statistics have been added:
+<ul>
+    <li>activeLogSize: EnvironmentStats.getActiveLogSize()</li>
+    <li>reservedLogSize: EnvironmentStats.getReservedLogSize()</li>
+    <li>protectedLogSize: EnvironmentStats.getProtectedLogSize()</li>
+    <li>protectedLogSizeMap: EnvironmentStats.getProtectedLogSizeMap()</li>
+    <li>availableLogSize: EnvironmentStats.getAvailableLogSize()</li>
+</ul>
+We strongly recommend using availableLogSize to monitor disk usage and take
+corrective action well before this value reaches zero.  Monitoring the file
+system size of the JE data files is not a good substitute for this, since the
+data files includes reserved files which will be deleted by JE automatically.
+<p>
+Additional details are listed below.
+<ul>
+    <li>
+        DiskLimitException may be thrown by all record write operations,
+        Environment.checkpoint, Environment.sync, and Environment.close
+        (when the final checkpoint cannot be performed).
+    </li>
+    <li>
+        The following HA config params are deprecated and no longer needed:
+        ReplicationConfig.REP_STREAM_TIMEOUT, REPLAY_COST_PERCENT and
+        REPLAY_FREE_DISK_PERCENT. Reserved files are now retained based on
+        available disk space. EnvironmentConfig.MAX_DISK and FREE_DISK should
+        be used instead.
+        <p>
+        REPLAY_COST_PERCENT is no longer used.  However, REP_STREAM_TIMEOUT is
+        still used when some, but not all, nodes in a group have been upgraded
+        to 7.5 or later. REPLAY_FREE_DISK_PERCENT is still used when it has
+        been specified and is non-zero, and FREE_DISK has not been specified.
+        In this case, REPLAY_FREE_DISK_PERCENT overrides the FREE_DISK default
+        value. If both REPLAY_FREE_DISK_PERCENT and FREE_DISK are specified, an
+        IllegalArgumentException is thrown.
+    </li>
+    <li>
+        EnvironmentStats.getFileDeletionBacklog has been deprecated and always
+        returns zero.  Use EnvironmentStats.getProtectedLogSize() and
+        getProtectedLogSizeMap() to monitor protected files.
+    </li>
+    <li>
+        If EnvironmentConfig.CLEANER_BYTES_INTERVAL is zero or unspecified, it
+        is now set to the minimum of EnvironmentConfig.LOG_FILE_MAX divided by
+        four (this was the previous default) and 100 MB. The new 100 MB
+        maximum is to ensure that the cleaner is woken frequently enough, so
+        that reserved files are deleted quickly enough to avoid violating a
+        disk limit. Use caution when overriding the default value.
+    </li>
+    <li>
+        Previously, reserved files (files cleaned but not deleted) were not 
+        persistently marked as being reserved. So when the Environment was
+        closed and re-opened, these files would be cleaned again. This
+        re-cleaning was fairly quick because they were 0% utilized, but was a
+        waste of resources nonetheless. Now, reserved files are marked as such
+        in the cleaner's persistent metadata and this avoids re-cleaning.
+    </li>
+    <li>
+        Previously, reserved files were included in the DbSpace output and
+        shown as 0% utilized. They were also reflected in the total
+        utilization, which was therefore inaccurate, since utilization applies
+        to activeLogSize. Now, reserved files are omitted from the list of
+        files and the total utilization. The amount of space used by reserved
+        files is printed at the end of the summary.  If the {@code -q} option
+        is not specified, the reserved file numbers are also printed.
+    </li>
+    <li>
+        Database.count and DiskOrderedCursor (which both internally use a
+        disk-ordered scanner) now only protect active files from deletion.
+        Previously they unnecessarily also protected reserved files.
+    </li>
+    <li>
+        DbBackup now only protects active files from deletion.  Previously it
+        unnecessarily also protected reserved files. In addition, the
+        DbBackup.removeFileProtection method has been added to allow removing
+        protection from a file that has been copied, before calling
+        DbBackup.endBackup.
+    </li>
+    <li>
+        NetworkRestore now only protects active files, and the two most recent
+        reserved files, from deletion. Previously it unnecessarily protected
+        all reserved files. In addition, the protection is removed for files
+        that have been transferred, prior to the completion of the entire
+        restore.
+    </li>
+    <li>
+        The totalLogSize and endOfLog stats (EnvironmentStats.getTotalLogSize
+        and getEndOfLog) are no longer "slow" stats. They are returned by
+        Environment.getStats regardless of the StatsConfig.getFast setting.
+    </li>
+    <li>
+        The je.stat.csv file now contains all stats, not just "fast" stats.
+        Previously, "slow" stats were omitted. Since the stat retrieval 
+        frequency is one minute and this is done by a background thread, 
+        there is no reason not to include all stats.
+    </li>
+    <li>
+        Fixed a bug where per-Database cleaner metadata could accumulate under
+        certain conditions.
+    </li>
+</ul>
+[#25220] (7.5.3)
+</li><br>
+
+<li>
+Fixed a compatibility problem with the Azul Zulu JVM. Previously the following
+exception would occur when using JE with Zulu:
+<pre>
+The database environment could not be opened: java.lang.IllegalStateException:
+Could not access Zing management bean. Make sure -XX:+UseZingMXBeans was
+specified.
+</pre>
+[#26163] (7.5.3)
+</li><br>
+
+<li>
+Added ReplicationConfig.TXN_ROLLBACK_DISABLED to allow manual control over
+rollback, including rollback of transactions considered to be non-durable.
+See the javadoc for more information.
+<p>
+[#26220] (7.5.7)
+</li><br>
+
+<li>
+Fixed a bug that could cause OutOfMemoryError when performing a network
+restore (NetworkRestore.execute) after an InsufficientLogException (ILE) is
+thrown. The ILE holds a reference to the internals (e.g., data cache) of the
+old environment handle.  Previously, this reference was not cleared by the
+network restore. If the application then re-opened the environment, without
+discarding all references to the ILE, OutOfMemoryError could occur due to the
+presence of two data caches in the heap at the same time.  Now the network
+restore clears the internal references when the restore is complete. 
+<p>
+[#26305] (7.5.8)
+</li><br>
+
+<li>
+Fixed a bug that could prevent performing a network restore
+(NetworkRestore.execute), after a prior network restore was aborted or
+incomplete for any reason. For example, this could occur if the process is
+killed during the first network restore, and then another network restore is
+attempted. The problem could occur only in an environment with a relatively
+large data set, specifically where at least one billion write transactions had
+been performed. An example stack trace is below.
+<pre>
+java.lang.NumberFormatException: For input string: "7473413648"
+    at java.lang.NumberFormatException.forInputString(
+        NumberFormatException.java:65)
+    at java.lang.Integer.parseInt(Integer.java:583)
+    at java.lang.Integer.parseInt(Integer.java:615)
+    at com.sleepycat.je.rep.InsufficientLogException.init(
+        InsufficientLogException.java:218)
+    at com.sleepycat.je.rep.impl.RepImpl.handleRestoreRequired(
+        RepImpl.java:2296)
+    at com.sleepycat.je.recovery.RecoveryManager.findEndOfLog(
+        RecoveryManager.java:543)
+    at com.sleepycat.je.recovery.RecoveryManager.recover(
+        RecoveryManager.java:339)
+    at com.sleepycat.je.dbi.EnvironmentImpl.finishInit(
+        EnvironmentImpl.java:841)
+    at com.sleepycat.je.dbi.DbEnvPool.getEnvironment(DbEnvPool.java:222)
+    at com.sleepycat.je.Environment.makeEnvironmentImpl(Environment.java:267)
+    at com.sleepycat.je.Environment.init(Environment.java:252)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.init(
+        ReplicatedEnvironment.java:607)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.init(
+        ReplicatedEnvironment.java:466)
+...
+</pre>
+This has been fixed. Without the fix, a workaround for the problem is to
+remove all the .jdb files from the destination node, before performing the
+network restore.
+<p>
+[#26311] (7.5.8)
+</li><br>
+
+<li>
+Fixed an incorrect assertion when CLEANER_FORCE_CLEAN_FILES is specifid, and a
+specified file is already being cleaned. An example stack traced is below:
+<pre>
+java.lang.AssertionError
+at com.sleepycat.je.cleaner.FileSelector.selectFileForCleaning(FileSelector.java:193)
+at com.sleepycat.je.cleaner.FileProcessor.doClean(FileProcessor.java:395)
+at com.sleepycat.je.cleaner.Cleaner.doClean(Cleaner.java:670)
+...
+</pre>
+[#26326] (7.5.9)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.4.5</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Fixed an internal deadlock between the following internal classes:
+ExpirationProfile, IN, FileSelector. This deadlock occurred very rarely (only
+once in our testing). It did not cause a persistent problem -- restarting the
+process was a safe workaround.
+[#25613] (7.4.1)
+</li><br>
+
+<li>
+EnvironmentConfig.CLEANER_FORCE_CLEAN_FILES has been made mutable.
+[#25821] (7.4.2)
+</li><br>
+
+<li>
+The OperationResult.isUpdate() method has been added for distinguishing inserts
+and updates performed by a Put.OVERWRITE operation.
+[#25882] (7.4.2)
+</li><br>
+
+<li>
+Fixed unsafe file deletion issue in network restore. If the network restore was
+performed on a node without closing the environment, the deletion of obsolete
+log files was considered an unsafe operation that caused the restore to fail.
+
+The error message was:
+<pre>
+  com.sleepycat.je.EnvironmentFailureException:../env Log file 00000000.jdb
+  was deleted unexpectedly. LOG_UNEXPECTED_FILE_DELETION: A log file was
+  unexpectedly deleted, log is likely invalid. Environment is invalid and must
+  be closed. Originally thrown by HA thread: REPLICA 3(-1) 
+</pre>
+[#25834] (7.4.3)
+</li><br>
+
+<li>
+Logging of internal nodes (INs) has been reduced when deleting many records in
+a contiguous key range.  
+[#25939] (7.4.3)
+</li><br>
+
+<li>
+Fixed a bug that could have caused duplicate records to be returned via the
+iterator() method of the DPL and Collections API. The iterator reads records
+in batches, and if a record at the end of the last batch was deleted by another
+thread, fetching the next batch could have read (and later returned via the
+iterator) duplicate records, depending on thread timing.
+[#25976] (7.4.3)
+</li><br>
+
+<li>
+Fixed a bug that prevented LogOverwriteException from being thrown when
+assertions were disabled. LogOverwriteException is thrown to prevent creation
+of an invalid backup, although this can only happen in rare cases and only on
+an HA replica node. See the LogOverwriteException javadoc for more information.
+[#25989] (7.4.4)
+</li><br>
+
+<li>
+Fixed a bug that caused the following assertion to fire when using a Database
+in deferred-write mode (DatabaseConfig.setDeferredWrite(true)) for which data
+was previously written in normal (non-deferred-write) mode.
+<pre>
+java.lang.AssertionError
+  com.sleepycat.je.tree.BIN.shouldLogDelta(BIN.java:1927)
+  ...
+</pre>
+[#25999] (7.4.4)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.3.7</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+EnvironmentConfig.LOG_N_DATA_DIRECTORIES has been deprecated. This
+feature is not known to provide benefits beyond that of a simple RAID
+configuration and will be removed in the next release, which is slated
+for mid-April, 2017.
+</li><br>
+
+<li>
+Added Arbiter functionality that adds additional write availability
+for replication groups that have two Electable members. For details see the
+javadoc for com.sleepycat.je.rep.arbiter.Arbiter.
+[#25567] (7.3.0)
+</li><br>
+
+<li>
+Operation throughput statistics have been simplified and improved. Previously,
+these statistics represented API calls rather than CRUD operations which caused
+confusion when a single API call performed multiple CRUD operations, some CRUD
+operations (key search operations on any node, and all operations on a replica
+node) were missing, the operation statistics were not included in the
+EnvironmentStats.toString result, and none of the operation statistics were
+available via EnvironmentStats getter methods. Previously the throughput stats,
+listed below, were only visible via the je.stat.csv file.
+<pre>
+    Name
+    ----
+    dbDelete
+    dbGet
+    dbGetSearchBoth
+    dbPut
+    dbPutNoDupData
+    dbPutNoOverWrite
+    cursorDelete
+    cursorGetCurrent
+    cursorGetFirst
+    cursorGetLast
+    cursorGetNext
+    cursorGetNextDup
+    cursorGetNextNoDup
+    cursorGetPrev
+    cursorGetPrevDup
+    cursorGetPrevNoDup
+    cursorPut
+    cursorPutCurrent
+    cursorPutNoDupData
+    cursorPutNoOverwrite
+    secondaryCursorDelete
+    secondaryCursorGetCurrent
+    secondaryCursorGetFirst
+    secondaryCursorGetLast
+    secondaryCursorGetNext
+    secondaryCursorGetNextDup
+    secondaryCursorGetNextNoDup
+    secondaryCursorGetPrev
+    secondaryCursorGetPrevDup
+    secondaryCursorGetPrevNoDup
+    secondaryDbDelete
+    secondaryDbGet
+    secondaryDbGetSearchBoth
+</pre>
+Now, the following statistics representing CRUD operations are output in the
+je.stats.cvs file and the EnvironmentStats.toString method, are included for
+all nodes including replicas, and are available via new EnvironmentStats getter
+methods. These replace the statistics listed above.
+<pre>
+    Name                   EnvironmentStats method
+    ----                   -----------------------
+    priSearch              getPriSearchOps()
+    priSearchFail          getPriSearchFailOps()
+    secSearch              getSecSearchOps()
+    secSearchFail          getSecSearchFailOps()
+    priPosition            getPriPositionOps()
+    secPosition            getSecPositionOps()
+    priInsert              getPriInsertOps()
+    priInsertFail          getPriInsertFailOps()
+    secInsert              getSecInsertOps()
+    priUpdate              getPriUpdateOps()
+    secUpdate              getSecUpdateOps()
+    priDelete              getPriDeleteOps()
+    priDeleteFail          getPriDeleteFailOps()
+    secDelete              getSecDeleteOps()
+</pre>
+The new statistics should be considered internal operations or units of work
+rather than API calls. This approach is used to allow correlating operations to
+performance measurements. It also reduces the number of statistics by more than
+half. The javadoc of the new EnvironmentStats getter methods describe the
+mapping from API calls to operation statistics.
+<p>
+[#23792] (7.3.0)
+</li><br>
+
+<li>
+Data corruption is now detected as soon as possible by using an internal JE
+background task. This detects data corruption caused by media/disk failure by
+reading the log sequentially and verifying checksums. This is the equivalent of
+running the current DbVerifyLog utility, but it is performed automatically and
+periodically. The schedule for performing verification can be controlled by the
+new EnvironmentConfig.ENV_RUN_VERIFIER, VERIFY_SCHEDULE and VERIFY_LOG
+parameters.  By default, verification is on and occurs once a day at midnight,
+local time.
+<p>
+When corruption is detected, the Environment will be invalidated and an
+EnvironmentFailureException will be thrown. Applications catching this
+exception can call the new EnvironmentFailureException.isCorrupted method to
+determine whether corruption was detected.
+<p>
+If isCorrupted returns true, a network restore (or restore from backup) should
+be performed to avoid further problems.  The advantage of performing
+verification frequently is that a problem may be detected sooner than it would
+be otherwise. For HA applications, this means that the network restore can be
+done while the other nodes in the group are up, minimizing exposure to
+additional failures.
+<p>
+[#25221] (7.3.0)
+</li><br>
+
+<li>
+Repeat-fault reads have been eliminated, for the most part, for LNs (Btree leaf
+nodes, which represent record data on disk.) Previously, if an LN's on-disk
+size was greater than EnvironmentConfig.LOG_FAULT_READ_SIZE (2kB by default),
+two reads would be required to fetch the LN from disk. The first read would
+always include the log entry header, which contains the exact entry size, and
+the second read (repeat-read) was needed to read the entire entry. The second
+read includes the entire entry, although normally it will be cached by the file
+system.
+<p>
+Now, only a single read is needed because the last logged size for LNs is now
+stored in the Btree, for all LNs written with JE 6.0 and later, and this can be
+used to determine the exact size needed for the read buffer.  The benefits of
+this change are 1) the amount of IO is reduced (although the repeat-read
+normally reads data that is cached by the file system), and 2) the statistics
+describing IO activity are simpler to analyze without the repeat-reads in the
+picture.
+<p>
+Note that INs (Btree internal nodes) can still cause repeat-reads when they are
+fetched, because the last logged size for INs is not stored in the Btree.
+However, in many applications all INs are cached and therefore INs are rarely
+read from disk (except during a cache warm-up period). The nRepeatFaultReads
+statistic (EnvironmentStats.getNRepeatFaultReads) indicates the number of
+repeat-reads.
+<p>
+[#25387] (7.3.0)
+</li><br>
+
+<li>
+Several bugs were fixed related to performing a preload (Database.preload or
+Environment.preload) when an off-heap cache is configured (via
+EnvironmentConfig.setOffHeapCacheSize). These bugs sometimes caused an
+incomplete preload as well as producing an incorrect (corrupt) data set.
+In releases prior to 7.3, preload should not be used with an off-heap cache.
+[#25594] (7.3.1)
+</li><br>
+
+<li>
+Network restores are instigated by a JE HA application when an
+environment open results in an InsufficientLogException. If a network
+restore is interrupted, the application should retry until it
+succeeds. Failing to do so might result in an environment log that is
+corrupted or inconsistent. This JE release adds a new mechanism to
+persistently mark that a network restore has started, and to prevent
+inadvertent use of the environment before the restore has
+completed. The marker file is named 7fffffff.jdb, and is recognized
+and managed by JE. The required steps for handling an
+InsufficientLogException are unchanged; the marker file is an internal
+mechanism.
+<p>
+[#25369] (7.3.1)
+</li><br>
+
+<li>
+Fixed a bug that prevented the transaction timeout for a write operation from
+being honored in JE HA applications. When a transaction's ReplicaAckPolicy
+required waiting for a replica, the timeout was not always honored and the
+transaction sometimes took longer than the specified timeout.
+[#25692] (7.3.4)
+</li><br>
+
+<li>
+Preload (Database.preload and Environment.preload) has been changed so that it
+does not populate the off-heap cache. Only the main cache (in the Java heap) is
+now populated. This was done to avoid a corruption problem linked to preload
+and the off-heap cache. Population of the off-heap cache will be added in a
+future release. Note that when an off-heap cache is configured, preload will
+not populate it, but other operations will populate it as data is evicted from
+the main cache.
+[#25594] (7.3.7)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.2.8</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Fixed a problem where Environment.removeDatabase or truncateDatabase may have
+taken a long time to complete, due to internal retries.
+[#25361] (7.2.0)
+</li><br>
+
+<li>
+Reduced GC overhead by avoiding the re-creation of internal lock objects, in
+cases where a record is locked by only one thread/transaction at a time.  This
+overhead was introduced when deadlock detection was added in JE 7.1 [#16260].
+The overhead is small, but could have impacted certain critical code paths,
+such as transaction replay on an HA replica node.
+<p>
+[#25355] (7.2.0)
+</li><br>
+
+<li>
+Improved support for JDK 9. (Note that JDK 9 is not officially supported until
+it becomes generally available.) Previously, using JE with JDK 9 would cause
+the following exception:
+<pre>
+  java.lang.IllegalStateException: java.lang.IllegalAccessException: class
+  com.sleepycat.je.utilint.JVMSystemUtils cannot access class
+  sun.management.BaseOperatingSystemImpl (in module java.management) because
+  module java.management does not export sun.management to unnamed module
+  @73846619
+</pre>
+A workaround for this problem was to specify the following JVM option:
+<pre>
+  -XaddExports:java.management/sun.management=ALL-UNNAMED
+</pre>
+Specifying this option is no longer necessary.
+[#25383] (7.2.0)
+</li><br>
+
+<li>
+Made several changes to make NullPointerExceptions less likely when closing an
+Environment. NullPointerException sometimes occurs when one thread is calling
+Environment.close and other threads (either application threads or internal
+JE threads) are concurrently accessing the Environment. It is still possible
+for NullPointerException and other unexpected exceptions to occur, but they
+should now happen less frequently, and IllegalStateException should normally be
+thrown instead.
+<p>
+Several additional fixes were made as a result of these changes:
+<ul>
+    <li>When a database is closed, Database.getDatabaseName now throws
+        IllegalStateException. Previously, it returned null and this was not
+        documented. This could have caused NullPointerException in the
+        application.</li>
+    <li>When a database is closed, Database.getConfig now throws
+        IllegalStateException. Previously, it returned a non-null, but
+        sometimes incorrect, configuration.</li>
+    <li>When an environment is closed, Environment.printStartupInfo() now
+        throws IllegalStateException; previously NullPointerException was
+        thrown. As before, this method may be called when the environment is
+        invalid but not yet closed, but now this behavior is documented.</li>
+    <li>As before, the Environment.getConfig and getMutableConfig methods may
+        be called when the environment is invalid but not yet closed, but now
+        this behavior is documented.</li>
+    <li>When an environment is invalid but not yet closed, and the
+        Environment.setMutableConfig method is called, an
+        EnvironmentFailureExcpetion is now thrown. Previously, the method's
+        behavior in this case was undefined.</li>
+    <li>When an environment is closed or invalid,
+        ReplicatedEnviornment.transferMaster now throws IllegalStateException
+        or EnvironmentFailureExcpetion. Previously a NullPointerException was
+        thrown.</li>
+</ul>
+<p>
+[#21590] (7.2.1)
+</li><br>
+
+<li>
+Fixed a problem where checkpointing sometimes did not occur after log cleaning
+when application write operations stopped, preventing the reclaiming of disk
+space. This was a common problem with tests that expect disk space to be
+reclaimed. In production systems it could also be a problem during repair of an
+out-of-disk situation. See the javadoc for the configuration property,
+EnvironmentConfig.CLEANER_WAKEUP_INTERVAL, for details.
+<p>
+Note that an earlier fix [#23180] in JE 7.1 caused cleaning to occur in this
+situation, but a checkpoint is also needed to reclaim disk space after
+cleaning. In addition, the earlier fix was not reliable in certain cases where
+the cleaner thread awoke concurrently with the last write operation.
+<p>
+[#25364] (7.2.1)
+</li><br>
+
+<li>
+Improved behavior and error handling support for an invalidated Environment.
+When an Environment is invalidated due to an EnvironmentFailureException, the
+user must call Environment.close(). Calls to any other JE methods will re-throw
+the invalidating EnvironmentFailureException. In addition, this exception may
+need special handling by the application, for example, an
+InsufficientLogException (which extends EnvironmentFailureException) must be
+handled by performing a network restore.
+<p>
+Several changes have been made to make this process simpler and more reliable.
+<ul>
+    <li>The first invalidating EnvironmentFailureException is now saved
+        internally, and this exception is re-thrown when making a JE API call
+        (other than Environment.close). Previously, when multiple
+        EnvironmentFailureException occurred, the last one thrown was saved and
+        re-thrown.
+        <p>
+        (After the environment is invalidated by an
+        EnvironmentFailureException, other EnvironmentFailureExceptions may be
+        thrown later as side effects of the original problem, or possibly as
+        separate problems. It is normally the first invalidating exception that
+        is most relevant.)</li>
+
+    <li>The Environment.getInvalidatingException method has been added. This
+        returns the invalidating exception described above.</li>
+
+    <li>The Environment.isClosed method has been added. The existing
+        Environment.isValid returns false in two cases: when an environment is
+        closed, and when it is invalid but not yet closed. This new isClosed
+        method can be used to distinguish between these two cases. The javadoc
+        for isValid was clarified accordingly.</li>
+</ul>
+<p>
+[#25248] (7.2.1)
+</li><br>
+
+<li>
+Detect unexpected JE log file deletions. Normally all JE log file deletions
+should be performed as a result of JE log cleaning. If an external file
+deletion is detected, JE assumes this was accidental. This will cause the
+environment to be invalidated and all methods will throw
+EnvironmentFailureException.
+[#25201] (7.2.2)
+</li><br>
+
+<li>
+Enhanced the background log flushing capability in JE HA, and made this feature
+available with or without HA.
+<p>
+Previously, the ReplicationConfig.RUN_LOG_FLUSH_TASK and
+LOG_FLUSH_TASK_INTERVAL parameters specified whether and how often JE HA would
+periodically perform a flush and fsync, to force NO_SYNC or WRITE_NO_SYNC
+transactions to the file system and to the storage device. The default interval
+was 5 minutes. These parameters are now deprecated. For backward compatibility
+information, see the javadoc for these parameters.
+<p>
+In place of the deprecated HA parameters, the
+EnvironmentConfig.LOG_FLUSH_NO_SYNC_INTERVAL and LOG_FLUSH_SYNC_INTERVAL
+parameters have been added. These specify two separate intervals for flushing
+to the file system and the storage device, with default values of 5 seconds and
+20 seconds, respectively. Frequent periodic flushing to the file system
+provides improved durability for NO_SYNC transactions. Without this flushing,
+if application write operations stop, then some number of NO_SYNC transactions
+would be left in JE memory buffers and would be lost in the event of a crash.
+For HA applications, this flushing reduces the possibility of
+RollbackProhibitedException.
+<p>
+[#25417] (7.2.2)
+</li><br>
+
+<li>
+DbCacheSize has been improved for applications using CacheMode.EVICT_LN and an
+off-heap cache. This change applies when the -offheap argument is specified.
+The -maincache argument may now be omitted, and the size of the main cache is
+assumed to be the amount needed to hold all internal nodes (INs). Previously,
+it was difficult to use DbCacheSize to determine the main and off-heap cache
+sizes when using EVICT_LN, because DbCacheSize required specifying the main
+cache size and assumed that LNs would be stored in the main cache (when there
+was room).
+<p>
+[#25380] (7.2.6)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.1.9</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Fixed a bug that might have caused data corruption. Multi-threaded writes were
+incorrectly allowed during recovery, due to eviction. The smaller the cache
+relative to the recovery interval and data set size, the more likely this was
+to occur. This could have caused corruption, but this was never confirmed.
+<p>
+Note that the corruption problem that motivated this fix occurred with an ext3
+file system with a default configuration (write barrier not enabled). This is
+not recommended for JE, because JE relies on ordered writes. However, we don't
+have any proof that the problem was ext3 specific, because it was not
+reproducible.
+<p>
+During testing of this fix, a separate problem was fixed in the exception
+listener mechanism (EnvironmentConfig.setExceptionListener). Previously, when a
+JE background thread threw an Error (due to an assertion or out-of-memory
+condition, for example), this was not reported to the listener. Now, the
+EnvironmentFailureException, which is created as a result of the Error, is
+reported to the listener.
+<p>
+In addition, when an unhandled exception occurred in the background eviction
+threads, an EnvironmentFailureException was not created, and so the Environment
+was not invalidated. This was another reason for the lack of notifications to
+the exception listener. This has been corrected.
+<p>
+Note that when using a shared cache, unhandled exceptions during eviction do
+not always invalidate the Environment or cause exception listener events.
+This issue is not addressed by the fixes mentioned.
+<p>
+[#25084] (7.1.0)
+</li><br>
+
+<li>
+Changes to track durable transaction commits (transaction durability requiring
+acknowledgements from at least a simple majority of nodes) explicitly in the JE
+HA log. Only durable transaction commits now count towards the rollback limit
+specified in com.sleepycat.je.rep.ReplicationConfig.TXN_ROLLBACK_LIMIT, thus
+allowing for automatic rollback and recovery in more cases.
+<p>
+[#25057] (7.1.0)
+</li><br>
+
+<li>
+Fixed a bug that could prevent an HA internal thread from exiting on the master
+node, preventing internal state from being updated, and potentially causing
+disk usage to grow on all nodes. The internal thread also cannot be
+interrupted, causing a hang. An example thread dump for JE 5.0.98 is below.
+<pre>
+"Feeder Input for rg2-rn1" #93465 daemon prio=5 os_prio=0 tid=0x00007fb40c028800 nid=0x109c runnable [0x00007fb3757d6000]
+    java.lang.Thread.State: RUNNABLE
+         at java.lang.Throwable.fillInStackTrace(Native Method)
+         at java.lang.Throwable.fillInStackTrace(Throwable.java:783)
+         - locked <0x00000003d0ae00e0> (a java.lang.IllegalArgumentException)
+         at java.lang.Throwable.<init>(Throwable.java:250)
+         at java.lang.Exception.<init>(Exception.java:54)
+         at java.lang.RuntimeException.<init>(RuntimeException.java:51)
+         at java.lang.IllegalArgumentException.<init>(
+            IllegalArgumentException.java:42)
+         at java.nio.Buffer.position(Buffer.java:244)
+         at com.sleepycat.je.log.FileReader.threadSafeBufferPosition(
+            FileReader.java:920)
+         at com.sleepycat.je.log.FileReader$ReadWindow.fillFromFile(
+            FileReader.java:1185)
+         at com.sleepycat.je.log.FileReader$ReadWindow.slideAndFill(
+            FileReader.java:1063)
+         at com.sleepycat.je.log.FileReader.setBackwardPosition(
+            FileReader.java:587)
+         at com.sleepycat.je.log.FileReader.getLogEntryInReadBuffer(
+            FileReader.java:429)
+         at com.sleepycat.je.log.FileReader.readNextEntryAllowExceptions(
+            FileReader.java:256)
+         at com.sleepycat.je.log.FileReader.readNextEntry(FileReader.java:229)
+         at com.sleepycat.je.rep.stream.FeederSyncupReader.scanBackwards(
+            FeederSyncupReader.java:123)
+         at com.sleepycat.je.rep.stream.FeederReplicaSyncup.
+            makeResponseToEntryRequest(FeederReplicaSyncup.java:283)
+         at com.sleepycat.je.rep.stream.FeederReplicaSyncup.execute(
+            FeederReplicaSyncup.java:100)
+         at com.sleepycat.je.rep.impl.node.Feeder$InputThread.run(
+            Feeder.java:413)
+</pre>
+[#25088] (7.1.0)
+</li><br>
+
+<li>
+Deadlock detection has been implemented to improve performance and behavior
+when lock conflicts occur due to a deadlock. Performance is improved when the
+deadlock can be detected without blocking or blocking for a shorter time
+period, since the deadlock can be broken sooner and this can increase
+concurrency.  Behavior is improved because DeadlockException is now thrown
+when a deadlock is detected, more debugging information is included in the
+exception, and deadlock detection is reliable.
+<p>
+In earlier releases, a LockTimeoutException was eventually thrown when a
+deadlock occurred, but only after the lock timeout expired. This exception
+sometimes contained information about a potential deadlock, but that
+information was not always correct.
+<p>
+Specific changes include:
+<ul>
+    <li>
+    DeadlockException is now thrown when a deadlock is detected. Note that
+    LockTimeoutException is still thrown when the lock timeout expires and a
+    deadlock is not detected. TransactionTimeoutException is thrown when the
+    transaction timeout expires and a deadlock is not detected.
+    <li>
+    Deadlock detection is performed when a lock conflict is detected. A new
+    configuration parameter, EnvironmentConfig.LOCK_DEADLOCK_DETECT, can be
+    used to disable deadlock detection, By default, deadlock detection is
+    enabled. See EnvironmentConfig.LOCK_DEADLOCK_DETECT for more details about
+    the deadlock detection procedure.
+    <li>
+    When deadlock detection is enabled, another new parameter,
+    EnvironmentConfig.LOCK_DEADLOCK_DETECT_DELAY, may be used to improve
+    performance under certain circumstances. By default this is set to zero,
+    meaning no special delay.
+    <li>
+    EnvironmentConfig.LOCK_OLD_LOCK_EXCEPTIONS is now deprecated and has
+    no effect, as if were set to false. Also, LockNotGrantedException has been
+    removed; it was replaced by LockNotAvailableException in JE 3.3. In
+    addition, TransactionTimeoutException is always thrown when a transaction
+    times out, not DeadlockException.
+    <p>
+    <dl>
+        <dt>Historical Note:</dt>
+        <dd>
+        In JE releases 3.3 and earlier, {@link DeadlockException} or a
+        subclass of it was always thrown when a lock conflict occurred.
+        Applications typically caught {@link DeadlockException} in order to
+        detect lock conflicts and determine whether to retry a transaction.
+        {@link DeadlockException} itself was thrown when a lock or transaction
+        timeout occurred and {@link LockNotGrantedException} (a subclass of
+        {@link DeadlockException}) was thrown when a lock conflict occurred
+        for a no-wait transaction (see {@link TransactionConfig#setNoWait}).
+        <p>
+        In all releases after JE 3.3, new exceptions and the new base class
+        {@link LockConflictException} are available.  {@link
+        LockConflictException} should be caught to handle lock conflicts in a
+        general manner, instead of catching {@link DeadlockException}.
+        <p>
+        In all releases after JE 3.3, LockNotGrantedException was replaced by
+        LockNotAvailableException. LockNotGrantedException was deprecated
+        because it misleadingly extended DeadlockException. Now in JE 6.5,
+        LockNotGrantedException has been removed.
+        </dd>
+    </dl>
+</ul>
+[#16260] (7.1.1)
+</li><br>
+
+<li>
+Fixed a bug that impacts the use of the Serializable isolation mode. When
+multiple threads were performing read and write operations, phantom prevention
+did not work in certain cases.
+[#25149] (7.1.1)
+</li><br>
+
+<li>
+Fixed a problem where cleaning sometimes did not occur after application write
+operations stopped. This was a common problem with tests that expect disk space
+to be reclaimed. In production systems it could also be a problem during repair
+of an out-of-disk situation. See the javadoc for the new configuration
+property, EnvironmentConfig.CLEANER_WAKEUP_INTERVAL, for details.
+<p>
+(Note that this fix does not cause checkpointing to occur, and a checkpoint is
+sometimes needed to reclaim disk space after cleaning. A later fix in JE 7.2
+[#25364] corrects this problem as well.)
+<p>
+[#23180] (7.1.1)
+</li><br>
+
+<li>
+Fixed two bugs that could cause mutex deadlocks during Environment.close() and
+ReplicatedEnvrionment.shutdownGroup(). An example deadlock is shown below.
+<pre>
+"ReplayThread" #37 daemon prio=5 os_prio=0 tid=0x00007fe11001f800 nid=0xfad
+waiting for monitor entry [0x00007fe0fa1e6000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.sleepycat.je.dbi.EnvironmentImpl.removeConfigObserver(
+        EnvironmentImpl.java:2675)
+    - waiting to lock <0x00000000f131de08> (a com.sleepycat.je.rep.impl.RepImpl)
+    at com.sleepycat.je.statcap.StatCapture.clearEnv(StatCapture.java:176)
+    - locked <0x00000000f131f078> (a com.sleepycat.je.statcap.StatCapture)
+    at com.sleepycat.je.dbi.EnvironmentImpl.shutdownStatCapture(
+        EnvironmentImpl.java:2454)
+    at com.sleepycat.je.dbi.EnvironmentImpl.shutdownDaemons(
+        EnvironmentImpl.java:2345)
+    at com.sleepycat.je.rep.impl.node.Replica.processShutdown(Replica.java:694)
+    at com.sleepycat.je.rep.impl.node.Replica.access$1100(Replica.java:153)
+    at com.sleepycat.je.rep.impl.node.Replica$ReplayThread.run(Replica.java:1229)
+
+"UNKNOWN Node6(-1)" #1 prio=5 os_prio=0 tid=0x00007fe14400c000 nid=0xf81
+waiting for monitor entry [0x00007fe14b9e4000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.sleepycat.je.statcap.StatCapture.clearEnv(StatCapture.java:170)
+    - waiting to lock <0x00000000f131f078> (a
+        com.sleepycat.je.statcap.StatCapture)
+    at com.sleepycat.je.dbi.EnvironmentImpl.shutdownStatCapture(
+        EnvironmentImpl.java:2454)
+    at com.sleepycat.je.dbi.EnvironmentImpl.shutdownDaemons(
+        EnvironmentImpl.java:2345)
+    at com.sleepycat.je.dbi.EnvironmentImpl.doClose(EnvironmentImpl.java:1884)
+    - locked <0x00000000f131de08> (a com.sleepycat.je.rep.impl.RepImpl)
+    at com.sleepycat.je.dbi.DbEnvPool.closeEnvironment(DbEnvPool.java:374)
+    - locked <0x00000000f131de08> (a com.sleepycat.je.rep.impl.RepImpl)
+    - locked <0x00000000f1015b30> (a com.sleepycat.je.dbi.DbEnvPool)
+    at com.sleepycat.je.dbi.EnvironmentImpl.close(EnvironmentImpl.java:1742)
+    at com.sleepycat.je.Environment.close(Environment.java:445)
+    - locked <0x00000000f2102ce8> (a com.sleepycat.je.rep.ReplicatedEnvironment)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.close(
+        ReplicatedEnvironment.java:830)
+    - locked <0x00000000f2102ce8> (a com.sleepycat.je.rep.ReplicatedEnvironment)
+    ...
+</pre>
+[#25195] (7.1.2)
+</li><br>
+
+<li>
+A new exception, EnvironmentWedgedException, is now thrown by Environment.close
+when a badly behaved internal thread cannot be shutdown, and the current
+process must be shut down and restarted before re-opening the Environment.
+Prior to this change, when a thread could not be shut down, the application was
+not informed about the problem via an exception, and the badly behaved thread
+somtimes caused unpredictable behavior in the Environment, even if it were
+closed and re-opened. See EnvironmentWedgedException for more details.
+<p>
+[#25222] (7.1.3)
+</li><br>
+
+<li>
+The default value for ReplicationConfig.REP_STREAM_TIMEOUT was changed from
+24 hours to 30 minutes. The default value was changed to 30 minutes in the
+documentation in JE 6.0.5 [#22575], but code change was omitted, accidentally
+leaving the default value of 24 hours.  A 30 minute value is much more
+reasonable than 24 hours, since during this period, files will be retained for
+feeding a dead or lagging replica, and this can cause an out-of-disk condition
+if enough data is written during this period. In the earlier change in JE
+6.0.5, the REPLAY_COST_PERCENT and REPLAY_FREE_DISK_PERCENT parameters were
+added, and these also allow retention of files for replicas, but without the
+risk of creating an out-of-disk condition.
+<p>
+[#25254] (7.1.4)
+</li><br>
+
+<li>
+Improved Environment.close for an invalid Environment, to reduce the
+probability of an OOME (OutOfMemoryError) when re-opening the Environment.
+<p>
+For an invalid Environment, previously JE did not attempt to close Databases
+during Environment.close. Also with an invalid Environment, Database.close
+simply re-threw the invalidating exception, and the Database was not closed.
+<p>
+The impact was that Environment and Database handles for a closed, invaid
+Environment would continue to refer to internal data structures and
+consequently to the cached data set. If another Environment was then opened,
+while referencing the previous Environment or Database handles, this could
+have caused OOME if the resident objects for both Environments did not fit in
+the heap.  This was especially likely if recovery for the new Environment
+caused loading of a large data set.
+<p>
+The javadoc indicates that applications should discard all handles after
+closing an Environment.  However, this is impractical at least in one use case:
+when asynchronously closing an Environment due to an exception and then
+re-opening it.  When this is done asynchronously, it may be impractical to set
+all old handle references to null before opening the new handle. So in this
+case there will be a time interval where both Environments are referenced.
+<p>
+Now, Environment.close clears references to internal data structures in the
+Environment handle and all Database handles that have been opened via that
+Environment.
+<p>
+[#25238] (7.1.7)
+</li><br>
+
+<li>
+Fixes an HA bug that manifested itself as a RollbackProhibitedException when
+replication nodes were running different JE versions and a version 6.4.15
+Replica contacted a version 7 Master with a version less than 7.1.8.
+<p>
+[#25362] (7.1.8)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 7.0.5</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+A Time-To-Live (TTL) feature has been added to allow efficient purging of
+records whose lifetime is can be set in advance. Records can be assigned a TTL
+using WriteOptions.setTTL. The javadoc for the WriteOptions class contains a
+Time-To-Live section with more information about the TTL feature.
+<p>
+New 'get', 'put' and 'delete' API methods have been added to support the TTL
+feature and expansion of the API in the future. Each 'get' method has a
+ReadOptions parameter, and each 'put' and 'delete' method has a WriteOptions
+parameter. WriteOptions includes TTL parameters so that a TTL can be assigned
+to a record.  The return value for the new methods is an OperationResult, or
+null if the operation fails. OperationResult includes the record's expiration
+time, for records that have been assigned a TTL.  The new methods are as
+follows.
+<p>
+Note that the Collections API does not have new method signatures, since it
+conforms to the standard Java collections interfaces. Therefore, it is not
+currently possible to specify a TTL using the Collection API. However, it is
+possible to use the DPL API for writing data with a TTL, and then use
+EntityIndex.map or sortedMap to additionally use the Collections API.
+<pre>
+com.sleepycat.je.Database
+
+  OperationResult get(Transaction txn, DatabaseEntry key, DatabaseEntry data,
+                      Get getType, ReadOptions options)
+
+  OperationResult put(Transaction txn, DatabaseEntry key, DatabaseEntry data,
+                      Put putType, WriteOptions options)
+
+  OperationResult delete(Transaction txn, DatabaseEntry key,
+                         WriteOptions options)
+
+com.sleepycat.je.Cursor
+
+  OperationResult get(DatabaseEntry key, DatabaseEntry data,
+                      Get getType, ReadOptions options)
+
+  OperationResult put(DatabaseEntry key, DatabaseEntry data,
+                      Put putType, WriteOptions options)
+
+  OperationResult delete(WriteOptions options)
+
+com.sleepycat.je.SecondaryDatabase
+
+  OperationResult get(Transaction txn, DatabaseEntry key, DatabaseEntry pKey,
+                      DatabaseEntry data, Get getType, ReadOptions options)
+
+  OperationResult delete(Transaction txn, DatabaseEntry key,
+                         WriteOptions options)
+
+com.sleepycat.je.SecondaryCursor
+
+  OperationResult get(DatabaseEntry key, DatabaseEntry pKey,
+                      DatabaseEntry data, Get getType, ReadOptions options)
+
+  OperationResult delete(WriteOptions options)
+
+com.sleepycat.je.ForwardCursor
+com.sleepycat.je.JoinCursor
+com.sleepycat.je.DiskOrderedCursor
+
+  OperationResult get(DatabaseEntry key, DatabaseEntry data,
+                      Get getType, ReadOptions options)
+  // Get.NEXT and CURRENT only
+
+com.sleepycat.persist.PrimaryIndex
+
+  OperationResult put(Transaction txn, E entity,
+                      Put putType, WriteOptions writeOptions)
+  // Put.OVERWRITE and NO_OVERWRITE only
+
+com.sleepycat.persist.EntityIndex
+
+  EntityResult get(Transaction txn, K key,
+                   Get getType, ReadOptions readOptions)
+  // Get.SEARCH only, more types may be supported later
+
+  OperationResult delete(Transaction txn, K key, WriteOptions writeOptions)
+
+com.sleepycat.persist.EntityCursor
+
+  EntityResult get(Get getType, ReadOptions readOptions)
+  // All Get types except SEARCH_*, which may be supported later
+
+  OperationResult update(V entity, WriteOptions writeOptions)
+
+  OperationResult delete(WriteOptions writeOptions)
+</pre>
+The 'put' methods are passed a Put enum value and the 'get' methods are passed
+a Get enum value. The enum values correspond to the methods of the older API.
+For example, Get.SEARCH corresponds to the older Cursor.getSearchKey method and
+Put.NO_OVERWRITE corresponds to the older Database.putNoOverwrite method.
+Future enhancements, like TTL, may be supported via the newer 'get' and 'put'
+methods, so we recommend that these methods are used instead of the older API
+methods. However, there are no plans to deprecate or remove the older methods
+at this time. In fact, the older methods still appear in most of the JE example
+programs and documentation.
+<p>
+ReadOptions and WriteOptions contain a CacheMode parameter for specifying the
+cache mode on a per-operation. ReadOptions also contains a LockMode property,
+which corresponds to the LockMode parameter of the older 'get' and 'put'
+methods. To ease the translation of existing code, a LockMode.toReadOptions
+method is provided.
+<p>
+Another API change has to do with key-only 'get' operations, where returning
+the record data is not needed. Previously, returning the data and its
+associated overhead could be avoided only by calling DatabaseEntry.setPartial.
+Now, null may be passed for the data parameter instead. In fact, null may now
+be passed for all "output parameters", in both the new and old versions of the
+'get' and 'put' methods. For more information, see the "Input and Output
+Parameters" section of the DatabaseEntry class javadoc.
+<p>
+The JE cleaner has also been enhanced to perform purging of expired data. For
+each data file, a histogram of expired data sizes is stored and used by the
+cleaner. Along with the obsolete size information that the cleaner already
+maintains, the histogram allows knowing when a file is ready for cleaning. New
+related cleaner statistics are as follows:
+<ul>
+    <li>EnvironmentStats.getNLNsExpired - the number of expired LNs processed
+        by the cleaner.</li>
+    <li>EnvironmentStats.getCurrentMinUtilization - replacement for
+        getLastKnownUtilization, which is now deprecated.</li>
+    <li>EnvironmentStats.getCurrentMaxUtilization - the maximum utilization
+        are often different than the minimum, when TTL is used.</li>
+    <li>EnvironmentStats.getNCleanerTwoPassRuns - two-pass cleaning is
+        used when the maximum and minimum diverge.</li>
+    <li>EnvironmentStats.getNCleanerRevisalRuns - two-pass cleaning can result
+        in revised expiration data.</li>
+</ul>
+<p>
+Another indication of expired data is shown by the DbSpace utility. This now
+outputs minimum and maximum utilization and the total expired bytes. A new
+option for this utility, <code>-t DATE-TIME</code>, shows the utilization and
+expired bytes for a specified time.
+<p>
+The DbCacheSize utility now has a <code>-ttl</code> option. Specifying this
+option causes the estimated cache size to include space for an expiration time
+for each record.
+<p>
+The RecoveryProgress.POPULATE_EXPIRATION_PROFILE phase was added to indicate
+that the cleaner is reading the stored histograms into cache.
+<p>
+EnvironmentConfig.ENV_EXPIRATION_ENABLED is a new config param that is true by
+default, meaning that expired data is filtered from queries and purged by the
+cleaner. It might be set to false to recover data after an extended down time.
+<p>
+In addition, the cleaner "backlog" mechanism has been removed, meaning that
+EnvironmentStats.getCleanerBacklog and
+EnvironmentConfig.CLEANER_MAX_BATCH_FILES are now deprecated. The backlog
+mechansim has not been beneficial for some time and was due for removal.  When
+using TTL, because two-pass cleaning can occur even when true utilization is
+below EnvironmentConfig.CLEANER_MIN_UTILIZATION, the cleaner backlog statistic
+would have been misleading.
+<p>
+[#16845] (7.0.0)
+</li><br>
+
+<li>
+Fixed a bug causing the following exception. In JE versions from 6.2 to 6.4,
+this could occur when EnvironmentConfig.NODE_MAX_ENTRIES or
+DatabaseConfig.setNodeMaxEntries is more than 128, which is the default value.
+<pre>
+Caused by: java.lang.ArrayIndexOutOfBoundsException: -96
+    at com.sleepycat.je.tree.BINDeltaBloomFilter.setBit(
+        BINDeltaBloomFilter.java:257)
+    at com.sleepycat.je.tree.BINDeltaBloomFilter.add(
+        BINDeltaBloomFilter.java:113)
+    at com.sleepycat.je.tree.BIN.createBloomFilter(BIN.java:1863)
+    at com.sleepycat.je.tree.IN.serialize(IN.java:6037)
+    at com.sleepycat.je.tree.IN.writeToLog(IN.java:6021)
+    at com.sleepycat.je.log.entry.INLogEntry.writeEntry(INLogEntry.java:349)
+    at com.sleepycat.je.log.LogManager.marshallIntoBuffer(LogManager.java:731)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:346)
+    ...
+</pre>
+[#24896] (7.0.0)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.4.15</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Made several minor improvements to off-heap cache behavior.
+<ul>
+    <li>
+    The OffHeap:offHeapCriticalNodesTargeted statistic was added for
+    monitoring off-heap critical eviction, which increases operation latency
+    in application threads. See
+    EnvironmentStats.getOffHeapCriticalNodesTargeted.
+    </li>
+    <li>
+    To reduce off-heap critical eviction, the default for
+    EnvironmentConfig.OFFHEAP_EVICT_BYTES was changed from 1MB to 50MB.
+    </li>
+    <li>
+    To reduce off-heap evictor thread contention, the default for
+    EnvironmentConfig.OFFHEAP_MAX_THREADS was changed from 10 to 3, and an
+    internal check was added to reduce contention when all threads are busy.
+    </li>
+</ul>
+[#23889] (6.4.10)
+</li><br>
+
+<li>
+Fixed a bug that caused internal Btree corruption when using the off-heap
+cache and performing insertions. The bug was observed when using
+CacheMode.EVICT_BIN, but could also occur if BIN eviction is frequent for
+other reasons.  The bug causes persistent corruption that would require
+reverting to a backup (or HA network restore) to correct. The bug was observed
+to cause one of the two following exceptions at the time the corruption was
+created.
+<p>
+The following assertion would rarely occur, and only if assertions were
+enabled of course.
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.4.10)
+UNEXPECTED_STATE: Unexpected internal state, may have side effects.
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedState(
+    EnvironmentFailureException.java:397)
+    at com.sleepycat.je.tree.IN.getKnownChildIndex(IN.java:782)
+    at com.sleepycat.je.evictor.OffHeapCache.freeRedundantBIN(
+    OffHeapCache.java:1974)
+    at com.sleepycat.je.tree.IN.updateLRU(IN.java:695)
+    at com.sleepycat.je.tree.IN.latchShared(IN.java:600)
+    at com.sleepycat.je.recovery.DirtyINMap.selectDirtyINsForCheckpoint(
+    DirtyINMap.java:277)
+    at com.sleepycat.je.recovery.Checkpointer.doCheckpoint(
+    Checkpointer.java:816)
+    at com.sleepycat.je.recovery.Checkpointer.onWakeup(Checkpointer.java:593)
+    at com.sleepycat.je.utilint.DaemonThread.run(DaemonThread.java:184)
+    at java.lang.Thread.run(Thread.java:745)
+</pre>
+<p>
+The following assertion would occur more often, whether or not assertions were
+enabled.
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.4.10)
+UNEXPECTED_STATE_FATAL: Failed adding new IN ...
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedState(
+    EnvironmentFailureException.java:441)
+    at com.sleepycat.je.dbi.INList.add(INList.java:204)
+    at com.sleepycat.je.tree.IN.addToMainCache(IN.java:2966)
+    at com.sleepycat.je.tree.IN.postLoadInit(IN.java:2939)
+    at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:2513)
+    at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:2279)
+    at com.sleepycat.je.tree.Tree.searchSplitsAllowed(Tree.java:1919)
+    at com.sleepycat.je.tree.Tree.searchSplitsAllowed(Tree.java:1857)
+    at com.sleepycat.je.tree.Tree.searchSplitsAllowed(Tree.java:1775)
+    at com.sleepycat.je.tree.Tree.findBinForInsert(Tree.java:1746)
+    at com.sleepycat.je.dbi.CursorImpl.insertRecordInternal(
+    CursorImpl.java:1381)
+    at com.sleepycat.je.dbi.CursorImpl.insertOrUpdateRecord(
+    CursorImpl.java:1280)
+    at com.sleepycat.je.Cursor.putNoNotify(Cursor.java:2504)
+    at com.sleepycat.je.Cursor.putNotify(Cursor.java:2365)
+    at com.sleepycat.je.Cursor.putNoDups(Cursor.java:2223)
+    at com.sleepycat.je.Cursor.putInternal(Cursor.java:2060)
+    at com.sleepycat.je.Cursor.put(Cursor.java:730)
+</pre>
+[#24564] (6.4.11)
+</li><br>
+
+<li>
+Fixed a bug that could cause queries to return the wrong result, and also
+could cause persistent Btree corruption. The bug is present in releases 6.3.0
+to 6.4.11. The conditions for the bug are as follows.
+<ul>
+    <li>A custom key comparator must not be configured.</li>
+    <li>The DB must not be a duplicates DB (because an internal key comparator
+        is used).</li>
+    <li>Key prefixing must be configured for the DB (or at least, it must have
+        been configured when data was written).</li>
+    <li>The bug will occur when the search key of an operation (either a read
+        or a write operation, including internal operations such as cleaning
+        and checkpointing) is a prefix of the common prefix for all the keys
+        in an IN. In this case, if a custom comparator is not used, the
+        default internal comparator will return a wrong result when comparing
+        the search key with another key in the IN. This will in general result
+        in wrong results and/or data corruption.</li>
+    <li>For a query to return the wrong result, the specified search key must
+        be a prefix of other keys in the DB. For example, key A is a prefix of
+        key A1 and A2.</li>
+    <li>For corruption to occur, some keys in the DB must be a prefix of other
+        keys. For example, keys A, A1 and A2 are stored.</li>
+    <li>In both cases above (a query with the wrong result and corruption),
+        the smaller key which is a prefix of other keys must also be smaller
+        or equal to JE's internal key prefix for the Btree internal node (IN)
+        that is accessed. This means that all keys in the IN, or roughly 100
+        adjacent keys, must have this prefix.</li>
+</ul>
+[#24583] (6.4.12)
+</li><br>
+
+<li>
+Fixed a bug in preload (Database.preload and Environment.preload) that
+prevented all data from being preloaded. It did not cause corruption of any
+kind, and the data that was not preloaded was still accessible, i.e., it
+would be loaded when acessed through normal API operations.
+<p>
+Data was missed by preload when BIN-deltas were present in cache. If the
+preload was performed immediately after opening the Environment, this would
+normally happen only after a crash-recovery (a normal shutdown did not occur).
+If the preload was performed later on, BIN-deltas might also be in cache due
+to eviction.
+<p>
+[#24565] (6.4.12)
+</li><br>
+
+<li>
+Fixed a bug in preload (Database.preload and Environment.preload) that caused
+preloaded data to be evicted from cache by a subsequent operation using
+CacheMode.UNCHANGED.
+<p>
+[#24629] (6.4.14)
+</li><br>
+
+<li>
+Fixed a bug where the information about lock owners and waiters in
+LockConflictException was sometimes incorrect due to a time window between
+detecting the lock conflict and constructing the exception. The fix applies to
+the LockConflictException.getOwnerTxnIds and getWaiterTxnIds methods, and to
+the two lines in the first part of the exception message starting with
+"Owners:" and "Waiters:".
+<p>
+In addition, the list of waiters will now contain the locker or Transaction
+requesting the lock, for which the LockConflictException is thrown.
+<p>
+The fix does NOT apply to the information output when
+EnvironmentConfig.TXN_DUMP_LOCKS is set to true. This information is by nature
+somewhat inaccurate, because normal locking operations are not frozen when this
+dump is occurring, so changes to the state of the lock table are occurring
+concurrently.
+<p>
+The fix also does NOT apply to the deadlock information that is sometimes
+included in the exception message. This information can also be inaccurate due
+to concurrent locking operations. This is a larger problem that will be fixed
+in a future release.
+<p>
+[#24623] (6.4.14)
+</li><br>
+
+<li>
+Fixed a bug that could cause a "log file not found" exception during recovery,
+i.e., when opening the Environment. The circumstances that provoked this bug
+are:
+<ul>
+    <li>The bug could only occur in Btrees with 4 or more levels, which
+        typically means a single Database must have roughly one million records
+        or more.
+    </li>
+    <li>The bug is more likely to occur with insertion heavy workloads.
+    </li>
+    <li>The bug has existed in all earlier versions of JE, but is more likely
+        to occur in JE 6.2 and later.
+    </li>
+</ul>
+The bug does not cause a permanent data corruption, if upgrading to JE 6.4.14
+is possible. In other words, if the problem occurs in an earlier version,
+upgrading to 6.4.14 or later will allow the Environment to be opened.
+<pre>
+Example exception:
+
+Exception in thread "main" com.sleepycat.je.EnvironmentFailureException:
+(JE 6.4.9) ... last LSN=0x20c7b6/0xa986dc LOG_INTEGRITY: Log information is
+incorrect, problem is likely persistent. Environment is invalid and must be
+closed.
+        at com.sleepycat.je.recovery.RecoveryManager.traceAndThrowException(
+            RecoveryManager.java:3176)
+        at com.sleepycat.je.recovery.RecoveryManager.readINs(
+            RecoveryManager.java:1039)
+        at com.sleepycat.je.recovery.RecoveryManager.buildINs(
+            RecoveryManager.java:842)
+        at com.sleepycat.je.recovery.RecoveryManager.buildTree(
+            RecoveryManager.java:757)
+        at com.sleepycat.je.recovery.RecoveryManager.recover(
+            RecoveryManager.java:387)
+        at com.sleepycat.je.dbi.EnvironmentImpl.finishInit(
+            EnvironmentImpl.java:717)
+        at com.sleepycat.je.dbi.DbEnvPool.getEnvironment(
+            DbEnvPool.java:254)
+        at com.sleepycat.je.Environment.makeEnvironmentImpl(
+            Environment.java:287)
+        at com.sleepycat.je.Environment.<init>(Environment.java:268)
+        at com.sleepycat.je.Environment.<init>(Environment.java:212)
+        at com.sleepycat.je.util.DbDump.openEnv(DbDump.java:422)
+        at com.sleepycat.je.util.DbDump.listDbs(DbDump.java:316)
+        at com.sleepycat.je.util.DbDump.main(DbDump.java:296)
+Caused by: com.sleepycat.je.EnvironmentFailureException:
+(JE 6.4.9) ... fetchIN of 0x20c756/0x4e81bd parent IN=2785507 IN
+class=com.sleepycat.je.tree.IN lastFullLsn=0x20c7af/0xc81b2d
+lastLoggedLsn=0x20c7af/0xc81b2d parent.getDirty()=true state=0
+LOG_FILE_NOT_FOUND: Log file missing, log is likely invalid. Environment is
+invalid and must be closed.
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:2523)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:2293)
+        at com.sleepycat.je.tree.Tree.getParentINForChildIN(Tree.java:1418)
+        at com.sleepycat.je.recovery.RecoveryManager.recoverChildIN(
+            RecoveryManager.java:1338)
+        at com.sleepycat.je.recovery.RecoveryManager.recoverIN(
+            RecoveryManager.java:1166)
+        at com.sleepycat.je.recovery.RecoveryManager.replayOneIN(
+            RecoveryManager.java:1130)
+        at com.sleepycat.je.recovery.RecoveryManager.readINs(
+            RecoveryManager.java:1021)
+        ... 11 more
+Caused by: java.io.FileNotFoundException: .../0020c756.jdb (No such file or directory)
+        at java.io.RandomAccessFile.open(Native Method)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:241)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:122)
+        at com.sleepycat.je.log.FileManager$DefaultRandomAccessFile.<init>(
+            FileManager.java:3226)
+        at com.sleepycat.je.log.FileManager$6.createFile(
+            FileManager.java:3254)
+        at com.sleepycat.je.log.FileManager.openFileHandle(
+            FileManager.java:1333)
+        at com.sleepycat.je.log.FileManager.getFileHandle(
+            FileManager.java:1204)
+        at com.sleepycat.je.log.LogManager.getLogSource(LogManager.java:1136)
+        at com.sleepycat.je.log.LogManager.getLogEntry(
+            LogManager.java:823)
+        at com.sleepycat.je.log.LogManager.getLogEntryAllowInvisibleAtRecovery(
+            LogManager.java:788)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:2345)
+        ... 17 more
+</pre>
+Thanks to Alexander Kharichev for reproducing this bug and capturing the data
+files that allowed us to find the problem. This took many months of
+persistence, and special instrumentation for using with the CLEANER_EXPUNGE
+option in a production environment.
+<p>
+[#24663] (6.4.14)
+</li><br>
+
+<li>
+Fixed a bug that caused PreloadStats.getNEmbeddedLNs to return zero when using
+PreloadConfig.setLoadLNs(false). getNEmbeddedLNs now returns the number of
+embedded LNs loaded into cache, irrespective of the setLoadLNs setting.
+<p>
+[#24688] (6.4.15)
+</li><br>
+
+<li>
+Fixed a performance problem related to the off-heap cache. Previously, when the
+off-heap cache overflowed, BINs (bottom internal nodes) were evicted before
+evicting LNs (records or leaf nodes), when the LNs were in dirty BINs. The
+effect was that more read I/O was required to fetch the INs when they were
+needed. In general, disregarding the LRU, BINs should be kept in cache in
+preference to LNs, and the fix corrects the implementation of that policy.
+<p>
+In addition, a change was made to allow off-heap LNs to be evicted sooner, to
+to delay eviction of off-heap BINs (or their mutation to BIN-deltas).
+Previously, when a BIN was evicted from main cache and moved off-heap, its
+off-heap LNs were made "hot" in the off-heap cache. This no longer occurs.
+<p>
+[#24717] (6.4.25)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.4.9</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Fixed a bug that (rarely) caused an exception such as the following, during
+shutdown of a ReplicatedEnvironment. This caused no persistent damage, but the
+unexpected runtime exception could cause exception handling problems or at
+least confusion.
+<pre>
+com.sleepycat.je.EnvironmentFailureException.unexpectedException(
+    EnvironmentFailureException.java:351)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:496)
+    at com.sleepycat.je.log.LogManager.logItem(LogManager.java:438)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:350)
+    at com.sleepycat.je.tree.LN.logInternal(LN.java:752)
+    at com.sleepycat.je.tree.LN.optionalLog(LN.java:473)
+    at com.sleepycat.je.dbi.CursorImpl.updateRecordInternal(
+        CursorImpl.java:1689)
+    at com.sleepycat.je.dbi.CursorImpl.insertOrUpdateRecord(
+        CursorImpl.java:1321)
+    at com.sleepycat.je.Cursor.putNoNotify(Cursor.java:2509)
+    at com.sleepycat.je.Cursor.putNotify(Cursor.java:2370)
+    at com.sleepycat.je.Cursor.putForReplay(Cursor.java:2038)
+    at com.sleepycat.je.DbInternal.putForReplay(DbInternal.java:186)
+    at com.sleepycat.je.rep.impl.node.Replay.applyLN(Replay.java:1012)
+    ... 2 more
+Caused by: java.lang.NullPointerException
+    at com.sleepycat.je.rep.vlsn.VLSNIndex.decrement(VLSNIndex.java:526)
+    at com.sleepycat.je.rep.impl.RepImpl.decrementVLSN(RepImpl.java:840)
+    at com.sleepycat.je.log.LogManager.serialLogWork(LogManager.java:710)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:481)
+    ... 13 more
+</pre>
+[#24281] (6.4.0)
+</li><br>
+ 
+<li>
+Fixed a recovery (startup) performance problem that occurred when extremely
+large numbers of .jdb files were present. For large data sets, the default file
+size (10 MB) results in large numbers of files. A directory listing of these
+files was performed by JE when reading the log sequentially during recovery,
+and this noticeably slowed down recovery. With this fix, recovery no longer
+performs a directory listing.
+<p>
+However, other utilities that read the entire log (e.g., DbPrintLog) must
+perform a directory listing to skip over gaps in the sequence of files numbers
+caused by log file deletion (cleaning). Therefore, when a large data set is
+expected or possible, the file size (EnvironmentConfig.LOG_FILE_MAX) should be
+configured to a larger size. A file size of one GB is recommended for large
+data sets.
+<p>
+[#24332] (6.4.0)
+</li><br>
+
+<li>
+Fixed a transient problem for HA applications that resulted in an exception
+such as the following. This occurred when quorum was temporarily lost. The fix
+will prevent this exception from occurring. Note that even when the problem
+occurred, the node automatically recovered quorum, so the problem was not
+persistent. 
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.3.7) Problem in
+ReadWindow.fill, reading from = 0 UNEXPECTED_EXCEPTION: Unexpected internal
+Exception, may have side effects. MasterFeederSource fetching vlsn=5,096,275
+waitTime=1000 Uncaught exception in feeder thread:Thread[Feeder Output for
+rg1-rn5,5,main] Originally thrown by HA thread: MASTER rg1-rn1(1)
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedException(
+        EnvironmentFailureException.java:366)
+    at com.sleepycat.je.rep.stream.FeederReader$SwitchWindow.fillNext(
+        FeederReader.java:572)
+    at com.sleepycat.je.log.FileReader.readData(FileReader.java:822)
+    at com.sleepycat.je.log.FileReader.readNextEntryAllowExceptions(
+        FileReader.java:379)
+    at com.sleepycat.je.log.FileReader.readNextEntry(FileReader.java:276)
+    at com.sleepycat.je.rep.stream.FeederReader.scanForwards(
+        FeederReader.java:308)
+    at com.sleepycat.je.rep.stream.MasterFeederSource.getWireRecord(
+        MasterFeederSource.java:100)
+    at com.sleepycat.je.rep.impl.node.Feeder$OutputThread.writeAvailableEntries(
+        Feeder.java:1219)
+    at com.sleepycat.je.rep.impl.node.Feeder$OutputThread.run(Feeder.java:1109)
+Caused by: java.io.FileNotFoundException:
+/scratch/suitao/dctesting/kvroot/mystore/sn3/rg1-rn1/env/00000000.jdb (No such
+file or directory)
+    at java.io.RandomAccessFile.open(Native Method)
+    at java.io.RandomAccessFile.&lt;init&gt;(RandomAccessFile.java:241)
+    at java.io.RandomAccessFile.&lt;init&gt;(RandomAccessFile.java:122)
+    at com.sleepycat.je.log.FileManager$DefaultRandomAccessFile.&lt;init&gt;(
+        FileManager.java:3201)
+    at com.sleepycat.je.log.FileManager$6.createFile(FileManager.java:3229)
+    at com.sleepycat.je.log.FileManager.openFileHandle(FileManager.java:1308)
+    at com.sleepycat.je.log.FileManager.getFileHandle(FileManager.java:1179)
+    at com.sleepycat.je.rep.stream.FeederReader$SwitchWindow.fillNext(
+        FeederReader.java:511)
+    ... 7 more
+</pre>
+[#24299] (6.4.0)
+</li><br>
+
+<li>
+Added an off-heap cache capability. An off-heap cache can be used to utilize
+large memories more efficiently than when using the same memory for the file
+system cache, while avoiding the Java GC overheap associated with large Java
+heaps. See the EnvironmentMutableConfig.setOffHeapCacheSize javadoc for
+information on how to enable the cache and its impact on performance.
+<p>
+Please be aware of the following limitations in the initial release of this
+feature:
+    <ul>
+        <li>
+        The off-heap cache is not currently used for deferred-write and
+        temporary databases, i.e., databases created using
+        DatabaseConfig.setTemporary(true) or setDeferredWrite(true). For such
+        databases, only the main (in-heap) cache is used.
+        </li>
+        <li>
+        As described in the EnvironmentMutableConfig.setOffHeapCacheSize
+        javadoc, the off-heap cache only works when Unsafe.allocateMemory is
+        available in the JDK used to run the JE application. The Oracle JDK is
+        compatible.
+        </li>
+        <li>
+        When testing the off-heap cache on the IBM JDK, using Linux, we
+        noticed that the per-memory block overhead is much higher than when
+        using the Oracle JDK. We observed an extra 70 byte overhead per block
+        that is allocated by Unsafe.allocateMemory. This overhead is not
+        currently accounted for in our initial version of the off-heap
+        allocator, so users of the IBM JDK should expect that more off-heap
+        memory will be used than what DbCacheSize calculates and more than
+        what the EnvironmentStats.getOffHeapTotalBytes method reports. We
+        would like to solitic input on this issue from our users who are
+        familiar with the internals of the IBM JDK.
+        </li>
+        <li>
+        The Getting Started Guide does does not yet contain information about
+        the off-heap cache. Please refer to the javadoc.
+        </li>
+    </ul>
+<p>
+The following additional API additions are associated with the off-heap cache.
+<ul>
+    <li>
+    EnvironmentMutableConfig.setOffHeapCacheSize
+    (EnvironmentConfig.MAX_OFF_HEAP_MEMORY).  This is the only configuration
+    parameter that must be set to use the off-heap cache. See the
+    setOffHeapCacheSize javadoc for details on the purpose and function of the
+    off-heap cache.
+    </li>
+    <li>
+    EnvironmentConfig.OFFHEAP_N_LRU_LISTS. Allows reducing contention among
+    threads performing eviction, with the cost of reduced LRU accuracy.
+    </li>
+    <li>
+    EnvironmentConfig.OFFHEAP_CORE_THREADS, OFFHEAP_MAX_THREADS,
+    OFFHEAP_KEEP_ALIVE. Used to configure the thread pool for the off-heap
+    evictor.
+    </li>
+    <li>
+    EnvironmentConfig.ENV_RUN_OFFHEAP_EVICTOR. Used to disable the off-heap
+    evictor thread for applications calling Environment.evictMemory
+    explicitly.
+    </li>
+    <li>
+    EnvironmentConfig.OFFHEAP_EVICT_BYTES. Determines the size of an
+    eviction batch.
+    </li>
+    <li>
+    EnvironmentConfig.OFFHEAP_CHECKSUM. Can be used for debugging.
+    </li>
+    <li>
+    EnvironmentStats.getOffHeap*. These 20 new getter methods allow getting
+    off-heap cache statistics.
+    </li>
+</ul>
+<p>
+[#23889] (6.4.1)
+</li><br>
+
+<li>
+Several improvements were made to DiskOrderedCursor performance and behavior.
+These improvements also apply to Database.count, which uses the same internal
+scanning mechanism as DiskOrderedCursor.
+<ul>
+    <li>
+    DiskOrderedCursor now no longer accumulates LSNs for data that is resident
+    in the JE cache. Before, data resident in cache would sometimes be fetched
+    from disk to avoid filling the output queue for the scan. This is no
+    longer the case, and this has two important benefits:
+        <ol>
+            <li>The semantics of a DiskOrderedCursor scan are now roughly the
+            same as when using LockMode.READ_UNCOMMITTED. There is no longer a
+            potential lag back to the last checkpoint. See the updated
+            Consistency Guarantees section in the DiskOrderedCursor javadoc
+            for details.</li>
+            <li>Less read IO is performed in some cases.</li>
+        </ol>
+    [#24226]
+    </li>
+    <li>
+    To prevent applications from having to reserve memory in the Java heap for
+    the DiskOrderedCursor, memory used by the DiskOrderedCursor is now
+    subtracted from the JE cache budget. The maximum amount of such memory is
+    specified, as before, using
+    DiskOrderedCursorConfig.setInternalMemoryLimit.  This is a behavior change
+    and may require some applications to increase the JE cache size.
+    [#24291]
+    </li>
+    <li>
+    DiskOrderedCursor can now scan multiple databases using the new
+    Environment.openDiskOrderedCursor method. When scanning multiple databases
+    this method will provide better performance than scanning each database
+    separately.
+    [#24171]
+    </li>
+    <li>
+    DiskOrderedCursor scans now uses shared latches on upper INs, instead of
+    exclussive latches. This reduces contention between the DiskOrderedCursor
+    scan and other Btree operations, such as CRUD operations.
+    [#24192]
+    </li>
+    <li>
+    Whenever possible, DiskOrderedCursor no longer makes copies of BIN-deltas
+    found in the cache. This results in less memory useage (and consequently
+    less read IO).
+    [#24270]
+    </li>
+</ul>
+(6.4.2)
+</li><br>
+
+<li>
+Made improvements to the debug logging entries created to provide
+information about log files that were protected from deletion.
+<p>
+<ul>
+  <li>Modified entries created by the cleaner to identify which log
+     files were protected from deletion
+  <li>Modified entries created for replicated environments to provide
+    information about the reason files were protected from deletion
+  <li>Changed the logging level for these entries to <code>INFO</code>
+    to emphasize that the protection of files from deletion is expected
+    behavior
+</ul>
+<p>
+[#24241] (6.4.2)
+</li><br>
+
+<li>
+Fixed a bug where a Btree latch was not released when an Error was thrown by a
+file read, during a secondary DB lookup. This could cause an
+EnvironmentFailureException with the error message "Latch already held" at a
+later time in the same thread, or a latch deadlock in another thread.
+[#24375] (6.4.3)
+</li><br>
+
+<li>
+Fixed a bug in Database.count that caused it to loop "forever" with a large
+out-of-cache data set. This also impacted Environment.truncateDatabase when
+'true' was passed for the 'returnCount' param, since this causes
+Database.count to be called.
+[#24448] (6.4.7)
+</li><br>
+
+<li>
+Fixed a bug that could cause incomplete results to be returned from a query
+using secondary indexes, when this query is performed on a replica and record
+deletions are being performed on the master (and being replayed on the
+replica). It could also cause LockConflictException to be thrown by the query
+on the replica in this situation, even when the application's operation order
+(locking order) should not cause a deadlock.
+[#24507] (6.4.8)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.3.8</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Added EnvironmentStats.getNDirtyNodesEvicted and the corresponding statistic
+in the jestat.csv file. This can be used to determine how much logging and its
+associated costs (cleaning, etc) are being caused by eviction when the cache
+overflows.
+[#24086] (6.3.0)
+</li><br>
+
+<li>
+Fixed a bug that resulted in an <code>EnvironmentFailureException</code> being
+thrown from the method <code>Environment.beginTransaction()</code>, when a
+replicated environment was closed at a master while new transactions were being
+concurrently initiated. The following representative stack trace is symptomatic
+of this problem (the specifics of the stack trace may vary depending on the JE
+release):
+<pre>
+        ...
+	at com.sleepycat.je.EnvironmentFailureException.unexpectedException(EnvironmentFailureException.java:351)
+	at com.sleepycat.je.rep.utilint.RepUtils$ExceptionAwareCountDownLatch.awaitOrException(RepUtils.java:268)
+	at com.sleepycat.je.rep.utilint.SizeAwaitMap.sizeAwait(SizeAwaitMap.java:106)
+	at com.sleepycat.je.rep.impl.node.FeederManager.awaitFeederReplicaConnections(FeederManager.java:528)
+	at com.sleepycat.je.rep.impl.node.DurabilityQuorum.ensureReplicasForCommit(DurabilityQuorum.java:74)
+	at com.sleepycat.je.rep.impl.RepImpl.txnBeginHook(RepImpl.java:944)
+	at com.sleepycat.je.rep.txn.MasterTxn.txnBeginHook(MasterTxn.java:158)
+	at com.sleepycat.je.txn.Txn.initTxn(Txn.java:365)
+	at com.sleepycat.je.txn.Txn.&lt;init&gt;(Txn.java:275)
+	at com.sleepycat.je.txn.Txn.&lt;init&gt;(Txn.java:254)
+	at com.sleepycat.je.rep.txn.MasterTxn.&lt;init&gt;(MasterTxn.java:114)
+	at com.sleepycat.je.rep.txn.MasterTxn$1.create(MasterTxn.java:102)
+	at com.sleepycat.je.rep.txn.MasterTxn.create(MasterTxn.java:380)
+	at com.sleepycat.je.rep.impl.RepImpl.createRepUserTxn(RepImpl.java:924)
+	at com.sleepycat.je.txn.Txn.createUserTxn(Txn.java:301)
+	at com.sleepycat.je.txn.TxnManager.txnBegin(TxnManager.java:182)
+	at com.sleepycat.je.dbi.EnvironmentImpl.txnBegin(EnvironmentImpl.java:2366)
+	at com.sleepycat.je.Environment.beginTransactionInternal(Environment.java:1437)
+	at com.sleepycat.je.Environment.beginTransaction(Environment.java:1319)
+        ...
+Caused by: java.lang.IllegalStateException: FeederManager shutdown
+	at com.sleepycat.je.rep.impl.node.FeederManager.shutdownFeeders(FeederManager.java:498)
+	at com.sleepycat.je.rep.impl.node.FeederManager.runFeeders(FeederManager.java:462)
+	at com.sleepycat.je.rep.impl.node.RepNode.run(RepNode.java:1479)
+</pre>
+[#23970] (6.3.0)
+</li><br>
+
+<li>
+Fixed a bug that could cause a LOG_FILE_NOT_FOUND (log corruption) for
+workloads where eviction is heavy and databases are often opened and closed.
+[#24111] (6.3.0)
+</li><br>
+
+<li>
+Improved performance for "small" data records by embedding "small" LNs in BINs.
+<p>
+Normally, records (key-value pairs) are stored on disk as individual byte
+sequences called LNs (leaf nodes) and they are accessed via a Btree. 
+Specifically, the bottom layer nodes of the Btree (called BINs) contain
+an array of slots, where each slot represents an associated data record.
+Among other things, it stores the key of the record and the most recent
+disk address of that record. Records and BTree nodes share the disk space
+(are stored in the same kind of files), but LNs are stored separately from
+BINs, i.e., there is no clustering or co-location of a BIN and its child LNs.
+<p>
+With embedded LNs, a whole record may be stored inside a BIN (i.e., a BIN
+slot may contain both the key and the data portion of a record). A record
+will be "embedded" if the size (in bytes) of its data portion is less than
+or equal to the value of the new EnvironmentConfig.TREE_MAX_EMBEDDED_LN
+configuration parameter.  The decision to embed a record or not is taken on a
+record-by-record basis.  As a result, a BIN may contain both embedded and
+non-embedded records. The "embeddedness" of a record is a dynamic property: a
+size-changing update may turn a non-embedded record to an embedded one or
+vice-versa.
+<p>
+The performance trade-offs of embedding or not embedding records are
+described in the javadoc for the TREE_MAX_EMBEDDED_LN configuration parameter.
+<p>
+To exploit embedded LNs during disk ordered scans, a new "binsOnly" mode
+has been added in DiskOrderedCursorConfig. In this mode, only the BINs of
+a database will be accessed (not the LNs). As a result, the scan will be
+faster, but the data portion of a record will be returned only if the
+record is embedded. This is most useful when we expect that all the records
+in a database will be embedded.
+<p>
+Finally, a new statistic has been added to the PreloadStats class. It is
+the number of embedded LNs encountered during the preload() operation,
+and is accessible via the getNEmbeddedLNs() method.
+<p>
+[#21488] (6.3.0)
+</li><br>
+
+<li>
+Two more changes were done as side-effects of the embedded LNs work described
+above.
+<p>
+First, we clarified the documented definition of partial comparators, although
+the actual behavior of partial comparators did not change. The documentation
+change is subtle and will only be interesting to those currently using the
+PartialComparator interface. See the PartialComparator javadoc for details.
+<p>
+The second change is a fix for a bug that could occur only if a
+PartialComparator was used (and as a result record keys were updatable). In
+this case and under some rare situations, updates done on keys could be lost.
+<p>
+[#21488] (6.3.0)
+</li><br>
+
+<li>
+Cleaner utilization adjustments are no longer needed, and the following related
+APIs have been deprecated and will be removed completely in a future release.
+In addition, cleaner probes are no longer performed, since they were used only
+for utilization adjustments.
+<ul>
+    <li>EnvironmentConfig.CLEANER_ADJUST_UTILIZATION</li>
+    <li>EnvironmentStats.getLNSizeCorrectionFactor</li>
+    <li>EnvironmentStats.getNCleanerProbeRuns</li>
+</ul>
+In JE 6.0 the default value for CLEANER_ADJUST_UTILIZATION was changed to
+false, because the LN sizes it was adjusting were stored in the Btree in that
+release. Now in JE 6.3, setting CLEANER_ADJUST_UTILIZATION has no effect and
+the two stat getter methods always return zero.
+<p>
+[#24090] (6.3.0)
+</li><br>
+
+<li>
+Added statistics that provide information about replication.
+<ul>
+  <li>ReplicatedEnvironmentStats.getLastCommitTimestamp</li>
+  <li>ReplicatedEnvironmentStats.getLastCommitVLSN</li>
+  <li>ReplicatedEnvironmentStats.getReplicaDelayMap</li>
+  <li>ReplicatedEnvironmentStats.getReplicaLastCommitTimestampMap</li>
+  <li>ReplicatedEnvironmentStats.getReplicaLastCommitVLSNMap</li>
+  <li>ReplicatedEnvironmentStats.getReplicaVLSNLagMap</li>
+  <li>ReplicatedEnvironmentStats.getReplicaVLSNRateMap</li>
+  <li>ReplicatedEnvironmentStats.getVLSNRate</li>
+</ul>
+[#23896] (6.3.0)
+</li><br>
+
+<li>
+Made several improvements to CacheMode behavior and CacheMode javadoc, and
+deprecated two CacheModes.
+<p>
+<ul>
+    <li>
+        The behavior of CacheMode.EVICT_BIN has changed. Previously, the BIN
+        was evicted even when it was dirty. This means the BIN was logged if it
+        was evicted by a write operation using this mode, or if it was dirty
+        due to a previous write operation using any mode. Now, a dirty BIN will
+        not be evicted by this mode, but in this case all LNs in the BIN will
+        be evicted. This mode was changed in order to prevent BINs from being
+        logged repeatedly due to the use of this mode. Logging should be
+        deferred for as long as possible (ideally until the next checkpoint) in
+        order to reduce writing costs and associated log cleaning costs.
+        <p>
+    </li>
+    <li>
+        The behavior of CacheMode.UNCHANGED has also changed. We expect the
+        UNCHANGED mode to be important for many applications, since it allows
+        performing a full Database scan without displacing hot data in the
+        cache. Previously, when a Btree node (LN or BIN) was loaded into cache
+        by an operation with this cache mode, it was left in cache. This means
+        that the cache was perturbed by operations using this mode, which is
+        contrary to the intent of the mode. Even worse such nodes were made
+        "hot" by the operation meaning that they would not be evicted soon.
+        Now, when the node is loaded into cache by an operation with this cache
+        mode, it is evicted from cache after the operation. An exception to
+        this rule is that a dirty BIN will not be evicted and logged, for the
+        same reasons stated above.
+        <p>
+    </li>
+    <li>
+        Non-sticky cursors (see CursorConfig.setNonSticky) now work with all
+        cache modes. Previously, CacheMode.EVICT_BIN and MAKE_COLD were
+        incompatible with non-sticky cursors, because the implementation of BIN
+        eviction was problematic with non-sticky cursors. This problem has been
+        solved and these incompatibilities were removed, primarily so that
+        CacheMode.UNCHANGED (which may also evict BINs) will work with
+        non-sticky cursors.
+        <p>
+    </li>
+    <li>
+        CacheMode.KEEP_HOT has been deprecated. In this release, its behavior
+        is unchanged. In the next release it will behave as if
+        CacheMode.DEFAULT were specified. The reasons for deprecating this mode
+        are:
+        <p>
+        1. The only potential benefit of KEEP_HOT, as compared to DEFAULT, is
+        that KEEP_HOT attempts to keep the record's leaf-node (LN) and its
+        containing bottom internal node (BIN) in cache even if it is not
+        accessed frequently. We don't know of a use case for this behavior.
+        <p>
+        2. There are currently implementation problems with KEEP_HOT. The
+        current implementation of the cache evictor is based on an LRU list,
+        and there is no practical way to keep all BINs accessed with KEEP_HOT
+        at the hot end of the LRU list. The current implementation moves it to
+        the hot end when it reaches the cold end (as other BINs are accessed
+        and moved to the hot end), if the BIN has not been accessed since it
+        was made "keep hot". But if the BIN again moves to the cold end, it is
+        evicted to try to prevent the cache from overflowing when KEEP_HOT is
+        used for many operations. This approach does not really guarantee that
+        the cache won't overflow, and also does not really force the node to
+        stay hot.
+        <p>
+    </li>
+    <li>
+        CacheMode.MAKE_COLD has been deprecated. In this release, its behavior
+        is unchanged. In the next release it will behave as if
+        CacheMode.UNCHANGED were specified. The reasons for deprecating this
+        mode are:
+        <p>
+        1. MAKE_COLD was originally added in an attempt to avoid perturbing the
+        cache for full Database scans, etc. The UNCHANGED mode should really be
+        used for this purpose, especially given the improvements made to this
+        mode (discussed above).
+        <p>
+        2. The main difference between MAKE_COLD and the new behavior of
+        UNCHANGED is that MAKE_COLD always evicts the LN and BIN, regardless of
+        whether they have been made "hot" by other operations. Again, we don't
+        know of a use case for this behavior. 
+        <p>
+    </li>
+    <li>
+        The javadoc for the CacheMode enumeration has been reworked to reflect
+        the behavior changes described above. More information has also been
+        added about the eviction process and the behavior and intended use of
+        each cache mode.
+        <p>
+    </li>
+</ul>
+[#24154] (6.3.2)
+</li><br>
+
+<li>
+DbBackup.startBackup has been enhanced to make the use of the
+EnvironmentConfig.ENV_RECOVERY_FORCE_NEW_FILE unnecessary, except in special
+cases. See the "Restoring from a backup" section in the DbBackup javadoc for
+more information.  [#22865] (6.3.4)
+</li><br>
+
+<li>
+The Environment.cleanLogFile method has been added to allow cleaning a single
+file at a time. This is in contrast to Environment.cleanLog, which may clean a
+large number of files over a long time period. See the javadoc for cleanLog and
+cleanLogFile for details on the intended use cases and other information.
+<p>Also, the javadoc for Environment.close now talks about performing an extra
+checkpoint prior to calling close and disabling the cleaner threads. This is
+related to the "batch cleaning" process described in the cleanLogFile javadoc.
+<p>
+[#24181] (6.3.4)
+</li><br>
+
+<li>
+Fixed a bug that can cause data log corruption, resulting in a failure
+in DbVerifyLog or during recovery under certain circumstances. The bug could
+occur when multiple threads are performing write operations concurrently. The
+corruption could go unnoticed unless DbVerifyLog is run, or the corrupt portion
+of the log happens to be processed by recovery. The latter is unlikely but
+possible. An example of the DbVerifyLog failure is below.
+<pre>
+Caused by: com.sleepycat.je.util.LogVerificationException: Log is invalid,
+fileName: 00038369.jdb fileNumber: 0x38369 logEntryOffset: 0x84
+verifyState: INVALID reason: Header prevOffset=0x26 but prevEntryStart=0x45
+</pre>
+[#24211] (6.3.4)
+</li><br>
+
+<li>
+Fixed a bug that caused the following exception when setting the replication
+helper host/port parameter to an empty string.
+<pre>
+Caused by: java.lang.IllegalArgumentException: Host and port pair was missing
+    at com.sleepycat.je.rep.utilint.HostPortPair.getSocket(HostPortPair.java:29)
+    at com.sleepycat.je.rep.utilint.HostPortPair.getSockets(HostPortPair.java:56)
+    at com.sleepycat.je.rep.impl.RepImpl.getHelperSockets(RepImpl.java:1499)
+    at com.sleepycat.je.rep.impl.node.RepNode.findMaster(RepNode.java:1214)
+    at com.sleepycat.je.rep.impl.node.RepNode.startup(RepNode.java:787)
+    at com.sleepycat.je.rep.impl.node.RepNode.joinGroup(RepNode.java:1988)
+    at com.sleepycat.je.rep.impl.RepImpl.joinGroup(RepImpl.java:523)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.joinGroup(ReplicatedEnvironment.java:525)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.<init>(ReplicatedEnvironment.java:587)
+... 
+</pre>
+When an empty string is specified for the helper host/port, the parameter is
+not used by JE.
+[#24234] (6.3.6)
+</li><br>
+
+<li>
+Fixed DPL bytecode enhancer so it works with Java 8-compiled classes. The DPL
+was working earlier with Java 8 in the sense that our Java 7-compiled libraries
+could be used from a Java 8 app. But the bytecode enhancer was failing when
+used to enhance a Java 8-compiled class. This was fixed by upgrading to ASM
+5.0.3, which supports Java 8 bytecode.
+[#24225] (6.3.6)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.2.7</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+A cursor may now be optionally configured to be "non-sticky".  This has certain
+performance advantages:
+<ul>
+    <li>
+    Some processing is avoided because the prior position is not maintained.
+    </li>
+    <li>
+    The lock on the record at the prior position is released before acquiring
+    the lock on the record at the new position. This can help to prevent
+    deadlocks in certain situations.
+    </li>
+</ul>
+For more information, see the javadoc for CursorConfig.setNonSticky.
+<p>
+[#23775] (6.2.0)
+</li><br>
+
+<li>
+Further exploitation of BIN-deltas for CRUD operations.
+<p>
+For backgroud and previous work in this area, see the changelog for the 6.1
+release. In this release we have extended the set of CRUD operations that
+are performed in BIN-deltas, without the need to mutate them to full BINs
+(and thus saving the disk reads that would be required to fetch the full
+BINs in memory). Specifically, the following additional operations can now
+exploit BIN-deltas:
+<p>
+Insertions and updates, when no tree node splits are required and the
+key of the record to be inserted/updated is found in a BIN-delta.
+<p>
+Blind operations: we say that a record operation (insertion, update, or
+deletion) is performed "blindly" in a BIN-delta, when the delta does not
+contain a slot with the operation's key and we don't need to access the 
+full BIN to check whether such a slot exists there or to extract any 
+information from the full-BIN slot, if it exists. The condition that no
+tree node splits are required applies to blind operations as well. The
+following operations can be performed blindly:
+- Replay of insertions at replica nodes.
+- Insertions during recovery redo.
+- Updates and deletes during recovery redo, for databases with duplicates.
+<p>
+A new statistic has been added to count the number blind operations performed,
+including the blind put operations described below. This count can be obtained
+via the <code>EnvironmentStats.getNBINDeltaBlindOps()</code> method.
+<p>
+[#23680] (6.2.0)
+</li><br>
+
+<li>
+Blind put operations in BIN-deltas.
+<p>
+Normally, blind puts are not possible: we need to know whether the put is
+actually an update or an insertion, i.e., whether the key exists in the full
+BIN or not. Furthermore, in case of update we also need to know the location
+of the previous record version to make the current update abortable. However,
+it is possible to answer at least the key existence question by adding a
+small amount of extra information in the deltas. If we do so, puts that are
+actual insertions can be done blindly.
+<p>
+To answer whether a key exists in a full BIN or not, each BIN-delta stores
+a bloom filter, which is a very compact, approximate representation of the
+set of keys in the full BIN. Bloom filters can answer set membership questions
+with no false negatives and very low probability of false positives. As a
+result, put operations that are actual insertions can almost always be
+performed blindly.
+<p>
+To make possible the blind puts optimization in JE databases that use custom
+BTree and/or duplicates comparators, these comparators must perform "binary
+equality", that is, they must consider two keys (byte arrays) to be equal if
+and only if they have the same length and they are equal byte-per-byte. To
+communicate to the JE engine that a comparator does binary equality, the
+comparator must implement the new <code>BinaryEqualityComparator</code> tag
+interface.
+<p>
+[#23768] (6.2.1)
+</li><br>
+
+<li>
+Added LockMode.READ_UNCOMMITTED_ALL.  When using this mode, unlike
+READ_UNCOMMITTED, deleted records will not be skipped by read operations when
+the deleting transaction is still open (and may later abort, in which case the
+record will no longer be deleted). See the LockMode javadoc for further
+details.
+<p>
+[#23660] (6.2.1)
+</li><br>
+
+<li>
+Added two optimizations for secondary DB read operations.
+<ul>
+    <li>
+    For secondary DB read operations where the primary record data is not
+    requested (because DatabaseEntry.setPartial is called on the 'data'
+    parameter), a Btree lookup and record lock of the primary record are no
+    longer performed.  This change does not impact the meaning of the isolation
+    mode used for such secondary reads, i.e., the semantics are correct without
+    acquiring a lock on the primary record.
+    </li>
+    <li>
+    For secondary DB read operations where the primary record data is
+    requested, one less record lock is now acquired.  Previously, both the
+    primary and secondary records were locked.  Now, only the primary record is
+    locked.  This optimization does not apply to the serializable isolation
+    mode.  The optimization applies only to the read-committed and
+    repeatable-read isolation modes, and does not impact the meaning of these
+    modes, i.e., the semantics are correct without acquiring a lock on the
+    secondary record.
+    </li>
+</ul>
+<p>
+[#23326] (6.2.2)
+</li><br>
+
+<li>
+Fixed a bug that could cause the following Collections API and DPL methods to
+incorrectly return an empty result (no records).
+<ul>
+    <li>
+    When using the DPL (com.sleepycat.persist) and calling EntityCursor.last()
+    when the cursor was created with an end point (toKey parameter). Also when
+    EntityCursor.prev() or prevNoDup() is called and the cursor is not
+    initialized, since this is equivalent to calling last().
+    </li>
+    <li>
+    When using the Collections API (com.sleepycat.collections) and calling
+    SortedSet.last() or SortedMap.lastKey().
+    </li>
+</ul>
+The problem occurs when searching for the last record in a key range, while
+another thread is concurrently inserting records near the end of the key range.
+An empty result is returned, regardless of the number of records in the key
+range.
+<p>
+[#23687] (6.2.2)
+</li><br>
+
+<li>
+Fixed bugs in the computation of the nINCompactKey and nINNoTarget stats
+(EnvironmentStats.getNINCompactKeyIN and getNINNoTarget). Prior to the fixes,
+these stats would sometimes have negative values.
+[#23718] (6.2.3)
+</li><br>
+
+<li>
+Fixed a bug that caused a DB to become unusable when it is removed or truncated
+(by calling Environment.removeDatabase or truncateDatabase) using a
+read-committed transaction, and the transaction aborts (explicitly, or due to a
+crash before commit).  In this case the DB will not be accessible -- it cannot
+be opened, truncated or removed.  When attempting to open the DB, an exception
+such as the following is thrown:
+<pre>
+Exception in thread "main" com.sleepycat.je.DatabaseNotFoundException: (JE 6.1.5) Attempted to remove non-existent database ...
+at com.sleepycat.je.dbi.DbTree.lockNameLN(DbTree.java:869)
+at com.sleepycat.je.dbi.DbTree.doRemoveDb(DbTree.java:1130)
+at com.sleepycat.je.dbi.DbTree.dbRemove(DbTree.java:1183)
+at com.sleepycat.je.Environment$1.runWork(Environment.java:947)
+at com.sleepycat.je.Environment$DbNameOperation.runOnce(Environment.java:1172)
+at com.sleepycat.je.Environment$DbNameOperation.run(Environment.java:1155)
+at com.sleepycat.je.Environment.removeDatabase(Environment.java:941)
+...
+</pre>
+A workaround for the problem in earlier releases is to avoid using
+read-committed for a transaction used to perform a DB remove or truncate
+operation.
+<p>
+[#23821] (6.2.3)
+</li><br>
+
+<li>
+Fixed a bug that caused an exception during log cleaning, although it has been
+observed very rarely. It could also potentially cause data corruption, but this
+has never been reported or observed in tests. Examples of the exceptions that
+have been observed are below.
+<pre>
+com.sleepycat.je.EnvironmentFailureException: Environment invalid because of
+previous exception: (JE 6.1.0) ...
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedException(EnvironmentFailureException.java:315)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:477)
+    at com.sleepycat.je.log.LogManager.logItems(LogManager.java:419)
+    at com.sleepycat.je.log.LogManager.multiLog(LogManager.java:324)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:272)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:261)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:223)
+    at com.sleepycat.je.dbi.EnvironmentImpl.rewriteMapTreeRoot(EnvironmentImpl.java:1285)
+    at com.sleepycat.je.cleaner.FileProcessor.processFile(FileProcessor.java:701)
+    at com.sleepycat.je.cleaner.FileProcessor.doClean(FileProcessor.java:274)
+    at com.sleepycat.je.cleaner.FileProcessor.onWakeup(FileProcessor.java:137)
+    at com.sleepycat.je.utilint.DaemonThread.run(DaemonThread.java:148)
+    at java.lang.Thread.run(Thread.java:744)
+Caused by: java.lang.ArrayIndexOutOfBoundsException: 111
+    at com.sleepycat.util.PackedInteger.writeInt(PackedInteger.java:188)
+    at com.sleepycat.je.log.LogUtils.writePackedInt(LogUtils.java:155)
+    at com.sleepycat.je.cleaner.DbFileSummary.writeToLog(DbFileSummary.java:79)
+    at com.sleepycat.je.dbi.DatabaseImpl.writeToLog(DatabaseImpl.java:2410)
+    at com.sleepycat.je.dbi.DbTree.writeToLog(DbTree.java:2050)
+    at com.sleepycat.je.log.entry.SingleItemEntry.writeEntry(SingleItemEntry.java:114)
+    at com.sleepycat.je.log.LogManager.marshallIntoBuffer(LogManager.java:745)
+    at com.sleepycat.je.log.LogManager.serialLogWork(LogManager.java:611)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:461)
+    ... 11 more
+</pre>
+Another instance of the same problem with a slightly different stack trace is
+below:
+<pre>
+java.nio.BufferOverflowException UNEXPECTED_EXCEPTION_FATAL: Unexpected
+internal Exception, unable to continue. Environment is invalid and must be
+closed.
+    at com.sleepycat.je.EnvironmentFailureException.unexpectedException(EnvironmentFailureException.java:315)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:481)
+    at com.sleepycat.je.log.LogManager.logItems(LogManager.java:423)
+    at com.sleepycat.je.log.LogManager.multiLog(LogManager.java:325)
+    at com.sleepycat.je.log.LogManager.log(LogManager.java:273)
+    at com.sleepycat.je.tree.LN.logInternal(LN.java:600)
+    at com.sleepycat.je.tree.LN.log(LN.java:411)
+    at com.sleepycat.je.cleaner.FileProcessor.processFoundLN(FileProcessor.java:1070)
+    at com.sleepycat.je.cleaner.FileProcessor.processLN(FileProcessor.java:884)
+    at com.sleepycat.je.cleaner.FileProcessor.processFile(FileProcessor.java:673)
+    at com.sleepycat.je.cleaner.FileProcessor.doClean(FileProcessor.java:278)
+    at com.sleepycat.je.cleaner.FileProcessor.onWakeup(FileProcessor.java:137)
+    at com.sleepycat.je.utilint.DaemonThread.run(DaemonThread.java:148)
+Caused by: java.nio.BufferOverflowException
+    at java.nio.HeapByteBuffer.put(HeapByteBuffer.java:189)
+    at java.nio.ByteBuffer.put(ByteBuffer.java:859)
+    at com.sleepycat.je.log.LogUtils.writeBytesNoLength(LogUtils.java:350)
+    at com.sleepycat.je.log.entry.LNLogEntry.writeBaseLNEntry(LNLogEntry.java:371)
+    at com.sleepycat.je.log.entry.LNLogEntry.writeEntry(LNLogEntry.java:333)
+    at com.sleepycat.je.log.entry.BaseReplicableEntry.writeEntry(BaseReplicableEntry.java:48)
+    at com.sleepycat.je.log.entry.LNLogEntry.writeEntry(LNLogEntry.java:52)
+    at com.sleepycat.je.log.LogManager.marshallIntoBuffer(LogManager.java:751)
+    at com.sleepycat.je.log.LogManager.serialLogWork(LogManager.java:617)
+    at com.sleepycat.je.log.LogManager.serialLog(LogManager.java:465)
+</pre>
+<p>
+[#23492] (6.2.3)
+</li><br>
+
+<li>
+Fixed a locking bug that causes a deadlock when no real deadlock exists.  The
+bug shows up with cursors using read-committed isolation.
+<p>
+Here is the specific scenario:
+<ol>
+    <li>Cursor C1 in thread T1 reads a record R using Transaction X1. C1
+    creates a ReadCommittedLocker L1, with X1 as its buddy. L1 locks R.
+    <li>Cursor C2 in thread T2 tries to write-lock R, using another
+    Transaction X2.  X2 waits for L1 (T2 waits for T1).
+    <li>Cursor C3 in thread T1 tries to read R using X1. C3 creates a
+    ReadCommittedLocker L3, with X1 as its buddy. L3 tries to lock R. L1 and L3
+    are not recognized as buddies, so L3 waits for X2 (T1 waits for T2) 
+</ol>
+<p>
+[#23821] (6.2.4)
+</li><br>
+
+<li>
+The ant build (build.xml) has been updated so that the JUnit jar file is now
+downloaded from Maven Central when needed for running tests with the 'test'
+target. This jar is no longer needed for building a JE jar file with the 'jar'
+target. See installation.html for an updated description of how to build JE and
+run the unit tests.
+[#23669] (6.2.7)
+</li><br>
+
+<li>
+Added EnvironmentConfig.CLEANER_USE_DELETED_DIR. This can be set to true when
+trying to reproduce and analyze LOG_FILE_NOT_FOUND problems. See the javadoc
+for details.  More information was also added to the
+EnvironmentConfig.CLEANER_EXPUNGE javadoc on the same topic.
+[#23830] (6.2.8)
+</li><br>
+
+<li>
+Added debugging information when an internal latch deadlock occurs due to a bug
+where a latch is not released. Note that latches are not user-visible entities
+and are unrelated to record locking. Latches are used internally for thread
+safety and only held for short durations. A latch deadlock is detected via a
+timeout mechanism. An EnvironmentFailureException is thrown in the thread that
+times out. Now, additionally a full thread dump is written to the je.info log
+at logging level SEVERE. The thread dump can be used to find the deadlock.
+<p>
+In addition, the EnvironmentConfig.ENV_LATCH_TIMEOUT parameter has been exposed
+to provide control over the timeout interval for atypical applications.  This
+parameter has been present internally since latch timeouts were added in JE
+6.0.3; however, the parameter was previously undocumented.
+<p>
+[#23897] (6.2.9)
+</li><br>
+ 
+<li>
+Fixed two bugs having to do with lock conflicts. The two problems are distinct,
+but both occurred while creating a LockConflictException due to a lock timeout.
+  <ul>
+      <li>
+      Fixed a bug that caused a ConcurrentModificationException when multiple
+      lock tables are configured (EnvironmentConfig.LOCK_N_LOCK_TABLES). The
+      exception was thrown when a lock conflict occurred along with particular
+      concurrent activity in another thread that holds a lock. The methods in
+      the stack trace when this problem occurs are:
+      <pre>
+      ...
+      LockManager.findDeadlock1
+      LockManager.findDeadlock
+      LockManager.makeTimeoutMsgInternal
+      ...
+      </pre>
+      </li>
+      <li>
+      Fixed a bug that caused a thread deadlock, eventually stopping all
+      threads accessing JE. This could happen when a lock conflict exception
+      occurred while attempting to lock a record with read-committed isolation,
+      and another thread (internal or external) also tried to lock the same
+      record. An example of the two threads involved in the deadlock is below.
+      Additional threads accessing JE methods are also likely to be blocked.
+      <pre>
+      "THREAD-USING-READ-COMMITTED":
+        at com.sleepycat.je.txn.Txn.setState(Txn.java:2039)
+        - waiting to lock <0x000000078953b720> (a com.sleepycat.je.txn.Txn)
+        at com.sleepycat.je.txn.Txn.setOnlyAbortable(Txn.java:1887)
+        at com.sleepycat.je.txn.BuddyLocker.setOnlyAbortable(BuddyLocker.java:158)
+        at com.sleepycat.je.OperationFailureException.<init>(OperationFailureException.java:200)
+        at com.sleepycat.je.LockConflictException.<init>(LockConflictException.java:135)
+        at com.sleepycat.je.LockTimeoutException.<init>(LockTimeoutException.java:48)
+        at com.sleepycat.je.txn.LockManager.newLockTimeoutException(LockManager.java:665)
+        at com.sleepycat.je.txn.LockManager.makeTimeoutMsgInternal(LockManager.java:623)
+        at com.sleepycat.je.txn.SyncedLockManager.makeTimeoutMsg(SyncedLockManager.java:97)
+        - locked <0x000000079068eaa8> (a com.sleepycat.je.latch.Latch)
+        at com.sleepycat.je.txn.LockManager.lockInternal(LockManager.java:390)
+        at com.sleepycat.je.txn.LockManager.lock(LockManager.java:276)
+        ...
+      "ANOTHER-THREAD-LOCKING-THE-SAME-RECORD":
+        at com.sleepycat.je.txn.SyncedLockManager.attemptLock(SyncedLockManager.java:73)
+        - waiting to lock <0x000000079068eaa8> (a com.sleepycat.je.latch.Latch)
+        at com.sleepycat.je.txn.LockManager.lockInternal(LockManager.java:292)
+        at com.sleepycat.je.txn.LockManager.lock(LockManager.java:276)
+        - locked <0x000000078953b720> (a com.sleepycat.je.txn.Txn)
+        ...
+      </pre>
+      </li>
+  </ul>
+[#23894] (6.2.10)
+</li><br>
+
+<li>
+Fixed a bug that could cause the following exception when calling Cursor.count,
+skipNext or skipPrev. The bug is likely to occur only when BINs (bottom
+internal nodes of the Btree) are frequently being evicted. Although the
+Environment is invalidated by this exception and must be closed, the problem is
+transient -- the Environment can be re-opened and no data loss or corruption
+will have occurred.
+<pre>
+(JE 6.2.6) ... Latch not held: BIN17923 currentThread: ...  currentTime: ...
+exclusiveOwner: -none- UNEXPECTED_STATE_FATAL: Unexpected internal state,
+unable to continue. Environment is invalid and must be closed.
+at com.sleepycat.je.EnvironmentFailureException.unexpectedState(EnvironmentFailureException.java:405)
+at com.sleepycat.je.latch.LatchImpl.release(LatchImpl.java:109)
+at com.sleepycat.je.tree.IN.releaseLatch(IN.java:519)
+at com.sleepycat.je.dbi.CursorImpl.skipInternal(CursorImpl.java:2737)
+at com.sleepycat.je.dbi.CursorImpl.skip(CursorImpl.java:2612)
+at com.sleepycat.je.Cursor.countHandleDups(Cursor.java:4055)
+at com.sleepycat.je.Cursor.countInternal(Cursor.java:4028)
+at com.sleepycat.je.Cursor.count(Cursor.java:1804) at
+...
+</pre>
+The last line above is a call to Cursor.count. The same problem could happen if
+Cursor.skipNext or skipPrev is called, and only the last few lines of the stack
+trace above would be different.
+<p>
+[#23872] (6.2.25)
+</li><br>
+
+<li>
+The HA Feeder output threads now batch network writes whenever possible to
+reduce the resource overheads associated with transmitting small network
+packets. These changes enhance replication performance; improvements in the 
+range of 5% have been observed for write intensive workloads. 
+<p>
+[#23274] (6.2.25)
+</li><br>
+
+<li>
+Added new statistics to count the number of user (non-internal) CRUD operations
+that are performed entirely on BIN deltas.
+<p>
+[#23883] (6.2.25)
+</li><br>
+
+<li>
+Fixed a bug where no exception was thrown when using ReplicaAckPolicy.ALL and
+performing a write transaction in a two node replication group, and the replica
+node was down/unresponsive.  InsufficientAcksException is now thrown in this
+situation, as specified in the documentation.
+[#23934] (6.2.26)
+</li><br>
+
+<li>
+Fixed a bug in the internal SortedLSNTreeWalker class, which is used to
+implement the Database.preload() and Environment.preload() methods. When these
+methods are called, the bug can lead to the creation of a corrupted BTree, and
+as a result, subsequent loss of data. The bug was introduced in JE 6.0.
+<p>
+[#23952] (6.2.27)
+</li><br>
+
+<li>
+Added EntityIndex.getDatabase.
+[#23971] (6.2.27)
+</li><br>
+
+<li>
+Fixed a bug where an assertion incorrectly fired during CRUD operations. This
+happened when there was concurrent activity in other threads that changed the
+number of records in the same portion of the Btree. An example stack trace is
+below.
+<pre>
+java.lang.AssertionError
+ at com.sleepycat.je.dbi.CursorImpl.getCurrentKey(CursorImpl.java:500)
+ at com.sleepycat.je.dbi.CursorImpl.getCurrentKey(CursorImpl.java:483)
+ at com.sleepycat.je.Cursor.dupsGetNextOrPrevDup(Cursor.java:2882)
+ at com.sleepycat.je.Cursor.retrieveNextHandleDups(Cursor.java:2836)
+ at com.sleepycat.je.Cursor.retrieveNext(Cursor.java:2816)
+ at com.sleepycat.je.Cursor.getNextDup(Cursor.java:1150)
+ [ app specific portion ... ]
+</pre>
+In the stack trace above the Cursor.getNextDup method is being called. There
+are other operations where the same thing could happen. The common factor is
+the call to the internal CursorImpl.getCurrentKey method, which fires the
+assertion.
+<p>
+[#23971] (6.2.29)
+</li><br>
+
+<li>
+Fixed a bug that prevents recovery, i.e., prevents the Environment from being
+opened. The bug has always been present in JE but has appeared in tests only
+recently, and has not been reported in the field. Deleting records in a large
+range of keys might make the bug more likely to occur. An example of the stack
+trace when the failure occurs is below:
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.2.29) ... last
+LSN=0x533/0x41f59 LOG_INTEGRITY: Log information is incorrect, problem is
+likely persistent. Environment is invalid and must be closed.
+        at com.sleepycat.je.recovery.RecoveryManager.traceAndThrowException(RecoveryManager.java:3031)
+        at com.sleepycat.je.recovery.RecoveryManager.readINs(RecoveryManager.java:1010)
+        at com.sleepycat.je.recovery.RecoveryManager.buildINs(RecoveryManager.java:804)
+        at com.sleepycat.je.recovery.RecoveryManager.buildTree(RecoveryManager.java:717)
+        at com.sleepycat.je.recovery.RecoveryManager.recover(RecoveryManager.java:352)
+        at com.sleepycat.je.dbi.EnvironmentImpl.finishInit(EnvironmentImpl.java:670)
+        at com.sleepycat.je.dbi.DbEnvPool.getEnvironment(DbEnvPool.java:208)
+        at com.sleepycat.je.Environment.makeEnvironmentImpl(Environment.java:251)
+        at com.sleepycat.je.Environment.<init>(Environment.java:232)
+        at com.sleepycat.je.Environment.<init>(Environment.java:188)
+        at com.sleepycat.je.rep.ReplicatedEnvironment.<init>(ReplicatedEnvironment.java:573)
+        at com.sleepycat.je.rep.ReplicatedEnvironment.<init>(ReplicatedEnvironment.java:443)
+        [ app specific portion ... ]
+Caused by: com.sleepycat.je.EnvironmentFailureException: (JE 6.2.29) ...
+fetchIN of 0x35c/0x3f7f9 parent IN=11688 IN class=com.sleepycat.je.tree.IN
+lastFullVersion=0x533/0x5d47d lastLoggedVersion=0x533/0x5d47d
+parent.getDirty()=false state=0 LOG_FILE_NOT_FOUND: Log file missing, log is
+likely invalid. Environment is invalid and must be closed.
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1866)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1764)
+        at com.sleepycat.je.tree.Tree.getParentINForChildIN(Tree.java:1346)
+        at com.sleepycat.je.recovery.RecoveryManager.recoverChildIN(RecoveryManager.java:2025)
+        at com.sleepycat.je.recovery.RecoveryManager.recoverIN(RecoveryManager.java:1834)
+        at com.sleepycat.je.recovery.RecoveryManager.replayOneIN(RecoveryManager.java:1099)
+        at com.sleepycat.je.recovery.RecoveryManager.readINs(RecoveryManager.java:988)
+        ... 16 more
+Caused by: java.io.FileNotFoundException: .../0000035c.jdb (No such file or directory)
+        at java.io.RandomAccessFile.open(Native Method)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:241)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:122)
+        at com.sleepycat.je.log.FileManager$DefaultRandomAccessFile.<init>(FileManager.java:3260)
+        at com.sleepycat.je.log.FileManager$6.createFile(FileManager.java:3288)
+        at com.sleepycat.je.log.FileManager.openFileHandle(FileManager.java:1311)
+        at com.sleepycat.je.log.FileManager.getFileHandle(FileManager.java:1183)
+        at com.sleepycat.je.log.LogManager.getLogSource(LogManager.java:1135)
+        at com.sleepycat.je.log.LogManager.getLogEntry(LogManager.java:822)
+        at com.sleepycat.je.log.LogManager.getLogEntryAllowInvisibleAtRecovery(LogManager.java:787)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1801)
+        ... 22 more
+</pre>
+[#23990] (6.2.31)
+</li><br>
+
+<li>
+Fixed a bug that can cause data log corruption. This has been reported only as
+a rare occurrence, but could impact any application where not all Btree
+internal nodes fit in cache. An example stack trace is below, although other
+stack traces could also apply where an IN (internal node) is being fetched.
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.2.9) ...
+fetchIN of 0x10cbc/0x696373 parent IN=84363 IN
+class=com.sleepycat.je.tree.IN lastFullVersion=0x10e00/0x82006e
+lastLoggedVersion=0x10e00/0x82006e parent.getDirty()=false state=0
+LOG_FILE_NOT_FOUND: Log file missing, log is likely invalid. Environment is
+invalid and must be closed.
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1866)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1752)
+        at com.sleepycat.je.tree.Tree.search(Tree.java:2293)
+        at com.sleepycat.je.tree.Tree.search(Tree.java:2193)
+        at com.sleepycat.je.tree.Tree.getParentBINForChildLN(Tree.java:1481)
+        at com.sleepycat.je.cleaner.FileProcessor.processLN(FileProcessor.java:836)
+        ... 5 more
+Caused by: java.io.FileNotFoundException: /local/pyrox/DS2/asinst_1/OUD/db/Europe/00010cbc.jdb (No such file or directory)
+        at java.io.RandomAccessFile.open(Native Method)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:241)
+        at java.io.RandomAccessFile.<init>(RandomAccessFile.java:122)
+        at com.sleepycat.je.log.FileManager$DefaultRandomAccessFile.<init>(FileManager.java:3208)
+        at com.sleepycat.je.log.FileManager$6.createFile(FileManager.java:3236)
+        at com.sleepycat.je.log.FileManager.openFileHandle(FileManager.java:1305)
+        at com.sleepycat.je.log.FileManager.getFileHandle(FileManager.java:1177)
+        at com.sleepycat.je.log.LogManager.getLogSource(LogManager.java:1151)
+        at com.sleepycat.je.log.LogManager.getLogEntry(LogManager.java:843)
+        at com.sleepycat.je.log.LogManager.getLogEntryAllowInvisibleAtRecovery(LogManager.java:808)
+        at com.sleepycat.je.tree.IN.fetchINWithNoLatch(IN.java:1801)
+        ... 10 more
+</pre>
+[#24046] (6.2.31)
+</li><br>
+
+<li>
+Fixed a bug that can cause data log corruption when using a deferred-write
+database. In the one reported instance of the problem, missing records were
+reported. A corruption (e.g., LOG_FILE_NOT_FOUND) is also posssible.
+[#24066] (6.2.31)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.1.5</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Made an improvement to eviction for Oracle NoSQL DB users, and several
+improvements to the DbCacheSize utility.
+<p>
+For Oracle NoSQL DB users only, record versions are now discarded using a
+separate eviction step.  This means that the record versions can be discarded
+to free cache memory without discarding the entire BIN (bottom internal node).
+In general, this makes better use of memory and reduces IO for some workloads.
+<p>
+The improvements to DbCacheSize are as follows.
+<ul>
+    <li>
+    When <code>-je.rep.preserveRecordVersion true</code> is passed on the
+    command line, more information is output by the utility.  See the new
+    Record Versions and Oracle NoSQL Database section of the DbCache javadoc
+    for more information.
+    </li>
+    <li>
+    The minimum and maximum cache sizes are no longer output.  Previously,
+    the difference between these values was only due to an optimization that
+    applied to small log files.  This optimization is now accounted for only
+    when the file size is small enough to allow for it.  Be sure to pass
+    <code>-je.log.fileMax LENGTH</code> on the command line as described in
+    the javadoc.
+    </li>
+    <li>
+    The -outputproperties switch now outputs internalNodes,
+    internalNodesAndVersions, and allNodes, corresponding to the changes above.
+    The older minInternalNodes/maxInternalNodes and minAllNodes/maxAllNodes
+    values are still output but deprecated, and the min and max values in each
+    pair are equal.
+    </li>
+    <li>
+    The output has been simplified by removing the internal Btree information.
+    Btree information can optionally be output using the new
+    <code>-btreeinfo</code> switch.
+    </li>
+</ul>
+<p>
+[#23550] (6.1.0)
+</li><br>
+
+<li>
+Fixes a bug which prevented serialization
+of <code>ReplicaWriteException</code>. Previously an attempt to serialize this
+exception could fail with the following characteristic stack trace when
+the <code>StateChangeEvent</code> object was encountered during serialization:
+
+<pre>
+ Caused by: java.io.NotSerializableException: com.sleepycat.je.rep.StateChangeEvent
+
+    at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1181)
+    at java.io.ObjectOutputStream.defaultWriteFields(ObjectOutputStream.java:1541)
+    at java.io.ObjectOutputStream.writeSerialData(ObjectOutputStream.java:1506)
+    at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1429)
+    at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1175)
+    at java.io.ObjectOutputStream.defaultWriteFields(ObjectOutputStream.java:1541)
+    at java.io.ObjectOutputStream.defaultWriteObject(ObjectOutputStream.java:439)
+    at java.util.logging.LogRecord.writeObject(LogRecord.java:470)
+    ...
+</pre>
+[#23578] (6.1.1)
+</li><br> 
+
+<li>
+The JE HA replica replay mechanism now uses a separate thread to write replica
+acknowledgements and heartbeat responses to the network. This change results in
+two improvements: 
+  <ol>
+    <li>
+    The replay of changes sent by the master can make progress even in the
+    presence of brief network stalls, thus increasing replica replay
+    throughput; improvements in the range of 5 to 10% have been observed in
+    internal test scenarios. 
+    </li>
+    <li>
+    This new thread is also used to send spontaneous heartbeat response
+    messages, making the heartbeat mechanism, used to detect node failures,
+    more robust.
+    </li>
+  </ol>
+[#23195] (6.1.1)
+</li><br>
+
+<li>
+Performance enhancement: executing a subset of CRUD and internal operations
+on memory-resident BIN-deltas.
+<p>
+Before JE 6.0, BIN-deltas were used as a disk optimization only: to reduce
+the amount of bytes written to disk every time a new BIN version had to to be
+logged. BIN-deltas would never appear in the in-memory BTrees, and if the
+most recently logged version of a BIN was a delta, fetching that BIN into
+the in-memory tree required 2 disk reads: one for the delta and one for the
+most recent full-BIN version.
+<p>
+Starting with JE 6.0, BIN-deltas can appear in the in-memory BTree.
+Specifically, if a full dirty BIN is selected for eviction, rather than
+evicting the whole BIN (and incurring a disk write), the BIN is converted
+to a delta that stays in the cache. If a subsequent operation needs the full
+BIN and the delta is still in the cache, only one disk read will be done.
+<p>
+Further disk-read savings can be realized, because many operations can (under
+certain conditions) be performed directly on the BIN-delta, without the need
+for the full BIN. However, in 6.0, only a small subset of background
+operations were modified to exploit BIN-deltas. In JE 6.1, the set of
+operations that can be performed on BIN-deltas has been extended. Examples of
+such operations include key searches in BTrees, if the search key is found on
+a BIN delta and deletion or update of the record a cursor is located on, if
+the cursor is located on a BIN-delta. These changes affect both internal
+operations as well as the search, delete, and putCurrent methods of the
+Database and Cursor API classes.
+<p>
+[#23428] (6.1.1)
+</li><br> 
+
+<li>
+Performance enhancement: Reduced latch contention during BTree searches.
+<p>
+Typically, thread synchronization during BTree searches is done via latch
+coupling: at most 2 tree nodes (a parent and a child) are latched at a time.
+Furthermore, a node is latched in shared (SH) mode, unless it is expected that
+it will be updated, in which case it is latched in exclusive (EX) mode. Finally,
+SH latches are not upgradeable to EX latches (to avoid deadlocks and reduce
+latching overhead). 
+<p>
+JE follows this general latch-coupling technique. However, it also has to deal
+with the JE-specific fact that fetching a missing child node into the cache
+requires that its memory-resident parent be updated (because the parent points
+to its children via direct Java object references). As a result, during a JE
+BTree search every node is potentially updated, which precludes the use of SH
+latches. To cope with this complication, JE has been using one of the following
+approaches during its various kinds of BTree searches: (a) use SH latches, but
+if a missing child needs to be fetched, release the SH latch on the parent and
+restart the search from the beginning, using EX latches on all nodes this time,
+(b) do grandparent latching: use SH latches but keep a latch on the grandparent
+node so that if we need to fetch a missing child of the parent node, the SH
+latch on the parent can be released, and then the parent can be relatched in
+EX mode, (c) do latch-coupling with EX latches only. Obviously, (c) is the
+worst choice, but all of the 3 approaches result in more and longer-held EX
+latches than necessary. As a result, some JE applications have experienced
+performance problems due to excessive latch contention during BTree searches.
+<p>
+In JE 6.1, a new latching algorithm has been implemented to replace all of
+(a), (b), and (c) above. The new algorithm uses SH latches, but if a missing
+child needs to be fetched, it first "pins" the parent (to prevent its eviction),
+then releases the SH latch on the parent, and finally reads the child node
+from the log (without any latches held). After the child is fetched, it 
+latches the remembered parent in EX mode, unpins it, and checks whether it
+is still the correct parent for the search and for the child node that was
+fetched. If so, the search continues down the tree. If not, it restarts the
+search from the beginning. Compared to approach (a) above, this new algorithm
+may restart a search multiple times, however the probability of even a single
+restart is less than (a), and each restart uses SH latches. Furthermore, no
+latches are held during the long random disk read done to fetch a missing
+child. 
+<p>
+[#18617] (6.1.1)
+</li><br>
+
+<li>
+Fixed a bug that could result in the following exception in a JE HA
+      application:
+
+<pre>
+com.sleepycat.je.EnvironmentFailureException: 
+ Node5(5):... VLSN 3,182,883 should be held within this tracker.
+</pre> 
+or
+<pre>
+com.sleepycat.je.EnvironmentFailureException: 
+ Node5(5):...end of last bucket should match end of range ...
+</pre> 
+[#23491]
+</li><br>
+
+<li>
+Improved the Monitor's ability to discover group status changes, which
+should improve the robustness of notifications after the monitor is down
+or when it has lost network connectivity.
+<p>
+[#23631] (6.1.2)
+</li><br>
+
+<li>
+A new implementation for Database.count() and a new variant of Database.count()
+that takes a memoryLimit as input.
+<p>
+Counting the number of records in a database is now implemented using a
+disk-ordered-scan (DOS), similar to the one used by DiskOrderedCursor. DOS may
+consume a large amount of memory, and to avoid OutOfMemoryErrors, it requires
+that a limit on its memory consumption is provided. As a result, a new method,
+Database.count(long memoryLimit), has been implemented that takes this memory
+limit as a parameter. The existing Database.count() method is still available
+and uses an internally established limit.
+<p> 
+This change fixes two problems of the previous implementation (based on the
+SortedLSNTreeWalker class): 1. There was no upper bound on the memory
+consumption of the previous implementation and 2. It was buggy in the case
+where concurrent thread activity could cause full BINs to be mutated to deltas
+or vice versa.
+<p> 
+[#23646] (6.1.2)
+</li><br>
+
+<li>
+Fixed bug in DiskOrderedCursor.
+<p>
+Iterating over the records of a database via a DiskOrderedCursor would cause
+a crash if a BIN delta was encountered in the in-memory BTree (because in this
+case a copy of the BIN delta was created and cached for later use, but the copy
+did not contain all the needed information from the original).   This bug was
+introduced in JE 6.0.11.
+<p> 
+[#23646] (6.1.2)
+</li><br>
+
+<li>
+Fixed a bug in DiskOrderedCursor for DeferredWrite databases.  An example of
+the stack trace when the bug occurs is below.  Note that although the exception
+message indicates that a file is missing, actually the problem was transient
+and no file was missing. Upgrading to the current JE release will fix the
+problem without requiring data conversion or restoring from a backup.
+<pre>
+com.sleepycat.je.EnvironmentFailureException:
+(JE 5.0.97) Environment must be closed, caused by:
+com.sleepycat.je.EnvironmentFailureException:
+Environment invalid because of previous exception:
+(JE 5.0.97) ... java.io.FileNotFoundException: ...\ffffffff.jdb
+(The system cannot find the file specified) LOG_FILE_NOT_FOUND:
+Log file missing, log is likely invalid.
+Environment is invalid and must be closed.
+    at com.sleepycat.je.EnvironmentFailureException.wrapSelf(EnvironmentFailureException.java:210)
+    at com.sleepycat.je.dbi.EnvironmentImpl.checkIfInvalid(EnvironmentImpl.java:1594)
+    at com.sleepycat.je.dbi.DiskOrderedCursorImpl.checkEnv(DiskOrderedCursorImpl.java:234)
+    at com.sleepycat.je.DiskOrderedCursor.checkState(DiskOrderedCursor.java:367)
+    at com.sleepycat.je.DiskOrderedCursor.getNext(DiskOrderedCursor.java:324)
+    ...
+</pre>
+[#23676] (6.1.3)
+</li><br>
+ 
+<li>
+An <a name="localWriteAPIChange">API change</a> requires application changes if
+write operations are performed on a non-replicated database in a replicated
+environment.  A code change is necessary for applications with the following
+characteristics:
+<p>
+<ul>
+    <li>A ReplicatedEnvironment is used.
+    <li>A non-replicated, transactional Database is accessed
+    (DatabaseConfig.setReplicated(false) and setTransactional(true) are called)
+    in this environment.
+    <li>When writing to this database, an explicit (non-null) Transaction is
+    specified.
+</ul>
+<p>
+In order to perform write operations in such cases, the application must now
+call TransactionConfig.setLocalWrite(true).
+<p>
+In addition, it is no longer possible to use a single transaction to write to
+both a replicated and a non-replicated databases. IllegalOperationException
+will be thrown if this is attempted.
+<p>
+These changes were necessary to prevent corruption when a transaction contains
+write operations for both replicated and non-replicated databases, and a
+failover occurs that causes a rollback of this transaction.  The probability of
+corruption is low, but it can occur under the right conditions.
+<p>
+For more information see the javadoc for TransactionConfig.setLocalWrite(true),
+and the "Non-replicated Databases in a Replicated Environment" section of the
+ReplicatedEnvironment class javadoc.
+<p>
+[#23330] (6.1.3)
+</li><br>
+
+<li>
+Read-only transactions are now supported.  A read-only transaction prohibits
+write operations, and more importantly in a replicated environment it
+automatically uses Durability.ReplicaAckPolicy.NONE.  A read-only transaction
+on a Master will thus not be held up, or throw InsufficientReplicasException,
+if the Master is not in contact with a sufficient number of Replicas at the
+time the transaction is initiated.  To configure a read-only transaction, call
+TransactionConfig.setReadOnly(true).  See this method's javadoc for more
+information.
+<p>
+Durability.READ_ONLY_TXN has been deprecated and TransactionConfig.setReadOnly
+should be used instead.
+<p>
+[#23330] (6.1.3)
+</li><br>
+
+<li>
+Fixed a bug that could cause a NullPointerException, such as the one below,
+when a ReplicatedEnvironment is opened on an HA replica node.  This prevents
+the environment from being opened.
+<p>
+The conditions that cause the bug are:
+<ol>
+  <li>a replica has been restarted after an abnormal shutdown
+      (ReplicatedEnvironment.close was not called),
+  <li>a transaction writing records in multiple databases was in progress at
+      the time of the abnormal shutdown,
+  <li>one of the databases, but not all of them, is then removed or truncated,
+      and finally
+  <li>another abnormal shutdown occurs.
+</ol>
+<p>
+If this bug is encountered, it can be corrected by upgrading to the JE release
+containing this fix, and no data loss will occur.
+<p>
+This bug is similar to another bug that was fixed in JE 5.0.70 [#22052].
+This bug differs in that the transaction must write records in multiple
+databases, and at least one but not all of the databases must be removed or
+truncated between the two abnormal shutdowns.
+<pre>
+com.sleepycat.je.EnvironmentFailureException: (JE 6.1.3) Node1(-1):...
+last LSN=0x3/0x4427 LOG_INTEGRITY: Log information is incorrect, problem is
+likely persistent. Environment is invalid and must be closed.
+    at com.sleepycat.je.recovery.RecoveryManager.traceAndThrowException(RecoveryManager.java:3012)
+    at com.sleepycat.je.recovery.RecoveryManager.undoLNs(RecoveryManager.java:1253)
+    at com.sleepycat.je.recovery.RecoveryManager.buildTree(RecoveryManager.java:741)
+    at com.sleepycat.je.recovery.RecoveryManager.recover(RecoveryManager.java:352)
+    at com.sleepycat.je.dbi.EnvironmentImpl.finishInit(EnvironmentImpl.java:654)
+    at com.sleepycat.je.dbi.DbEnvPool.getEnvironment(DbEnvPool.java:208)
+    at com.sleepycat.je.Environment.makeEnvironmentImpl(Environment.java:252)
+    at com.sleepycat.je.Environment.<init>(Environment.java:232)
+    at com.sleepycat.je.Environment.<init>(Environment.java:188)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.<init>(ReplicatedEnvironment.java:573)
+    at com.sleepycat.je.rep.ReplicatedEnvironment.<init>(ReplicatedEnvironment.java:443)
+    ... [app creates a new ReplicatedEnvironment here] ...
+Caused by: java.lang.NullPointerException
+    at com.sleepycat.je.log.entry.LNLogEntry.postFetchInit(LNLogEntry.java:412)
+    at com.sleepycat.je.txn.TxnChain.<init>(TxnChain.java:133)
+    at com.sleepycat.je.txn.TxnChain.<init>(TxnChain.java:84)
+    at com.sleepycat.je.recovery.RollbackTracker$RollbackPeriod.getChain(RollbackTracker.java:1009)
+    at com.sleepycat.je.recovery.RollbackTracker$Scanner.rollback(RollbackTracker.java:483)
+    at com.sleepycat.je.recovery.RecoveryManager.undoLNs(RecoveryManager.java:1182)
+    ... 11 more
+</pre>
+[#22071] (6.1.3)
+</li><br>
+
+<li>
+Fixed a bug where a transaction configured for no-wait (using
+TransactionConfig.setNoWait(true)) behaved as a normal (wait) transction when
+the ReadCommitted isolation mode was also used.  Due to this bug, a
+LockTimeoutException was thrown when a LockNotAvailableException should have
+been thrown instead, and the transaction was invalidated when it should not
+have been.
+[#23653] (6.1.4)
+</li><br>
+
+<li>
+Fixed eviction bug for shared-cache environments. The bug caused LRU corruption
+and potential memory leaks in certain cases.  The bug was introduced in JE 6.0.
+Note that the bug has no impact for environments that are not using a shared
+cache (EnvironmentConfig.setSharedCache(true)).
+[#23696] (6.1.4)
+</li><br>
+
+</ol>
+
+<!-- =================================================== -->
+<hr>
+<h3 align="center"><u>Changes in 6.0.11</u></h3>
+<!-- ================================================= --> 
+<ol>
+
+<li>
+Added support in JE HA for the new SECONDARY node type.  SECONDARY nodes
+can only be replicas, not masters, and do not participate in either
+elections or durability decisions.  SECONDARY nodes can be used to
+increase the available number of read replicas without changing the
+election or durability quorum of the group, and without requiring
+communication with the secondaries during master elections or
+transaction commits.
+<p>
+Changes include adding the <code>NodeType.SECONDARY</code>
+enumeration constant, and the
+<code>ReplicationGroup.getSecondaryNodes</code> and
+<code>ReplicationGroup.getDataNodes</code> methods. [#22482] (6.0.1)
+</li><br>
+
+<li>
+Made improvements to internal latching to allow interrupting threads that are
+waiting on latches, cause a timeouts when a latch deadlock occurs, and enable
+latch instrumentation via system properties.  Note that latching is not related
+to transactional locking and latches are intended to be held for very short
+periods.
+<ul>
+    <li>When a JE thread is waiting on an internal latch, for example, when
+    accessing Btree internal nodes, log buffers, etc, interrupting the thread
+    is now possible and will result in a ThreadInterruptedException.  In
+    earlier versions, latching calls were not interruptible and a latch
+    deadlock would require a process restart.</li>
+    <li>When a JE thread is waiting on an internal latch, a timeout will occur
+    if the latch cannot be acquired after 5 minutes and a fatal
+    EnvironmentFailureException will be thrown.  The timeout is intended to
+    detect latch deadlocks earlier.
+    <li>A system property, JE_TEST, may be defined to true (-DJE_TEST=true) to
+    enable JE debug/test instrumentation.  Currently, this only adds latch
+    tracking so that an internal latching error will contain more information
+    about the problem.  Over time, more JE instrumentation will be enabled via
+    this switch.  The JE_TEST property is set to true automatically when
+    running the JE unit test suite via ant.  This instrumentation is not
+    intended for production use.  Note that in earlier versions, however, this
+    instrumentation was enabled when Java assertions (-ea) were enabled.</li>
+    <li>An additional system property, JE_CAPTURE_LATCH_OWNER, may be set to
+    true to capture the stack trace at the point that each latch is acquired
+    exclusively.  This additional information will appear in latching error 
+    messages and may help in debugging an internal latching problem.  It is
+    fairly expensive to capture the stack trace, and this switch should not be
+    set in production.</li>
+    <li>An undocumented EnvironmentConfig parameter, je.env.sharedLatches, is
+    no longer used and silently ignored.  Latches are now shared (read-write),
+    rather than exclusive, whenever possible.</li>
+</ul>
+[#22993] (6.0.3)
+</li><br>
+
+<li>
+The following log cleaner configuration parameters in the EnvironmentConfig
+class have been deprecated and are no longer used.  If configured, they will
+be silently ignored.  Lazy and proactive migration are no longer supported due
+to negative impacts on eviction, checkpointing and Btree splits.  If a
+persistent log cleaner backlog occurs, the recommended solution is to configure
+additional cleaner threads.
+<ul>
+    <li>CLEANER_LAZY_MIGRATION</li>
+    <li>CLEANER_BACKGROUND_PROACTIVE_MIGRATION</li>
+    <li>CLEANER_FOREGROUND_PROACTIVE_MIGRATION</li>
+</ul>
+[#23070] (6.0.3)
+</li><br>
+
+<li>
+When using secondary databases and DPL secondary indexes, the locking order for
+reads via a secondary has been changed to reduce the possibility of deadlocks.
+This optimization does not apply when the serializable isolation mode is used,
+and does not apply to the JoinCursor.
+[#22368] (6.0.4)
+</li><br>
+
+<li>
+Improved Btree cache usage by caching a BIN-delta -- the partial form of a BIN
+containing only the dirty entries -- in preference to logging it and then
+evicting the entire BIN.  This reduces disk reads if CRUD operations are
+performed on the BIN before the entire BIN is evicted, because only one BIN
+fetch rather than two is needed.  Disk writes are also reduced to some degree.
+The performance improvement applies only when BINs are being evicted from
+cache.  The improvement is signficant when CRUD operations address a non-random
+subset of the keys in the data set.
+<p>
+As part of the performance improvement work, the following statistics were
+added.
+<ul>
+    <li><code>nCachedBINDeltas: EnvironmentStats.getNCachedBINDeltas</code>
+    -- Number of BIN-deltas (partial BINs) in cache.
+    </li>
+    <li><code>nBINDeltasFetchMiss:
+    EnvironmentStats.getNBINDeltasFetchMiss</code> -- Number of BIN-deltas
+    fetched to satisfy btree operations.
+    </li>
+    <li><code>nBINsMutated: EnvironmentStats.getNBINsMutated</code> -- The
+    number of BINs mutated to BIN-deltas by eviction.
+    </li>
+    <li><code>lastCheckpointInterval:
+    EnvironmentStats.getLastCheckpointInterval</code> -- Byte length from
+    last checkpoint start to the previous checkpoint start.
+    </li>
+</ul>
+<p>
+In addition, the EnvironmentConfig.TREE_MAX_DELTA param has been deprecated.
+As of JE 5.0, the benefit from logging BIN-deltas is unrelated to the number of
+deltas that have been logged since the last full BIN.  To configure BIN-delta
+logging, use EnvironmentConfig.TREE_BIN_DELTA.
+<p>
+[#22662] (6.0.5)
+</li><br>
+
+<li>
+An optimization for Databases with sorted duplicates configured has been made
+to improve log cleaning performance.  Records in duplicates databases need no
+longer be tracked or processed by the log cleaner, which reduces cleaning costs
+significantly when duplicates databases are used for a significant portion of a
+data set, for example, as secondary index databases.
+<p>
+As described under 'Upgrading from JE 5.0 or earlier' at the top of this
+document, to support this cleaner optimization a change was made involving
+partial Btree and duplicate comparators.  Partial comparators are an advanced
+feature that few applications use. As of JE 6.0, using partial comparators is
+not recommended.  Applications that do use partial comparators must now change
+their comparator classes to implement the new PartialComparator tag interface,
+before running the application with JE 6.  Failure to do so may cause incorrect
+behavior during transaction aborts.  See the PartialComparator javadoc for more
+information.
+<p>
+[#22864] (6.0.5)
+</li><br>
+
+<li>
+Fixed a bug that sometimes resulted in an uncommitted record deletion performed
+in one transaction to be visible (result in a NOTFOUND result) to an operation
+performed in another transaction.  This bug applies to the use of
+Database.delete and PrimaryIndex.delete.  It does not apply to the use of
+SecondaryDatabase.delete, SecondaryIndex.delete, or the use of a cursor to
+perform a deletion.  Note that this problem is distinct from a similar bug that
+was fixed in JE 5.0.98 ([#22892]).
+<p>
+[#23132] (6.0.5)
+</li><br>
+
+<li>
+Modified the algorithm that protects cleaned log files from deletion to
+consider the relative cost of replication replay versus network restore,
+as well as available disk space. When JE HA decides whether to delete
+cleaned log files, it uses information it stores about the progress of
+replication replay for each electable replica to retain useful log files
+even if the replicas are offline, subject to
+the <code>ReplicationConfig.REP_STREAM_TIMEOUT</code> parameter. The
+system does not store information about replication progress for
+secondary replicas, though, so a different approach has been added.
+<p>
+The modified algorithm estimates the costs of replication replay and
+network restore, and protects log files from deletion that could be used
+for replay if there is sufficient disk space and replay would be less
+expensive than network restore.  These computations apply to all
+replicas, but are particularly useful for secondary replicas, for which
+log files will not otherwise be retained if the replicas become
+temporarily unreachable.  Note that disk space calculations are only
+performed when running with Java 7 or later.
+<p>
+Two new <code>ReplicationConfig</code> parameters were added:
+<ul>
+<li><code>REPLAY_COST_PERCENT</code> - The cost of replaying the
+  replication stream as compared to the cost of performing a network
+  restore.
+<li><code>REPLAY_FREE_DISK_PERCENT</code> - The target amount of free
+  disk space to maintain when selecting log files to retain for use in
+  replay.
+</ul>
+<p>
+[#22575] (6.0.5)
+</li><br>
+
+<li>
+An improvement was made to the calculation of log utilization to avoid
+under-cleaning or over-cleaning.  For example, when log utilization was
+estimated to be lower than actual utilization, unnecessary over-cleaning would
+occur, which could reduce performance.  Or when log utilization was estimated
+to be higher than actual utilization, under-cleaning would prevent reclaiming
+unused disk space.
+<p>
+To prevent these problems, the size of each logged record is now stored in the
+Btree BINs (bottom internal nodes), so that utilization can be calculated
+correctly during record updates and deletions, while still avoiding a fetch of
+the old version of the record.  With this change, the utilization adjustment
+facility in the log cleaner, which attempted to compensate for this problem by
+estimating utilization, is no longer needed by most applications.
+<p>
+Therefore the EnvironmentConfig.CLEANER_ADJUST_UTILIZATION parameter is now
+false by default rather than true, and will be disabled completely in a future
+version of JE.  For more information, see the javadoc for this parameter.
+<p>
+[#22275] (6.0.7)
+</li><br>
+
+<li>
+The helper hosts parameter used in JE HA replication is now
+mutable. Accordingly, the set/getHelperHosts() methods and the
+HELPER_HOST definition in com.sleepycat.je.rep.ReplicationConfig have
+been moved to their parent class, ReplicationMutableConfig. The change
+is fully link and source compatible.
+[#22753] (6.0.7)
+</li><br>
+
+<li>
+Improved the performance of eviction by removing a bottleneck that was causing
+thread contention.  Previously, for workloads with heavy eviction, threads were
+often waiting on a mutex in the TargetSelector.selectIN method.  This impacted
+not only JE's dedicated background threads, but also application threads that
+were participating in critical eviction.  A new approach is used that
+dramatically reduces thread contention and increases performance (compared to
+JE 5 and earlier) for such workloads.
+<p>
+In addition, the new eviction approach implements a more accurate LRU which
+ensures that dirty nodes are evicted last and thereby reduces unnecessary
+logging.
+<p>
+As part of this change, the following configuration parameters were deprecated
+and are ignored by JE:
+<pre>
+    EnvironmentConfig.EVICTOR_NODES_PER_SCAN
+    EnvironmentConfig.EVICTOR_LRU_ONLY
+</pre>
+And the following configuration parameter was added:
+<pre>
+    EnvironmentConfig.EVICTOR_N_LRU_LISTS
+</pre>
+[#23063] (6.0.7)
+</li><br>
+
+<li>
+A change was made involving the charset for internal text (messages) that
+appear in the JE log (.jdb files).  Previously, the default JVM charset was
+used.  When dumping the log with DbPrintLog (e.g., for debugging purposes),
+if the default JVM charset was different than the one at the time the log was
+written, the text messages would be garbled.  For example, this occurred when 
+the log was written with an EBCDIC charset and then dumped with a UTF8 charset.
+This has been fixed by always writing and reading text in the UTF8 charset.
+[#15296] (6.0.8)
+</li><br>
+
+<li>
+A new HA configuration parameter:
+com.sleepycat.je.rep.ReplicationConfig.BIND_INADDR_ANY was added.  This
+parameter permits binding of the port used by HA to all the local interfaces on
+the host. The javadoc associated with this configuration parameter provides
+further details.
+[#23437] (6.0.9)
+</li><br>
+
+<li>
+Fix a bug that could under rare conditions, primarily frequent failovers, cause
+the following exception in an HA environment.
+<pre>
+Caused by: com.sleepycat.je.EnvironmentFailureException: (JE 5.0.97)
+node2(2):foo\node2 Read invisible log entry at 0x0/0xcb776
+hdr type="INS_LN_TX/8" vlsn v="19,373" isReplicated="1" isInvisible="1"
+prev="0xcb74c" size="17" cksum="2626620732"
+LOG_INTEGRITY: Log information is incorrect, problem is likely persistent.
+fetchTarget of 0x0/0xcb776 parent IN=29 IN class=com.sleepycat.je.tree.BIN
+lastFullVersion=0x0/0xf154c lastLoggedVersion=0x0/0xf588e
+parent.getDirty()=true state=3
+at com.sleepycat.je.log.LogManager.getLogEntryFromLogSource(LogManager.java:1054)
+at com.sleepycat.je.log.LogManager.getLogEntry(LogManager.java:906)
+at com.sleepycat.je.log.LogManager.getLogEntryAllowInvisibleAtRecovery(LogManager.java:867)
+at com.sleepycat.je.tree.IN.fetchTarget(IN.java:1427)
+at com.sleepycat.je.tree.BIN.fetchTarget(BIN.java:1250)
+at com.sleepycat.je.recovery.RecoveryManager.undo(RecoveryManager.java:2415)
+at com.sleepycat.je.recovery.RecoveryManager.rollbackUndo(RecoveryManager.java:2268)
+...
+</pre>
+[#22848] (6.0.10)
+</li><br>
+
+<li>
+EntityStore.close has been changed to fix a bug that caused a memory leak when
+the Database could not be closed, for example, if it had open cursors.  The
+javadoc for this method was also updated to warn that it must be called to
+avoid memory leaks, even when the Environment is invalid.
+[#23462] (6.0.10)
+</li><br>
+
+</ol>
+
+</body>
+</html>

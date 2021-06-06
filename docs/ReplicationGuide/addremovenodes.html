@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Adding and Removing Nodes</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="administration.html" title="Chapter 7. Administration" />
+    <link rel="prev" href="backups.html" title="Running Backups" />
+    <link rel="next" href="hotupgrade.html" title="Upgrading a JE Replication Group" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Adding and Removing Nodes</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="backups.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Administration</th>
+          <td width="20%" align="right"> <a accesskey="n" href="hotupgrade.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="addremovenodes"></a>Adding and Removing Nodes</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+          As described in <a class="xref" href="utilities.html#node-addremove" title="Adding and Removing Nodes from the Group">Adding and Removing Nodes from the Group</a>,
+          a node is added to the replication group simply by starting it up
+          and allowing it to perform its start-up handshake with the
+          Master. Once an electable node has been added to the replication
+          group, it belongs to the replication group forever, or until you
+          explicitly remove it. Also, the node is uniquely identified within
+          the replication group by a name that you must give it when you start
+          up the process.
+      </p>
+      <p>
+          This is worth remembering, because if you have electable nodes that
+          have been added to the replication group, but which you then
+          shutdown for a long period of time, your replication group might not
+          be able to perform a lot of tasks, such as:
+      </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                  Elect a Master.
+              </p>
+          </li>
+          <li>
+            <p>
+                  Add a new node to the replicated group.
+              </p>
+          </li>
+          <li>
+            <p>
+                  Delete a node from the replication group.
+              </p>
+          </li>
+          <li>
+            <p>
+                  Successfully commit a transaction (this depends on the
+                  durability guarantees in place for your application).
+              </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+          All of these actions might be adversely affected by a series of
+          unavailable electable nodes because in order to do these things the
+          Master must be in contact with a majority of the electable nodes
+          belonging to the replication group (Monitor and Secondary nodes do
+          not count). So if too many electable nodes are either shutdown or
+          unavailable due to a network partition event, then these functions
+          can become delayed or even completely unavailable.
+      </p>
+      <p>
+          For this reason, if you have electable nodes that you want to
+          shutdown for a long time, then you should remove those nodes from
+          the replication group. JE provides a utility class that allows
+          for node removal, so your application developer should have provided
+          you with a tool of some kind that allows you to do this as a normal
+          administrative function.
+      </p>
+      <p>
+          When removing an electable node from the replication group, remember
+          that:
+      </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                  for best results, shut down the node first.
+              </p>
+          </li>
+          <li>
+            <p>
+                  a majority of the nodes must currently be in contact with
+                  the Master in order to acknowledge the node removal.
+              </p>
+          </li>
+        </ul>
+      </div>
+      <p>
+          If at some later time you want to restart the node and have it
+          join the replication group, you can do this using the normal
+          procedure that your application uses when starting a node for
+          the first time. Be aware, however, that you cannot reuse the
+          unique name that the node was using when you removed it from
+          the group as an electable node. Instead, give the node a
+          completely new unique name before having it rejoin the
+          replication group.
+      </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="backups.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="administration.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="hotupgrade.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Running Backups </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Upgrading a JE Replication Group</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

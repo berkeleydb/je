@@ -1,0 +1,799 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 3. Transaction Management</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="two-node.html" title="Configuring Two-Node Groups" />
+    <link rel="next" href="consistency.html" title="Managing Consistency" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 3. Transaction Management</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="two-node.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="consistency.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="txn-management"></a>Chapter 3. Transaction Management</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="txn-management.html#durability">Managing Durability</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="txn-management.html#durabilitycontrols">Durability Controls</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="txn-management.html#commitsync">Commit File Synchronization</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="txn-management.html#managingacks">Managing Acknowledgements</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="consistency.html">Managing Consistency</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="consistency.html#setconsistencypolicy">Setting Consistency Policies</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="consistency.html#timeconsistency">Time Consistency Policies</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="consistency.html#commitpointconsistency">Commit Point Consistency Policies</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="availability.html">Availability</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="availability.html#writeavailability">Write Availability</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="availability.html#readavailability">Read Availability</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="cons_and_dur.html">Consistency and Durability Use Cases</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="cons_and_dur.html#outonthetown">Out on the Town</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="cons_and_dur.html#biolabs">Bio Labs, Inc</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="txnrollback.html">Managing Transaction Rollbacks</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="runtransaction.html">Example Run Transaction Class</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="runtransaction.html#exruntransaction">RunTransaction Class</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="runtransaction.html#usingruntransaction">Using RunTransaction</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+        </dl>
+      </div>
+      <p>
+        A JE HA application is essentially a transactional application
+        that distributes its data across multiple environments for you. The
+        assumption is that these environments are on separate physical
+        hosts, so the distribution of your data is performed over TCP/IP
+        connections.
+    </p>
+      <p>
+        Because of this distribution activity, several new dimensions are
+        added to your transactional management. In particular, there is
+        more to consider in the areas of durability, consistency and
+        performance than you have to think about for single-environment
+        applications.
+    </p>
+      <p>
+        Before continuing, some definitions are in order:
+    </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                <span class="emphasis"><em>Durability</em></span> is defined by how likely
+                your data will continue to exist in the presence of 
+                hardware breakage or a software crash. The first goal of
+                any durability scheme is to get your data stored onto
+                physical media. After that, to make your data even more
+                durable, you will usually start to consider your backup
+                schemes. 
+            </p>
+            <p>
+                By its very nature, a JE HA application is offering you
+                more data durability than does a traditional transactional
+                application. This is because your HA application is
+                distributing your data across multiple environments (which
+                we assume are on multiple physical machines), which means
+                that data backups are built into the application. The more
+                backups, the more durable your application is.
+            </p>
+          </li>
+          <li>
+            <p>
+                <span class="emphasis"><em>Consistency</em></span> is defined by how
+                <span class="emphasis"><em>current</em></span> your data is. In a traditional
+                transactional application, consistency is guaranteed by
+                allowing you to group multiple read and write operations in
+                a single atomic unit, which is defined by the transactional
+                handle. This level of consistency continues to exist for
+                your HA application, but in addition you must concern
+                yourself with how consistent (or correct) the data is
+                across the various nodes in the replication group.
+            </p>
+            <p>
+                Because the replication group is a collection of differing
+                machines connected by a network, some amount of a delay in
+                data updates is to be naturally expected across the
+                Replicas. The amount of delay that you will see is
+                determined by the number and size of the data updates, the
+                performance of your network, the performance of the
+                hardware on which your nodes are running, and whether your
+                nodes are persistently available on the network (as opposed
+                to being down or offline or otherwise not on the network
+                for some period of time). Because they are not included
+                in acknowledgments, Secondary nodes may tend to show
+                greater delay than Electable nodes.
+            </p>
+            <p>
+                A highly consistent HA application, then, is an application
+                where the data across all nodes in the replication group is
+                identical or very nearly identical all the time. A not very
+                consistent HA application is one where data across the
+                replication group is frequently stale or out of date
+                relative to the data contained on the Master node.
+            </p>
+          </li>
+          <li>
+            <p>
+                <span class="emphasis"><em>Performance</em></span> is simply how fast your HA
+                application is at performing read and write requests. By
+                its very nature, an HA application tends to perform much
+                better than a traditional transactional application at
+                read-only requests. This is because you have multiple
+                machines that are available to service read-only requests.
+                The only tricky thing here is to make sure you load balance
+                your read requests appropriately across all your nodes so
+                that you do not have some nodes that are swamped with
+                requests while others are mostly idle.
+            </p>
+            <p>
+                Write performance for an HA application is a mixed bag.
+                Depending on your goals, you can make the HA application
+                perform better than a traditional transactional
+                application that is committing writes to the disk
+                synchronously. However, in doing so 
+                you will compromise your data's durability and consistency
+                guarantees. This is no different than configuring a
+                traditional transactional application to commit
+                transactions asynchronously to disk, and so lose the
+                guarantee that the write is stored on physical media before
+                the transaction completes. However, the good news is that
+                because of the distributed nature of the HA application,
+                you have a better durability guarantee than the
+                asynchronously committing single-environment transactional
+                application. That is, by "committing to the network" you
+                have a fairly good chance of a write making it to disk
+                somewhere on some node.
+            </p>
+            <p>
+                Mostly, though, HA applications commit a transaction and
+                then wait for an acknowledgement from some number of nodes
+                before the transaction is complete.  An HA application
+                running with quorum acknowledgements and write no sync
+                durability can exhibit equal or better write performance
+                than a single node standalone application, but your write
+                performance will ultimately depend on your application's
+                configuration.
+            </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+        As you design your HA application, remember that each of these 
+        characteristics are interdependent. You cannot, for example,
+        configure your application to have extremely high durability
+        without sacrificing some amount of performance. A highly
+        consistent application may have to make sacrifices in durability. A
+        high performance HA application may require you to make trade-offs
+        in both durability and consistency.
+    </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="durability"></a>Managing Durability</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="txn-management.html#durabilitycontrols">Durability Controls</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="txn-management.html#commitsync">Commit File Synchronization</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="txn-management.html#managingacks">Managing Acknowledgements</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            A highly durable application is one where you attempt to make
+            sure you do not lose data, ever. This is frequently (but not
+            always) one of the most pressing design considerations for any
+            application that manages data. After all, data often equals
+            money because the data you are managing could involve billing
+            or inventory information. But even if your application is not
+            managing information that directly relates to money, a loss of
+            data may very well cost your enterprise money in terms of the
+            time and resources necessary to reacquire the information.
+        </p>
+        <p>
+            HA applications attempt to increase their data
+            durability guarantees by distributing data writes across
+            multiple physical machines on the network. By spreading the
+            data in this way, you are placing it on stable storage on
+            multiple physical hard drives, CPUs and power supplies.
+            Obviously, the more physical resources available to contain
+            your data, the more durable it is.
+        </p>
+        <p>
+            However, as you increase your data durability, you will
+            probably lower your consistency guarantees and probably your
+            write performance. Read performance may also take a hit,
+            depending on how many physical machines you include in the mix
+            and how high a durability guarantee you want. In order to
+            understand why, you have to understand how JE HA
+            applications handle transactional commits.
+        </p>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="durabilitycontrols"></a>Durability Controls</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                By default, JE HA makes transactional commit operations
+                on the Master wait to return from the operation until they receive
+                acknowledgements from some number of Replicas. Each
+                Replica, in turn, will only return an acknowledgement once
+                the write operation has met whatever durability requirement
+                exists for the Replica. (For example, you can require the
+                Replicas to successfully flush the write operation to disk
+                before returning an acknowledgement to the Master.)
+            </p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                    Be aware that write operations received on the Replica
+                    from the Master have lock priority. This means that if
+                    the Replica is currently servicing a read request, it
+                    might have to retry the read operation should a write
+                    from the Master preempt the read lock. For this reason,
+                    you can see read performance degradation if you have
+                    Replicas that are heavily loaded with read requests at
+                    a time when the Master is performing a lot of write
+                    activity. The solution to this is to add
+                    additional nodes to your replication group and/or better
+                    load-balance your read requests across the Replicas.
+                </p>
+          </div>
+          <p>
+                There are three things to control when you design your
+                durability guarantee:
+            </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                        Whether the Master synchronously writes the
+                        transaction to disk. This is no different from the
+                        durability consideration that you have for a
+                        stand-alone transactional application.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Whether the Replica synchronously writes the
+                        transaction to disk before returning an
+                        acknowledgement to the Master, if any.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        How many, if any, Replicas must acknowledge the
+                        transaction commit before the commit operation on
+                        the Master can complete.
+                    </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                You can configure your durability policy on a
+                transaction-by-transaction basis using 
+                <a class="ulink" href="../java/com/sleepycat/je/TransactionConfig.html#setDurability(com.sleepycat.je.Durability)" target="_top">TransactionConfig.setDurability()</a>, or on an
+                environment-wide basis using
+                <a class="ulink" href="../java/com/sleepycat/je/EnvironmentMutableConfig.html#setDurability(com.sleepycat.je.Durability)" target="_top">EnvironmentMutableConfig.setDurability()</a>.
+            </p>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="commitsync"></a>Commit File Synchronization</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Synchronization policies are described in the
+                <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide. However, for the
+                sake of completeness, we briefly cover this topic here
+                again.
+            </p>
+          <p>
+                You define your commit synchronization policy by using 
+                a <a class="ulink" href="../java/com/sleepycat/je/Durability.html" target="_top">Durability</a> class object. For HA applications, the
+                <a class="ulink" href="../java/com/sleepycat/je/Durability.html" target="_top">Durability</a> class constructor must define the
+                synchronization policy for both the Master and the Master's
+                replicas. The synchronization policy does not have to be
+                the same for both Master and Replica.
+            </p>
+          <p>
+                You can use the following constants to define a
+                synchronization policy:
+            </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#SYNC" target="_top">Durability.SyncPolicy.SYNC</a>
+                    </p>
+                <p>
+                        Write and synchronously flush the log to disk upon
+                        transaction commit. This offers the most durable
+                        transaction configuration because the commit
+                        operation will not return until all of the disk I/O
+                        is complete. But, conversely, this offers the worse
+                        possible write performance because disk I/O is an
+                        expensive and time-consuming operation.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#NO_SYNC" target="_top">Durability.SyncPolicy.NO_SYNC</a>
+                    </p>
+                <p>
+                        Do not synchronously flush the log on transaction
+                        commit. All of the transaction's write activity is
+                        held entirely in memory when the transaction
+                        completes. The log will eventually make it to disk
+                        (barring an application hardware crash of some kind).
+                        However, the application's thread of control is
+                        free to continue operations without waiting for
+                        expensive disk I/O to complete.
+                    </p>
+                <p>
+                        This represents the least durable configuration
+                        that you can provide for your transactions. But it
+                        also offers much better write performance than the
+                        other options.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#WRITE_NO_SYNC" target="_top">Durability.SyncPolicy.WRITE_NO_SYNC</a>
+                    </p>
+                <p>
+                        Log data is synchronously written to the OS's file
+                        system buffers upon transaction commit, but the
+                        data is not actually forced to disk. This protects
+                        your write activities from an application crash,
+                        but not from a hardware failure.
+                    </p>
+                <p>
+                        This policy represents an intermediate durability
+                        guarantee. It is not has strong as SYNC, but is
+                        also not as weak as NO_SYNC. Conversely, it
+                        performs better than NO_SYNC (because your
+                        application does not have to wait for actual disk
+                        I/O), but it does not perform quite as well as SYNC
+                        (because data still must be written to the file
+                        system buffers).
+                    </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="managingacks"></a>Managing Acknowledgements</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                Whenever a Master commits a transaction, by default it
+                waits for acknowledgements from a majority of its Electable Replicas
+                before the commit operation on the Master completes.
+                By default, Electable Replicas respond with an acknowledgement once they have
+                successfully written the transaction to their local
+                disk. Note that Secondary Replicas do not ever provide
+                acknowledgements.
+            </p>
+          <p>
+                Acknowledgements are expensive operations. They involve both
+                network traffic, as well as disk I/O at multiple physical
+                machines. So on the one hand, acknowledgements help to
+                increase your durability guarantees. On the other, they
+                hurt your application's performance, and may have a
+                negative impact on your application's consistency
+                guarantee.
+            </p>
+          <p>
+                For this reason, JE allows you to manage
+                acknowledgements for your HA application. As is the case
+                with synchronization policies, you do this using the
+                <a class="ulink" href="../java/com/sleepycat/je/Durability.html" target="_top">Durability</a> class. As a part of this class' constructor,
+                you can provide it with one of the following constants:
+            </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.ReplicaAckPolicy.html#ALL" target="_top">Durability.ReplicaAckPolicy.ALL</a>
+                    </p>
+                <p>
+                        All of the Electable Replicas must acknowledge the
+                        transactional commit. This represents the highest
+                        possible durability guarantee for your HA application,
+                        but it also represents the poorest performance. For
+                        best results, do not use this policy unless your
+                        replication group contains a very small number of
+                        electable replicas, and those replicas are all on
+                        extremely reliable networks and servers.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.ReplicaAckPolicy.html#NONE" target="_top">Durability.ReplicaAckPolicy.NONE</a>
+                    </p>
+                <p>
+                        The Master will not wait for any acknowledgements
+                        from its Replicas. In this case, your durability
+                        guarantee is determined entirely by the
+                        synchronization policy your Master is using for its
+                        transactional commits. This policy also represents
+                        the best possible choice for write
+                        performance.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        <a class="ulink" href="../java/com/sleepycat/je/Durability.ReplicaAckPolicy.html#SIMPLE_MAJORITY" target="_top">Durability.ReplicaAckPolicy.SIMPLE_MAJORITY</a>
+                    </p>
+                <p>
+                        A simple majority of the Electable Replicas must return
+                        acknowledgements before the commit operation 
+                        returns on the Master.  This is the default policy.
+                        It should work well for most applications unless
+                        you need an extremely high durability
+                        guarantee, have a very large number of Electable Replicas, or
+                        you otherwise have performance concerns that cause
+                        you to want to avoid acknowledgements altogether.
+                    </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                You can configure your synchronization policy on a
+                transaction-by-transaction basis using 
+                <a class="ulink" href="../java/com/sleepycat/je/TransactionConfig.html#setDurability(com.sleepycat.je.Durability)" target="_top">TransactionConfig.setDurability()</a>, or on an
+                environment-wide basis using
+                <a class="ulink" href="../java/com/sleepycat/je/EnvironmentMutableConfig.html#setDurability(com.sleepycat.je.Durability)" target="_top">EnvironmentMutableConfig.setDurability()</a>.
+                For example:
+            </p>
+          <pre class="programlisting">   EnvironmentConfig envConfig = new EnvironmentConfig();
+   envConfig.setAllowCreate(true);
+   envConfig.setTransactional(true);
+
+   <strong class="userinput"><code>// Require no synchronization for transactional commit on the 
+   // Master, but full synchronization on the Replicas. Also,
+   // wait for acknowledgements from a simple majority of Replicas.
+   Durability durability =
+          new Durability(Durability.SyncPolicy.WRITE_NO_SYNC,
+                         Durability.SyncPolicy.NO_SYNC,
+                         Durability.ReplicaAckPolicy.SIMPLE_MAJORITY);
+
+   envConfig.setDurability(durability);</code></strong>
+
+   // Identify the node
+   ReplicationConfig repConfig = 
+        new ReplicationConfig("PlanetaryRepGroup",
+                              "Jupiter",
+                              "jupiter.example.com:5002");
+
+   // Use the node at mercury.example.com:5001 as a helper to find
+   // the rest of the group.
+   repConfig.setHelperHosts("mercury.example.com:5001");
+
+   ReplicatedEnvironment repEnv =
+      new ReplicatedEnvironment(home, repConfig, envConfig); </pre>
+          <p>
+                Note that at the time of a transaction commit, if the
+                Master is not in contact with enough Electable Replicas to meet the
+                transaction's durability policy, the transaction commit
+                operation will throw an <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a>.
+                The proper action to take upon encountering this exception
+                is to abort the transaction, wait a small period of time in
+                the hopes that more Electable Replicas will become available, then
+                retry the exception. See
+                <a class="xref" href="runtransaction.html" title="Example Run Transaction Class">Example Run Transaction Class</a>
+                for example code that implements this retry loop.
+            </p>
+          <p>
+                You can also see an <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a> when
+                you begin a transaction if the Master fails to be in
+                contact with enough Electable Replicas to meet the acknowledgement
+                policy. To manage this, you can configure how long the
+                transaction begin operation will wait for enough Electable
+                Replicas before throwing this exception. You use the
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#INSUFFICIENT_REPLICAS_TIMEOUT" target="_top">INSUFFICIENT_REPLICAS_TIMEOUT</a> configuration option, which 
+                you can set using the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setConfigParam(java.lang.String,java.lang.String)" target="_top">ReplicationConfig.setConfigParam()</a>
+                method.
+            </p>
+          <div class="sect3" lang="en" xml:lang="en">
+            <div class="titlepage">
+              <div>
+                <div>
+                  <h4 class="title"><a id="replicaacktimeout"></a>Managing Acknowledgement Timeouts</h4>
+                </div>
+              </div>
+            </div>
+            <p>
+                    In addition to the acknowledgement policies, you have
+                    to also consider your replication acknowledgement
+                    timeout value. This value specifies the maximum amount
+                    of time that the Master will wait for acknowledgements
+                    from its Electable Replicas.
+                </p>
+            <p>
+                    If the
+                    Master commits a transaction and the timeout value is
+                    exceeded while waiting for enough acknowledgements, the
+                    <a class="ulink" href="../java/com/sleepycat/je/Transaction.html#commit()" target="_top">Transaction.commit()</a> method will throw an
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a> exception. In this event,
+                    the transaction has been committed on the Master, so at
+                    least locally the transaction's durability policy has
+                    been met. However, the transaction might not have been
+                    committed on enough Electable Replicas to guarantee your HA
+                    application's overall durability policy. 
+                </p>
+            <p>
+                    There can be a lot of reasons why the Master did not
+                    get enough acknowledgements before the timeout value,
+                    such as a slow network, a network failure before or
+                    after a transaction was transmitted to a replica, or a
+                    failure of a replica. These failures have different
+                    consequences for whether a transaction will become
+                    durable or will be subject to rollback. As a result, an
+                    application may respond in various ways, and for
+                    example choose to:
+                </p>
+            <div class="itemizedlist">
+              <ul type="disc">
+                <li>
+                  <p>
+                            Do nothing, assuming that the transaction will
+                            eventually propagate to enough replicas to
+                            become durable.
+                        </p>
+                </li>
+                <li>
+                  <p>
+                            Retry the operation in a new transaction, which
+                            may succeed or fail depending on whether the
+                            underlying problems have been resolved.
+                        </p>
+                </li>
+                <li>
+                  <p>
+                            Retry using a larger timeout interval and
+                            return to the original timeout interval at a
+                            later time.
+                        </p>
+                </li>
+                <li>
+                  <p>
+                            Fall back temporarily to a read-only mode.
+                        </p>
+                </li>
+                <li>
+                  <p>
+                            Increase the durability of the transaction on
+                            the Master by ensuring that the changes are
+                            flushed to the operating system's buffers or to
+                            the disk.
+                        </p>
+                </li>
+                <li>
+                  <p>
+                            Give up and report an error at a higher level,
+                            perhaps to allow an administrator to check the
+                            underlying cause of the failure.
+                        </p>
+                </li>
+              </ul>
+            </div>
+            <p>
+                    The default value for this timeout is 5 seconds, which
+                    should work for most cases where an acknowledgement
+                    policy is in use. However, if you have a very large
+                    number of Electable Replicas, or if you have a very unreliable
+                    network, then you might see a lot of
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a> exceptions. In this case,
+                    you should either increase this timeout value, relax
+                    your acknowledgement policy, or find out why your
+                    hardware and/or network is performing so poorly.
+                </p>
+            <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+              <h3 class="title">Note</h3>
+              <p>
+                        You can also see <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a>
+                        or <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientReplicasException.html" target="_top">InsufficientReplicasException</a>
+                        exceptions if one or more replicas have exceeded
+                        their disk usage thresholds. See
+                        <a class="xref" href="logfile-restore.html#repdiskthresh" title="Suspending Writes Due to Disk Thresholds">Suspending Writes Due to Disk Thresholds</a>
+                        for more information.
+                    </p>
+            </div>
+            <p>
+                    You can configure your acknowledgement policy using the
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setReplicaAckTimeout(long, java.util.concurrent.TimeUnit)" target="_top">ReplicationConfig.setReplicaAckTimeout()</a> method.
+                </p>
+            <pre class="programlisting">   EnvironmentConfig envConfig = new EnvironmentConfig();
+   envConfig.setAllowCreate(true);
+   envConfig.setTransactional(true);
+
+   // Require no synchronization for transactional commit on the 
+   // Master, but full synchronization on the Replicas. Also,
+   // wait for acknowledgements from a simple majority of Replicas.
+   Durability durability =
+          new Durability(Durability.SyncPolicy.WRITE_NO_SYNC,
+                         Durability.SyncPolicy.NO_SYNC,
+                         Durability.ReplicaAckPolicy.SIMPLE_MAJORITY);
+
+   envConfig.setDurability(durability);
+
+   // Identify the node
+   ReplicationConfig repConfig = 
+        new ReplicationConfig("PlanetaryRepGroup",
+                              "Jupiter",
+                              "jupiter.example.com:5002");
+ 
+   // Use the node at mercury.example.com:5001 as a helper to find the rest
+   // of the group.
+   repConfig.setHelperHosts("mercury.example.com:5001");
+
+   <strong class="userinput"><code>// Set a acknowledgement timeout that is slightly longer
+   // than the default 5 seconds.
+   repConfig.setReplicaAckTimeout(7, TimeUnit.SECONDS);</code></strong>
+
+   ReplicatedEnvironment repEnv =
+      new ReplicatedEnvironment(home, repConfig, envConfig); </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="two-node.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="consistency.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Configuring Two-Node Groups </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Managing Consistency</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Performing Catastrophic Recovery</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="up" href="jebackuprestore.html" title="Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications" />
+    <link rel="prev" href="backup.html" title="Performing Backups" />
+    <link rel="next" href="jehotfailover.html" title="Hot Failover" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Performing Catastrophic Recovery</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="backup.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 5. Backing up and Restoring Berkeley DB, Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="jehotfailover.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="jecatastrophicrecovery"></a>Performing Catastrophic Recovery</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+				Catastrophic recovery is necessary whenever your environment and/or database have been lost or corrupted
+                due to a media failure (disk failure, for example). Catastrophic recovery is also required if normal
+                recovery fails for any reason.
+			</p>
+      <p>
+                In order to perform catastrophic recovery, you must have a full backup of your databases. You will use
+                this backup to restore your database. See the previous section for 
+                information on running back ups.
+            </p>
+      <p>
+                To perform catastrophic recovery:
+            </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                    Shut down your application.
+                </p>
+          </li>
+          <li>
+            <p>
+                        Delete the contents of your environment home directory (the one that experienced a catastrophic
+                        failure), if there is anything there.
+                    </p>
+          </li>
+          <li>
+            <p>
+                        Copy your most recent full backup into your environment home directory.
+                        If you are using subdirectories to store your log files, be sure to place 
+                        the recovered log files back into the subdirectory from which they were 
+                        originally backed up.
+                    </p>
+          </li>
+          <li>
+            <p>
+                        If you are using a backup utility that runs incremental backups of your environment directory,
+                        copy any log files generated since the time of your last full backup.  
+                        Be sure to restore all log files in the order that they were written. The order is important because
+                        it is possible the same log file appears in multiple archives, and you want to run recovery
+                        using the most recent version of each log file.
+                    </p>
+          </li>
+          <li>
+            <p>
+                        Open the environment as normal. JE's normal recovery will run, which will bring your database
+                        to a consistent state relative to the changed data found in your log files.
+                    </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+                You are now done restoring your database.
+            </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="backup.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="jebackuprestore.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="jehotfailover.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Performing Backups </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Hot Failover</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

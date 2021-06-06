@@ -1,0 +1,17 @@
+com.sleepycat.bind
+com.sleepycat.bind.serial
+com.sleepycat.bind.tuple
+com.sleepycat.collections
+com.sleepycat.je
+com.sleepycat.je.jca.ra
+com.sleepycat.je.jmx
+com.sleepycat.je.rep
+com.sleepycat.je.rep.arbiter
+com.sleepycat.je.rep.monitor
+com.sleepycat.je.rep.util
+com.sleepycat.je.util
+com.sleepycat.persist
+com.sleepycat.persist.evolve
+com.sleepycat.persist.model
+com.sleepycat.persist.raw
+com.sleepycat.util

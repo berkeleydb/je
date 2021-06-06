@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Consistency and Durability Use Cases</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="txn-management.html" title="Chapter 3. Transaction Management" />
+    <link rel="prev" href="availability.html" title="Availability" />
+    <link rel="next" href="txnrollback.html" title="Managing Transaction Rollbacks" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Consistency and Durability Use Cases</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="availability.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Transaction Management</th>
+          <td width="20%" align="right"> <a accesskey="n" href="txnrollback.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="cons_and_dur"></a>Consistency and Durability Use Cases</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="cons_and_dur.html#outonthetown">Out on the Town</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="cons_and_dur.html#biolabs">Bio Labs, Inc</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            As discussed throughout this chapter, there is an interaction
+            between consistency and durability. This interaction results in
+            design decisions that you will have to make when designing your
+            HA application. To further illustrate this interaction, this
+            section provides several use cases as examples of how
+            durability and consistency policies are used to reach
+            application design goals.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="outonthetown"></a>Out on the Town</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                <span class="emphasis"><em>Out on the Town</em></span> is a social networking
+                site about restaurants and artistic events. Restaurant
+                locations and an event calendar are available on the site.
+                Members can submit reviews about restaurants and events,
+                and other members can comment on the reviews. Further,
+                members maintain accounts and profiles.
+            </p>
+        <p>
+                The site experiences most of its traffic as read-only
+                requests. There is heavy read traffic from users who are
+                browsing the site. In addition, periodic write traffic
+                occurs as reviews and comments are submitted to the site.
+            </p>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="oott-readreviews"></a>Reading Reviews</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    Based on the site's usage characteristics, the web developers 
+                    know that it is critical that the site perform well for read traffic.
+                    Listings must be readily available, and the site must be
+                    able to adapt to changing read loads. However, the site
+                    only needs a low threshold for most reads.
+                </p>
+          <p>
+                    While users should not experience a delay when they
+                    access the site, it is okay if read requests do not see
+                    the very latest reviews. For this reason, when starting
+                    read-only transactions for the purpose of viewing
+                    reviews, the application specifies a consistency policy
+                    of <a class="ulink" href="../java/com/sleepycat/je/rep/NoConsistencyRequiredPolicy.html" target="_top">NoConsistencyRequiredPolicy</a>. This provides the highest
+                    possible availability for read requests for the Replica 
+                    nodes, which is the critical thing for this particular
+                    site. (Any other consistency policy might cause the
+                    node to delay reads while waiting for the node to meet
+                    its consistency policy, which would represent an
+                    unacceptable loss of availability as it could cost the
+                    site lost readership.)
+                </p>
+        </div>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="oott-writereviews"></a>Writing Reviews</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    Most write operations are for new user reviews, and for comments on those
+                    reviews. For these writes, the application needs only a very lenient durability
+                    policy.  It is not critical that a new review is immediately
+                    available to other users, nor is it critical that they are saved in the event of
+                    a catastrophic failure.
+                </p>
+          <p>
+                    Therefore, the application uses the convenience
+                    constant <a class="ulink" href="../java/com/sleepycat/je/Durability.html#COMMIT_WRITE_NO_SYNC" target="_top">Durability.COMMIT_WRITE_NO_SYNC</a> as the system default durability
+                    policy. (This is done by specifying the durability policy using
+                    <a class="ulink" href="../java/com/sleepycat/je/EnvironmentMutableConfig.html#setDurability(com.sleepycat.je.Durability)" target="_top">EnvironmentMutableConfig.setDurability()</a>.) This means:
+                </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                            Write operations on the Master use
+                            <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#WRITE_NO_SYNC" target="_top">Durability.SyncPolicy.WRITE_NO_SYNC</a>.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            When the write operation is forwarded by the Master to the Replicas, those Replicas use 
+                            <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#NO_SYNC" target="_top">Durability.SyncPolicy.NO_SYNC</a> when they internally update their own
+                            databases.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            Only a simple majority of the Electable nodes need to acknowledge the
+                            update.
+                        </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="oott-updateevents"></a>Updating Events and Restaurant Listings</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    Periodically, the calendar of events and restaurant locations are updated. These
+                    write operations happen fairly infrequently relative to reviews and comments,
+                    but the site's operators deem this information to be of more importance (or
+                    valuable) than the reviews and comments. Therefore, they want a stronger
+                    guarantee that the information is backed up to all nodes, which is the same
+                    thing as saying they want a stronger durability guarantee. Nevertheless, they
+                    also want this class of writes to consume few resources.
+                </p>
+          <p>
+                    To achieve this, for transactions performing these kind of writes, the web
+                    engineers choose to override the site's default durability guarantee. Instead,
+                    they use a durability guarantee that:
+                </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                            Uses <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#SYNC" target="_top">Durability.SyncPolicy.SYNC</a> for the local synchronization policy.
+                            This ensures that the write is fully backed up to the Master's local
+                            disk before the transaction commit operation returns.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            Uses <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#WRITE_NO_SYNC" target="_top">Durability.SyncPolicy.WRITE_NO_SYNC</a> for the synchronization
+                            policy on the Replica nodes. This causes the updates to be written to
+                            the disk controller's buffers, but they are not flushed to disk before
+                            the Electable Replicas acknowledge the commit operation.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            Stays with a simply majority for acknowledgements, which is the same as
+                            is used for the default durability policy.
+                        </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                    That is, for updating events and restaurant locations, the application uses this
+                    durability policy:
+                </p>
+          <pre class="programlisting">    useForUpdates = 
+         new Durability(Durability.SyncPolicy.SYNC,
+                        Durability.SyncPolicy.WRITE_NO_SYNC,
+                        Durability.ReplicaAckPolicy.SIMPLE_MAJORITY); </pre>
+        </div>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="oott-updateprofile"></a>Updating Account Profiles</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    If a user makes an account profile change as part of a
+                    web session, she will naturally expect to see her
+                    changes when she next looks at the profile during the
+                    same session. From the user's perspective, this is all
+                    one operation: she causes her profile to change and
+                    then the profile page is refreshed with her new
+                    information.
+                </p>
+          <p>
+                    However, from the application's perspective, there are
+                    several things going on: 
+                </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                            A write transaction is performed on the Master.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            One or more read transactions are performed on the
+                            Replica node in use by the user as she updates
+                            her profile and then reads back the changes she
+                            just made.
+                        </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                    To ensure that the session interaction looks
+                    intuitively consistent to the user, the application:
+                </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                            Performs the write transaction on the Master.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            Saves the <a class="ulink" href="../java/com/sleepycat/je/CommitToken.html" target="_top">CommitToken</a> for the account profile
+                            update within the web session.
+                        </p>
+              </li>
+              <li>
+                <p>
+                            The Replica node uses a <a class="ulink" href="../java/com/sleepycat/je/rep/CommitPointConsistencyPolicy.html" target="_top">CommitPointConsistencyPolicy</a> policy for the
+                            follow-on account profile read(s). To do this, the application uses the
+                            <a class="ulink" href="../java/com/sleepycat/je/CommitToken.html" target="_top">CommitToken</a> stored in the previous step when beginning the read
+                            transactions. In this way, the Replica will not serve up the new profile
+                            page until it has received the profile updates from the Master. From the
+                            user's perspective, there may be a delay in her page refresh when she
+                            submits her updates. How long of a delay experienced by the user is a
+                            function of how busy the site is with write updates, as well as the
+                            performance characteristics of the hardware and networks in use by the
+                            site.
+                        </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="biolabs"></a>Bio Labs, Inc</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                <span class="emphasis"><em>Bio Labs, Inc</em></span> is a biotech company that is doing pharmaceutical
+                production which must be audited by government agencies. Production sampling results
+                are logged frequently. All such updates must be guaranteed to be backed up. (In
+                other words, this application requires a very high durability guarantee.)
+            </p>
+        <p>
+                In addition, there are frequent application defined sample points that represent
+                phases in the production cycle. The application performs monitoring of the
+                production stream. These reads are time critical, so the data must be no older
+                than a specific point in time.
+            </p>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="bli-logresults"></a>Logging Sampling Results</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    Due to the auditing requirement for the sampling results, the application
+                    developers want an extremely high data durability guarantee. Therefore, they
+                    require the synchronization policy on both the
+                    Master and all Electable Replica nodes to
+                    be <a class="ulink" href="../java/com/sleepycat/je/Durability.SyncPolicy.html#SYNC" target="_top">Durability.SyncPolicy.SYNC</a>, which means that the logging data is guaranteed to
+                    be written to stable storage before the host returns from its transaction
+                    commit.
+                </p>
+          <p>
+                    For an acknowledgement policy, the engineers
+                    considered requiring all Electable nodes to
+                    acknowledge the commit. This would provide them with the strongest possible
+                    durability guarantee. However, they decided against this because it represents a
+                    possible loss of write availability for the
+                    application; if even one Electable node is
+                    shutdown or hidden by a network outage, then the Master would not be able to
+                    perform any write operations at all. So instead, the engineers stick with the
+                    default acknowledgement policy, which is to require a simple majority of the
+                    Electable nodes to acknowledge the commit.
+                </p>
+          <p>
+                    The durability policy, then, looks like this:
+                </p>
+          <pre class="programlisting">    resultsDurability = 
+         new Durability(Durability.SyncPolicy.SYNC,
+                        Durability.SyncPolicy.SYNC,
+                        Durability.ReplicaAckPolicy.SIMPLE_MAJORITY); </pre>
+        </div>
+        <div class="sect3" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h4 class="title"><a id="biolabs-monitor"></a>Monitoring the Production Stream</h4>
+              </div>
+            </div>
+          </div>
+          <p>
+                    The BioLabs application is required to monitor the production stream. All such
+                    monitoring must be of data that is no older than a defined age.
+                </p>
+          <p>
+                    This represents a read activity that has a time concurrency policy requirement.
+                    Therefore, whenever the application performs a write (that is, logs sampling
+                    results), the application creates a <a class="ulink" href="../java/com/sleepycat/je/CommitToken.html" target="_top">CommitToken</a>. Each of the nodes, then, use
+                    this commit token to specify a <a class="ulink" href="../java/com/sleepycat/je/rep/CommitPointConsistencyPolicy.html" target="_top">CommitPointConsistencyPolicy</a> policy when the 
+                    <a class="ulink" href="../java/com/sleepycat/je/Environment.html#beginTransaction(com.sleepycat.je.Transaction, com.sleepycat.je.TransactionConfig)" target="_top">Environment.beginTransaction()</a> method is called. This guarantees that the
+                    application's data monitoring activities will be performed on data that is not
+                    out of date or stale.
+                </p>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="availability.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="txn-management.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="txnrollback.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Availability </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Managing Transaction Rollbacks</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

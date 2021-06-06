@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Berkeley DB Java Edition Release Notes</title>
+</head>
+
+<body>
+
+<div class="docMain">
+<center>
+<h1>Oracle Berkeley DB Java Edition 12c R2<br>
+Release Notes</h1>
+</center>
+
+<!-- Note: RELEASE_VERSION and DATE are set by ant -->
+<p class="releaseInfo">Release 7.5.11, 2017-10-31 09:36:36 UTC</p>
+
+<h2><a name="overview">Overview</a></h2>
+<p>
+Berkeley DB Java Edition (JE) is a 100% pure Java embedded, transactional data
+store. It supplies a key/object data model with indexing, full transactional
+ACID support, POJO APIs and High Availability/Replication.
+<p>
+As of version 7.3, JE is licensed under the Apache 2.0 license. See the LICENSE
+file for the complete license.
+<p>
+Note that in JE 7.0 and later, the Java compatibility requirement for JE is
+Java SE 8.
+<p>
+JE is compatible with Java SE 8 (64-bit) and later, and has been tested and
+certified against Oracle JDK 1.8.0_121 and IBM J9 7.0. We encourage you to
+upgrade to the latest Java releases to take advantage of the latest bug fixes
+and performance improvements.
+<p>
+Be sure to see the <a href="changelog.html">change log</a> for information
+about upgrading from earlier releases.
+<p>
+This release contains a number of changes, including:
+<ol>
+    <li>
+        MAX_DISK and FREE_DISK configuration parameters have been added for
+        limiting disk usage, and read operations are now allowed when these
+        thresholds are exceeded.  Previously no thresholds were used, and the
+        Environment was invalidated and closed when the volume was filled.
+        Allowing read operations now provides partial availability even when
+        writes are no longer possible. New statistics for disk usage
+        monitoring have also been added.  [#25220]
+        <dl>
+            <dd>
+                NOTE: Behavior has changed regarding the retention of data
+                files reserved for replication, and specifying the new
+                MAX_DISK parameter is strongly recommended for HA
+                applications. Use of the new disk monitoring statistics,
+                rather than monitoring of raw disk utilization, is especially
+                important for HA applications due of the presence of reserved
+                data files.
+            </dd>
+        </dl>
+    </li>
+    <li>
+        The data verifier has been enhanced to perform Btree verification in
+        order to detect internal corruption, included secondary index
+        corruption.  Btree verification is performed by the background data
+        verifier, the DbVerify utility, the DbVerify.verify method, the
+        Database.verify method and the Environment.verify method.  [#25960]
+        <p>
+    </li>
+    <li>
+        Several important bug fixes are included.
+    </li>
+</ol>
+For the complete and detailed list of changes, see
+<a href="changelog.html">the change log page</a>.<br>
+</p>
+<font size="1">Copyright (c) 2002, 2017 Oracle and/or its affiliates.  All rights reserved.</font>
+</div>
+<!-- end docMain -->
+</body>
+</html>

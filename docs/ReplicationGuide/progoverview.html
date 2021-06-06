@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 2. Replication API First Steps</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="lifecycle.html" title="Replication Group Life Cycle" />
+    <link rel="next" href="exceptions.html" title="HA Exceptions" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 2. Replication API First Steps</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="lifecycle.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="exceptions.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="progoverview"></a>Chapter 2. Replication API First Steps</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="progoverview.html#repenv">Using Replicated Environments</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="progoverview.html#configrepenv">Configuring Replicated Environments</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="exceptions.html">HA Exceptions</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="exceptions.html#master-exceptions">Master-Specific HA Exceptions</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="exceptions.html#replica-exceptions">Replica-Specific HA Exceptions</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="exceptions.html#handleexception">Replicated Environment Handle-Specific Exceptions</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="repenvironmentopen.html">Opening a Replicated Environment</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="replicawrites.html">Managing Write Requests at a Replica</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="replicawrites.html#using-statechangelistener">Using the StateChangeListener</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="replicawrites.html#repwriteexception">Catching ReplicaWriteException</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="secondary.html">Secondary Nodes</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="timesync.html">Time Synchronization</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="two-node.html">Configuring Two-Node Groups</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        From an API point of view, there are two basic requirements that
+        every replicated application must meet:
+    </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                It must be a transactional application.
+            </p>
+          </li>
+          <li>
+            <p>
+                It must use a specific form of the <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handle,
+                which you get by using the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> class.
+            </p>
+          </li>
+        </ol>
+      </div>
+      <p>
+        Beyond that, there are some additional requirements in terms of
+        exception handling that your application should perform.
+    </p>
+      <p>
+        The transactional nature of your replicated application is
+        described in <a class="xref" href="txn-management.html" title="Chapter 3. Transaction Management">Transaction Management</a>.
+        This chapter discusses replicated environments and the exceptions
+        unique to exceptions in detail.
+    </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="repenv"></a>Using Replicated Environments</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="progoverview.html#configrepenv">Configuring Replicated Environments</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            Every electable or secondary node manages a single replicated
+            JE environment directory. The environment follows the usual
+            regulations governing a JE environment; namely, only a single
+            read/write process can access the environment at a single point in
+            time.
+        </p>
+        <p>
+            Usually this requirement is met naturally, because usually each
+            node in a replicated application is also operating on a machine
+            that is independent of all the other nodes. However, in some
+            test and development scenarios, this one node to one machine
+            rule might not be met, so the bottom line is that you need to
+            make sure that no two processes are ever attempting to manage
+            the same environment.
+        </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                An application can access a replicated JE environment
+                directory using a read only <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handle. The usual
+                semantics of read only non-replicated <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handles
+                apply in this case. That is, the application can view a
+                snapshot of the replicated environment as of the time the
+                <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handle was opened, through the <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a>
+                handle. An application can therefore open a
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle in one process, and
+                concurrently open read only <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> handles in other
+                processes. Any changes subsequently made to the replicated
+                environment, either by virtue of the node being a Master,
+                or due to a replay of the replication stream (if the node is a
+                Replica), are not accessible through the read only <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a>
+                handles until they are closed and reopened. 
+            </p>
+        </div>
+        <p>
+            Normally you manage your JE environments using the
+            <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> class. However, to provide for the underlying
+            infrastructure needed to implement replication, your JE HA
+            application must instead use the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> class,
+            which is a subclass of <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a>.  Its constructor accepts
+            the normal environment configuration properties using the
+            <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html" target="_top">EnvironmentConfig</a> class, just as you would normally configure
+            an <a class="ulink" href="../java/com/sleepycat/je/Environment.html" target="_top">Environment</a> object. However, the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a>
+            class also accepts an <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html" target="_top">ReplicationConfig</a> class object, which
+            allows you to manage the properties specific to replication.
+        </p>
+        <p>
+            The following is an example of how you instantiate a
+            <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> object. Note that there are some
+            differences in how this is used, depending on whether you are
+            starting a brand-new node or you are restarting an existing
+            node. We discuss these differences in the next section.
+        </p>
+        <p>
+            For a general description of environments and environment
+            configuration, see the <em class="citetitle">Getting Started with Berkeley
+            DB Java Edition</em> guide.
+        </p>
+        <pre class="programlisting">EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setTransactional(true);
+
+// Identify the node
+ReplicationConfig repConfig = new ReplicationConfig();
+repConfig.setGroupName("PlanetaryRepGroup");
+repConfig.setNodeName("Mercury");
+repConfig.setNodeHostPort("mercury.example.com:5001");
+
+// This is the first node, so its helper is itself
+repConfig.setHelperHosts("mercury.example.com:5001");
+ 
+ReplicatedEnvironment repEnv =
+     new ReplicatedEnvironment(envHome, repConfig, envConfig);  </pre>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="configrepenv"></a>Configuring Replicated Environments</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                You configure a JE <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> handle using
+                two different configuration classes: <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html" target="_top">EnvironmentConfig</a>
+                and <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html" target="_top">ReplicationConfig</a>. Your usage of <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html" target="_top">EnvironmentConfig</a>
+                is no different than if you were writing a non-replicated
+                application, so we will not describe its usage here. 
+                For an introduction to basic environment configuration, see
+                the <em class="citetitle">Getting Started with Berkeley DB, Java Edition</em> guide.
+            </p>
+          <p>
+                The <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html" target="_top">ReplicationConfig</a> class allows you to configure
+                properties that are specific to
+                replicated applications. Some of these properties are
+                important in terms of how your application will behave
+                and how well it will perform. These properties are
+                discussed in detail later in this book. 
+            </p>
+          <p>
+                To an extent, you can get away with ignoring most of the
+                configuration properties until you are ready to tune your
+                application's performance and behavior. However, no matter
+                what, there are four properties you must always configure
+                for a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> before opening it.  They are:
+            </p>
+          <div class="orderedlist">
+            <ol type="1">
+              <li>
+                <p>
+                        Group Name
+                    </p>
+                <p>
+                        The group name is a string that uniquely identifies
+                        the group to which the node belongs. This name must
+                        be unique. It is possible to operate multiple
+                        replication groups on the same network. In fact, a
+                        single process can even interact with multiple
+                        replication groups, so long as it maintains
+                        separate replicated environments for each group in
+                        which it is participating. 
+                    </p>
+                <p>
+                        By using unique group names, the JE replication
+                        code can make sure that messages arriving at a
+                        given client are actually meant for that client.
+                    </p>
+                <p>
+                        You set the group name by using the
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setGroupName(java.lang.String)" target="_top">ReplicationConfig.setGroupName()</a> method.
+                        Note that if you do not set a group name, then the
+                        default <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#GROUP_NAME" target="_top">GROUP_NAME</a> value is used.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Node Name
+                    </p>
+                <p>
+                        This name must be unique to the replication group.
+                        This name plus the replication group name uniquely
+                        identifies a node in your enterprise.
+                    </p>
+                <p>
+                        You set the node name by using the
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setNodeName(java.lang.String)" target="_top">ReplicationConfig.setNodeName()</a> method.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Host
+                    </p>
+                <p>
+                        The host property identifies the network name and
+                        port where this node can be reached. Other nodes in
+                        the replication group will use this host/port pair
+                        to establish a TCP/IP connection to this node. This
+                        connection is used to transfer data between
+                        machines, hold elections, and monitor the status of
+                        the replication group.
+                    </p>
+                <p>
+                        You provide the host and port information using a string of the
+                        form:
+                    </p>
+                <pre class="programlisting">host:[port]</pre>
+                <p>
+                        The port that you provide must be higher than 1023.
+                    </p>
+                <p>
+                        You set the host information by using the
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setNodeHostPort(java.lang.String)" target="_top">ReplicationConfig.setNodeHostPort()</a> method.
+                        Note that if you do not set a node host, then the
+                        default <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#NODE_HOST_PORT" target="_top">NODE_HOST_PORT</a> value is used.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Helper Host
+                    </p>
+                <p>
+                        The helper host or hosts are used by a node the
+                        very first time it starts up to find the Master.
+                        Basically, this string should provide one or more
+                        host/port pairs for nodes who should know where the
+                        Master is.
+                    </p>
+                <p>
+                        One of the nodes that you provide on this string
+                        can be the current Master, but that is not
+                        required. All that matters is that the hosts
+                        identified here can tell a new node where the
+                        current Master is.
+                    </p>
+                <p>
+                        If the brand new node is an electable node and cannot
+                        find a Master, it will initiate an election. If no
+                        other electable nodes are available to the new node,
+                        and the current node is specified as the only helper
+                        host, then it will elect itself as Master. If the
+                        current node is truly the very first electable node
+                        starting up in the replication group, then
+                        self-electing itself to be the Master is probably what
+                        you want it to do.
+                    </p>
+                <p>
+                        However, if the current node 
+                        <span class="emphasis"><em>is not</em></span> the very first node starting up
+                        in the replication group, then  a misconfiguration of
+                        this property can cause you to end up with multiple
+                        replication groups, each with the same group name.
+                        This represents an error situation, one that can be
+                        very difficult to diagnose by people who are
+                        inexperienced with managing replication groups.
+                        For this reason, it is very important to make sure
+                        the hosts identified on this string do NOT identify
+                        only the local host except when creating the first
+                        node.
+                    </p>
+                <p>
+                        On subsequent start ups after the very first
+                        startup, the node should be able to locate other
+                        participants in the replication group using
+                        information located in its own database. In that
+                        case, the information provided on this string is
+                        largely ignored unless the current node has been
+                        down or otherwise out of communication with the
+                        rest of the group for so long that its locally
+                        cached information has grown stale. In this case,
+                        the node will attempt to use the information provided here to
+                        locate the current Master.
+                    </p>
+                <p>
+                        You set the helper host information by using the
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setHelperHosts(java.lang.String)" target="_top">ReplicationConfig.setHelperHosts()</a> method.
+                    </p>
+              </li>
+            </ol>
+          </div>
+          <p>
+                When configuring and instantiating a
+                <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> object, you should usually
+                configure the environment so that a helper host other than
+                the local machine is used:
+            </p>
+          <pre class="programlisting">EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setTransactional(true);
+ 
+// Identify the node
+ReplicationConfig repConfig = new ReplicationConfig();
+repConfig.setGroupName("PlanetaryRepGroup");
+repConfig.setNodeName("Jupiter");
+repConfig.setNodeHostPort("jupiter.example.com:5002");
+ 
+// Use the node at mercury.example.com:5001 as a helper to find the rest
+// of the group.
+repConfig.setHelperHosts("mercury.example.com:5001");
+ 
+ReplicatedEnvironment repEnv =
+   new ReplicatedEnvironment(envHome, repConfig, envConfig);  </pre>
+          <p>
+    Note that if you are restarting a node that has already been added to
+    the replication group, then you do not have to supply a helper host at
+    all. This is because the node will already have locally stored host and port 
+    information about the other nodes in the group.
+</p>
+          <pre class="programlisting">EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setTransactional(true);
+ 
+// Identify the node
+ReplicationConfig repConfig = 
+    new ReplicationConfig("PlanetaryRepGroup", 
+                          "Jupiter", 
+                          "jupiter.example.com:5002");
+ 
+ReplicatedEnvironment repEnv =
+   new ReplicatedEnvironment(envHome, repConfig, envConfig);  </pre>
+          <p>
+    However, if you are starting the very first node in the replication
+    group for the very first time, then there is no other helper host that
+    the node can use to locate a Master. In this case, identify the current
+    node as the helper host, and it will then go ahead and become a
+    replication group of size 1 with itself as a Master.
+</p>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+        Do this ONLY if you are truly starting the very first electable
+        node in a replication group for the very first time.
+    </p>
+          </div>
+          <pre class="programlisting">EnvironmentConfig envConfig = new EnvironmentConfig();
+envConfig.setAllowCreate(true);
+envConfig.setTransactional(true);
+ 
+// Identify the node
+ReplicationConfig repConfig = 
+    new ReplicationConfig("PlanetaryRepGroup", 
+                          "Jupiter", 
+                          "jupiter.example.com:5002");
+ 
+// This is the first node, so the helper is itself.
+repConfig.setHelperHosts("jupiter.example.com:5002");
+ 
+ReplicatedEnvironment repEnv =
+   new ReplicatedEnvironment(envHome, repConfig, envConfig);  </pre>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="lifecycle.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="exceptions.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Replication Group Life Cycle </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> HA Exceptions</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

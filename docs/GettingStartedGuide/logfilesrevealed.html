@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Six Things Everyone Should Know about JE Log Files</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction to Berkeley DB Java Edition" />
+    <link rel="prev" href="jeexceptions.html" title="JE Exceptions" />
+    <link rel="next" href="env.html" title="Chapter 2. Database Environments" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Six Things Everyone Should Know about JE Log Files</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="jeexceptions.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction to Berkeley DB Java Edition </th>
+          <td width="20%" align="right"> <a accesskey="n" href="env.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="logfilesrevealed"></a>Six Things Everyone Should Know about JE Log Files</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        JE log files are not like the log files of other database systems.  Nor are they like the log files or database
+        files created by Berkeley DB C Edition.  In this guide you will learn more about log files as you go along, but it is good
+        to keep the following points in mind as you begin using JE.
+    </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                JE log files are "append only".  Record insertions, deletions, and updates are always added at the end
+                of the current file.  The first file is named <code class="literal">00000000.jdb</code>.  When that file grows to a certain size
+                (10 MB by default) a new file named <code class="literal">00000001.jdb</code> becomes the current file, and so on. 
+            </p>
+          </li>
+          <li>
+            <p>
+                There are no separate database files.  Unlike Berkeley DB C Edition, databases are not stored in files
+                that are separate from the transaction log.  The transaction log and the database records are stored
+                together in a single sequential log consisting of multiple log files.               
+            </p>
+          </li>
+          <li>
+            <p>
+                The JE cleaner is responsible for reclaiming unused disk space.  When the records in a log file are
+                superseded by deletions or updates recorded in a later log file, the older log file is no longer fully
+                utilized.  The cleaner, which operates by default as a separate thread, determines the least utilized
+                log files, copies any still utilized records in those files to the end of the current log file, and
+                finally deletes the now completely un-utilized log file.
+            </p>
+            <p>
+                See <a class="xref" href="backgroundthreads.html#cleaner" title="The Cleaner Thread">The Cleaner Thread</a> for more information on the cleaner.
+            </p>
+          </li>
+          <li>
+            <p>
+               Cleaning does not start immediately and never produces 100% utilization.  Until you have written enough
+               data to create several log files, and some of that data is obsoleted through deletions and updates, you
+               will not notice any log files being deleted by the cleaner.  By default cleaning occurs in the background and
+               maintains the log files at 50% utilization.  You can configure a higher utilization value, but
+               configuring too high a utilization value will reduce overall performance.                
+            </p>
+          </li>
+          <li>
+            <p>
+                Cleaning is not automatically performed when closing the environment.  If you wish to reduce unused disk
+                space to a minimum at a particular point in time, you must explicitly call a method to perform log
+                cleaning.  See the <a class="xref" href="envclose.html" title="Closing Database Environments">Closing Database Environments</a> for more information.
+            </p>
+          </li>
+          <li>
+            <p>
+                Log file deletion only occurs after a checkpoint.  The cleaner prepares log files to be deleted, but
+                file deletion must be performed after a checkpoint to ensure that the files are no longer referenced.
+                Checkpoints occur on their own schedule, which is every 20 MB of log written, by default.  This is part
+                of the reason that you will not see log files being deleted until after several files have been created.
+            </p>
+            <p>
+                When using JE's replication (high availability) feature, a checkpoint does not delete
+                the cleaned log file but instead instead changes the status of the file to <span class="emphasis"><em>reserved</em></span>.
+                Reserved files are only deleted when disk utilization exceeds the values set for either
+                <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a> or <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a>.
+            </p>
+          </li>
+          <li>
+            <p>
+                Log files can be spread across multiple directories, and therefore across multiple
+                disks through the use of links or mount points. See
+                <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a>
+                for more information.
+            </p>
+          </li>
+        </ol>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="jeexceptions.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="env.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">JE Exceptions </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 2. Database Environments</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

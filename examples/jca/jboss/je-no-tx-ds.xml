@@ -1,0 +1,8 @@
+<!-- The Berkeley DB Java Edition No transaction Resource
+     Adaptor service configuration. -->
+<connection-factories>
+   <no-tx-connection-factory>
+      <jndi-name>NoTransJE</jndi-name>
+      <adapter-display-name>Berkeley DB Java Edition JCA Adapter</adapter-display-name>
+   </no-tx-connection-factory>
+</connection-factories>

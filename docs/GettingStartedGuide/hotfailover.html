@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Hot Standby</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="backuprestore.html" title="Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications" />
+    <link rel="prev" href="catastrophicrecovery.html" title="Performing Catastrophic Recovery" />
+    <link rel="next" href="administration.html" title="Chapter 12. Administering Berkeley DB Java Edition Applications" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Hot Standby</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="catastrophicrecovery.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 11. Backing up and Restoring Berkeley DB Java Edition Applications</th>
+          <td width="20%" align="right"> <a accesskey="n" href="administration.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="hotfailover"></a>Hot Standby</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+            As a final backup/recovery strategy, you can create a hot standby. Note that using hot standbys requires
+            your application to be able to specify its environment home directory at application startup time. Most
+            application developers allow the environment home directory to be identified using a command line option or a
+            configuration or properties file. If your application has its
+            environment home hard-coded into it, you cannot use hot standbys.
+        </p>
+      <p>
+            You create a hot standby by periodically backing up your database to an alternative
+            location on disk. Usually this alternative location is on a separate physical drive from
+            where you normally keep your database, but if multiple drives are not available then you
+            should at least put the hot standby on a separate disk partition.
+        </p>
+      <p>
+            You failover to your hot standby by causing your application to reopen its environment using the hot standby
+            location.
+        </p>
+      <p>
+            Note that a hot standby should not be used as a substitute for backing up and archiving your data to a safe
+            location away from your operating environment. Even if your data is spread across multiple physical disks, a
+            truly serious catastrophe (fires,  malevolent software viruses,
+            faulty disk controllers, and so forth) 
+            can still cause you to lose your data. 
+        </p>
+      <p>
+            To create and maintain a hot standby:
+        </p>
+      <div class="orderedlist">
+        <ol type="1">
+          <li>
+            <p>
+                        Copy all log files (<code class="filename">*.jdb</code>) from your environment
+                        directory to the location where you want to keep your standby.  Either a hot
+                        or an offline backup can be used for this purpose, but typically a hot
+                        standby is initially created by taking an offline backup of your database.
+                        This ensures that you have captured the contents of your in-memory cache.
+                    </p>
+            <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+              <h3 class="title">Note</h3>
+              <p>
+                            If you are using subdirectories to store your log files, then you must backup
+                            the subdirectories, making sure to keep log files in the subdirectory in which
+                            JE placed them. For information on using subdirectories to store your log
+                            files, see <a class="xref" href="env.html#multisubdir" title="Multiple Environment Subdirectories">Multiple Environment Subdirectories</a>.
+                        </p>
+            </div>
+          </li>
+          <li>
+            <p>
+                    Periodically copy to your standby directory any log files that were changed or created since the
+                    time of your last copy. Most backup software is capable of performing this kind of an incremental
+                    backup for you. 
+                </p>
+            <p>
+                    Note that the frequency of your incremental copies determines the amount of data that is at risk due to catastrophic
+                    failures. For example, if you perform the incremental copy once an hour then at most your hot standby is an hour behind
+                    your production database, and so you are risking at most an hours worth of database changes.
+                </p>
+          </li>
+          <li>
+            <p>
+                    Remove any <code class="filename">*.jdb</code> files from the hot standby directory that have been removed or
+                    renamed to <code class="filename">.del</code> files in the primary directory.  This is not necessary for
+                    consistency, but will help to reduce disk space consumed by the hot standby.
+                </p>
+          </li>
+        </ol>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="catastrophicrecovery.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="backuprestore.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="administration.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Performing Catastrophic Recovery </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 12. Administering Berkeley DB Java Edition Applications</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

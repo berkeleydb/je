@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<ivy-module version="2.0">
+
+    <info organisation="oracle" module="retrieve"/>
+
+    <configurations>
+        <conf name="junit"/>
+        <conf name="j2ee"/>
+    </configurations>
+
+    <dependencies defaultconfmapping="*->*,!sources,!javadoc">
+        <dependency
+            conf="junit" org="junit" name="junit" rev="4.10"
+            transitive="true"/>
+        <dependency
+            conf="j2ee" org="javax" name="javaee-api" rev="7.0"
+            transitive="false"/>
+    </dependencies>
+
+</ivy-module>

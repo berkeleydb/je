@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Closing Database Environments</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="env.html" title="Chapter 2. Database Environments" />
+    <link rel="prev" href="env.html" title="Chapter 2. Database Environments" />
+    <link rel="next" href="EnvProps.html" title="Environment Properties" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Closing Database Environments</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="env.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Database Environments</th>
+          <td width="20%" align="right"> <a accesskey="n" href="EnvProps.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="envclose"></a>Closing Database Environments</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        You close your environment by calling the <code class="methodname">Environment.close()</code>
+        method. This method performs a checkpoint, so it is not necessary to perform a sync or a
+        checkpoint explicitly before calling it. For information on checkpoints, see the
+        <em class="citetitle">Berkeley DB, Java Edition Getting Started with Transaction Processing</em> guide.  For information on syncs, see <a class="xref" href="backuprestore.html#syncs" title="Database Modifications and Syncs">Database Modifications and Syncs</a>.
+    </p>
+      <a id="je_env2"></a>
+      <pre class="programlisting">import com.sleepycat.je.DatabaseException;
+
+import com.sleepycat.je.Environment;
+
+...
+
+try {
+    if (myDbEnvironment != null) {
+        myDbEnvironment.close();
+    } 
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+} </pre>
+      <p>
+            If you are using the DPL,  then close your environment(s) only after all other store
+            activities have completed and you have closed any stores currently opened in the
+            environment. If you are using the base API, then close your environment(s) only after
+            all other database activities have completed and you have closed any databases currently
+            opened in the environment.
+    </p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+            It is possible for the environment to close before JE's 
+            cleaner thread 
+            has finished its work. This happens if you perform a large number of deletes immediately
+            before shutting down your environment. The result is that your log files may be quit a lot larger than you
+            expect them to be because the cleaner thread has not had a chance to finish its work. 
+         </p>
+        <p>
+                 See <a class="xref" href="backgroundthreads.html#cleaner" title="The Cleaner Thread">The Cleaner Thread</a> for
+                 details on the cleaner threads.
+         </p>
+        <p>
+            If you want to make sure that the cleaner has finished running before the environment is closed, 
+            call <code class="methodname">Environment.cleanLog()</code> before calling
+            <code class="methodname">Environment.close()</code>:
+        </p>
+        <a id="je_env2-1"></a>
+        <pre class="programlisting">import com.sleepycat.je.DatabaseException;
+
+import com.sleepycat.je.Environment;
+
+...
+
+try {
+    if (myDbEnvironment != null) {
+        myDbEnvironment.cleanLog(); // Clean the log before closing
+        myDbEnvironment.close();
+    } 
+} catch (DatabaseException dbe) {
+    // Exception handling goes here
+} </pre>
+      </div>
+      <p>
+        Closing the last environment handle in your application causes all internal data structures
+        to be released and the background threads to be stopped. If there are any opened databases,
+        then JE will complain before closing them as well.  At this time, and any on-going
+        transactions are aborted.  Also at this time any open cursors are also closed. However, it is recommended that you always close all cursor handles immediately after their use to ensure concurrency and to release resources such as page locks. 
+    </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="env.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="env.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="EnvProps.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 2. Database Environments </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Environment Properties</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

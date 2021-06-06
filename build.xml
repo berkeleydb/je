@@ -1,0 +1,2394 @@
+<?xml version="1.0"?>
+
+<!-- =========================================== -->
+<!-- Ant Build File for Berkeley DB Java Edition -->
+<!-- =========================================== -->
+
+<project name="JE" default="jar" basedir="."
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+
+    <description>Compile and test JE</description>
+
+    <fail message="Ant 1.8.0 or greater is required">
+      <condition><not><antversion atleast="1.8.0"/></not></condition>
+    </fail>
+
+    <import file="build-common.xml"/>
+    <property file="build.properties"/>
+
+    <property name="dist.srcdir" value="${basedir}/dist"/>
+    <property name="dist.destdir" value="${builddir}/dist"/>
+
+    <property name="unittest.srcdir" value="${basedir}/test"/>
+    <property name="unittest.dir" value="${builddir}/test"/>
+    <property name="unittest.destdir" value="${unittest.dir}/classes"/>
+    <property name="unittest.envdirroot" value="${unittest.dir}/envdata"/>
+    <property name="unittest.failures" value="${unittest.dir}/failures"/>
+    <property name="unittest.copylimit" value="10"/>
+    <property name="unittest.datadir" value="${unittest.dir}/data"/>
+    <property name="unittest.extraenvdir" value="${unittest.dir}/propTest"/>
+    <property name="unittest.extraenvdir2" value="${unittest.dir}/propTest2"/>
+    <property name="unittest.reportsdir" value="${unittest.dir}/reports"/>
+    <property name="unittest.testclassloader"
+              value="${unittest.dir}/testclassloader"/>
+    <property name="unittest.testserialdir" value="${unittest.dir}/testserial"/>
+    <property name="unittest.testevolvedir" value="${unittest.dir}/testevolve"/>
+    <property name="unittest.serialtest.bdb"
+	      value="${unittest.dir}/StoredClassCatalogTest-bdb"/>
+    <property name="unittest.serialtest.txn"
+	      value="${unittest.dir}/StoredClassCatalogTest-txn"/>
+    <property name="unittest.showoutput" value="true"/>
+
+    <property name="doc.dir" value="${basedir}/docs"/>
+    <property name="doc.javadir" value="${doc.dir}/java"/>
+    <property name="doc.internaljavadir" value="${doc.dir}/internal-javadoc"/>
+    <property name="doc.examplesdir" value="${doc.dir}/examples"/>
+    <property name="doc.scratchdir" value="${builddir}/tmp"/>
+    <property name="docsrc.dir" value="${basedir}/docs_src"/>
+    <property name="doclet.src.dir" value="${doc.dir}/doclet"/>
+    <property name="doclet.classes.dir" value="${doclet.src.dir}/Classes"/>
+    <property name="doclet.jar" value="${doc.dir}/HidingDoclet.jar"/>
+
+    <property name="java.apidoc"
+              value="http://docs.oracle.com/javase/8/docs/api"/>
+    <property name="proxy.port" value="80"/>
+    <property name="javadoc.css" value="${docsrc.dir}/style.css"/>
+
+    <property name="jarfile" value="${libdir}/je.jar"/>
+    <property name="jcararfile" value="${libdir}/jejca.rar"/>
+    <property name="testjarfile" value="${libdir}/test.jar"/>
+
+    <property name="j2ee.jarfile" value="${extlibdir}/javaee-api-7.0.jar"/>
+    <property name="jconsole.jarfile" value="${extlibdir}/jconsole.jar"/>
+
+    <property name="clover.tmpdir" value="${builddir}/tmp"/>
+    <property name="clover.initstring"
+              location="${clover.tmpdir}/jecoverage.db"/>
+          <property name="clover.libdir" value="/clover/lib"/>
+    <property name="clover.excludes" value="**/rpcserver/** **/je/examples/** **/je/junit/** **/*Test.java **/*TestBase.java **/compat/** **/je/util/**"/>
+
+    <property name="example.srcdir" value="${basedir}/examples"/>
+    <property name="example.destdir" value="${destdir}"/>
+
+    <property name="packages" value="com.sleepycat.*"/>
+    <property file="${user.home}/ant.properties"/>
+    <property name="release.propertyfile"
+              value="${dist.destdir}/build.properties"/>
+    <property name="installdestdir" value="/usr/local"/>
+    <property name="maven.dir" value="${dist.srcdir}/maven"/>
+
+    <!-- Set the used data verifier schedule in unit test  -->
+    <property name="test.je.env.verifierSchedule" value="* * * * *"/>
+
+    <!--
+    Can be used to specify a JVM for <java> and <junit> tasks that is different
+    than the JVM used to run ant (which is normally in JAVA_HOME). For example:
+      ant "-Djvm=/usr/lib/jvm/jdk1.8.0_20/bin/java" ...
+    -->
+    <property name="jvm" value="java"/>
+
+    <!--
+    Can be used to override JVM args for <java> and <junit> tasks. For example:
+      ant "-Djvmargs=-Xmx32M -client" ...
+    -->
+    <property name="jvmargs" value=""/>
+
+    <property name="jdk.allowed.versions" value="1.8 or 1.9"/>
+
+    <!-- Check whether we're running an allowed Java version -->
+    <fail message="Using Java ${ant.java.version}, but need
+${jdk.allowed.versions}">
+      <condition>
+        <not>
+          <contains string="${jdk.allowed.versions}"
+                    substring="${ant.java.version}"/>
+        </not>
+      </condition>
+    </fail>
+
+    <!--
+    On non-Zing JVMs, use G1 GC when running tests on Java 8, since with CMS on
+    Java 8 we sometimes see OOME. Otherwise use the default for the JVM, which
+    is CMS for Java 8 (non-Zing), G1 for Java 9 (non-Zing), and C4 for Zing.
+    -->
+    <condition property="jvm.gc"
+        value="-XX:+UseG1GC"
+         else="">
+      <and>
+        <equals arg1="${ant.java.version}" arg2="1.8"/>
+        <not>
+          <equals arg1="${java.vendor}" arg2="Azul Systems, Inc."/>
+        </not>
+      </and>
+    </condition>
+
+    <!--
+    Must add -XX:+UseZingMXBeans when running under Zing.
+    -->
+    <condition property="zing.jvm.options"
+        value="-XX:+UseZingMXBeans"
+         else="">
+      <equals arg1="${java.vendor}" arg2="Azul Systems, Inc."/>
+    </condition>
+
+    <!--
+    For unit testing using different default isolation levels.  May be:
+     empty string (repeatableRead)
+     readCommitted (degree 2)
+     serializable (degree 3)
+    -->
+    <property name="isolationLevel" value=""/>
+
+    <!--
+    For unit testing with the off-heap cache. Set it to zero to disable it.
+    -->
+    <property name="offHeapCacheSize" value="500000"/>
+
+    <!-- For long and short version of unit tests. May be:
+               empty string (false);
+	       true
+	       false
+    -->
+    <property name="longtest" value="false"/>
+
+    <path id="empty.classpath"/>
+
+    <!--
+    The testjar property may be specified to use a specific JE jar for running
+    tests, instead of using the classes built here.
+    -->
+    <condition property="classes.location"
+               value="${testjar}"
+               else="${destdir}">
+      <isset property="testjar"/>
+    </condition>
+
+    <path id="class.path">
+      <pathelement location="${classes.location}"/>
+      <pathelement location="."/>
+    </path>
+
+    <path id="examples.classpath">
+      <path refid="class.path"/>
+    </path>
+
+    <path id="unittest.classpath">
+      <path refid="class.path"/>
+      <pathelement location="${unittest.destdir}"/>
+      <pathelement path="${junit.jarfile}"/>
+      <pathelement path="${hamcrest.jarfile}"/>
+    </path>
+
+    <path id="clover.classpath">
+      <pathelement path="${clover.libdir}/clover.jar"/>
+      <pathelement path="${clover.libdir}/velocity.jar"/>
+    </path>
+
+    <path id="unittest-j2ee.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement location="${unittest.destdir}"/>
+      <pathelement location="${examples.destdir}"/>
+      <pathelement path="${j2ee.jarfile}"/>
+    </path>
+
+    <path id="jca.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement path="${j2ee.jarfile}"/>
+      <pathelement path="${example.resources}"/>
+    </path>
+
+    <path id="j2ee.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement path="${j2ee.jarfile}"/>
+    </path>
+
+    <path id="jconsole.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement path="${jconsole.jarfile}"/>
+    </path>
+
+    <fileset id="jarclasses" dir="${destdir}"
+             includes="com/sleepycat/asm/**/*.class,
+                       com/sleepycat/bind/**/*.class,
+                       com/sleepycat/collections/**/*.class,
+                       com/sleepycat/compat/**/*.class,
+                       com/sleepycat/je/**/*.class,
+                       com/sleepycat/persist/**/*.class,
+                       com/sleepycat/util/**/*.class,
+                       com/sleepycat/utilint/**/*.class"/>
+
+    <fileset id="clover.excludeclasses" dir="src/com/sleepycat">
+      <exclude name="asm/**/*.java" />
+      <exclude name="bind/RecordNumberBinding.java" />
+      <exclude name="collections/StoredList.java" />
+    </fileset>
+
+    <target name="buildDbg">
+      <description>debug the build file itself</description>
+      <property name="classpath.string" refid="class.path"/>
+      <property name="unittestclasspath.string" refid="unittest.classpath"/>
+      <echoproperties/>
+    </target>
+
+    <exec outputproperty="dns.domain.name"
+          executable="dnsdomainname" os="Linux"/>
+
+    <condition property="proxy.host" value="www-proxy">
+      <and>
+        <not><isset property="proxy.host"/></not>
+        <equals arg1="${dns.domain.name}" arg2="us.oracle.com"/>
+      </and>
+    </condition>
+
+    <condition property="proxy.host.isset">
+      <and>
+        <isset property="proxy.host"/>
+        <not><equals arg1="${proxy.host}" arg2="" trim="true"/></not>
+      </and>
+    </condition>
+
+    <target name="set-proxy" if="proxy.host.isset">
+      <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}"/>
+      <echo message="Using HTTP proxy: ${proxy.host}:${proxy.port}"/>
+    </target>
+
+    <target name="init" depends="set-proxy">
+        <mkdir dir="${builddir}"/>
+        <mkdir dir="${destdir}"/>
+        <mkdir dir="${libdir}"/>
+        <mkdir dir="${extlibdir}"/>
+        <mkdir dir="${dist.destdir}"/>
+        <mkdir dir="${doc.dir}"/>
+        <mkdir dir="${doc.javadir}"/>
+        <mkdir dir="${doc.examplesdir}"/>
+        <mkdir dir="${clover.tmpdir}"/>
+        <mkdir dir="${unittest.dir}"/>
+        <mkdir dir="${unittest.destdir}"/>
+        <mkdir dir="${unittest.envdirroot}"/>
+        <mkdir dir="${unittest.extraenvdir}"/>
+        <mkdir dir="${unittest.extraenvdir2}"/>
+        <mkdir dir="${unittest.testclassloader}"/>
+        <mkdir dir="${unittest.testserialdir}"/>
+        <mkdir dir="${unittest.testevolvedir}"/>
+        <tstamp/>
+	<antcall target="do-internal">
+	   <param name="target" value="init"/>
+        </antcall>
+        <!-- update extlibdir to prevent unnecessary retrieval -->
+        <touch>
+          <fileset file="${extlibdir}"/>
+        </touch>
+    </target>
+
+    <target name="compile"
+            depends="compile-src, compile-examples, compile-unittest">
+	<antcall target="do-internal">
+	   <param name="target" value="compile"/>
+        </antcall>
+    </target>
+
+    <target name="compile-j2ee"
+            depends="get-j2ee-jar,
+	             compile-jmx,
+	             compile-jca"/>
+
+    <target name="get-junit-jar">
+        <ivy:retrieve conf="junit"/>
+    </target>
+
+    <target name="get-j2ee-jar">
+        <ivy:retrieve conf="j2ee"/>
+    </target>
+
+    <target name="ivy-clean">
+      <delete includeemptydirs="true">
+        <fileset dir="${extlibdir}"/>
+      </delete>
+    </target>
+
+    <target name="ivy-clean-cache">
+      <ivy:cleancache />
+    </target>
+
+    <!--
+    Copy jconsole.jar from the JVM lib directory, which for the JDK is at the
+    same directory level as java.home, which is $JAVA_HOME/jre. To be paranoid,
+    try copying from both java.home/lib and java.home/../lib. Never overwrite,
+    to allow the user to manually copy the jar file into extlib.
+    -->
+    <target name="get-jconsole-jar">
+
+        <copy file="${java.home}/lib/jconsole.jar"
+            failonerror="false" overwrite="false" todir="${extlibdir}"/>
+
+        <copy file="${java.home}/../lib/jconsole.jar"
+            failonerror="false" overwrite="false" todir="${extlibdir}"/>
+
+        <fail message="${jconsole.jarfile} is missing and could not be copied from ${java.home}/lib or ${java.home}/../lib. You may wish to manually copy it to ${extlibdir}.">
+            <condition>
+                <not><available file="${jconsole.jarfile}"/></not>
+            </condition>
+        </fail>
+    </target>
+
+    <!--
+    For downloading/copying all 3rd party jars to the extlib directory without
+    doing a build, when using an IDE for example.
+    -->
+    <target name="extlib"
+            depends="get-junit-jar, get-j2ee-jar, get-jconsole-jar"/>
+
+    <!-- ====== Internal (non-public) targets delegated to internal.xml =======
+
+    For each top level target in internal.xml, a target here is used to compile
+    all JE and internal sources and then invoke the target via internal.xml.
+    Any other parameters for each target are passed using properties (-D
+    propName=propValue).
+    ======================================================================= -->
+    <target name="do-internal">
+       <ant antfile="ant/internal.xml" target="${target}"
+            inheritAll="true" inheritrefs="true"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Clean                                                        -->
+    <!-- ============================================================ -->
+    <target name="clean" depends="clean-src,
+                                  clean-unittest,
+                                  clean-clover,
+				  clean-jar,
+                                  clean-package">
+	<antcall target="do-internal">
+	   <param name="target" value="clean"/>
+        </antcall>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Compiles                                                     -->
+    <!-- ============================================================ -->
+    <target name="clean-src" depends="init">
+        <delete>
+            <fileset dir="${destdir}"
+             includes="**/*.class,**/package.html,**/*.xml"/>
+        </delete>
+        <delete dir="${dist.destdir}"/>
+    </target>
+
+    <!--
+    Classes that must be compiled for Java 6 compatibility. This list must at
+    least include the KVS build.xml classes in the jeclientclasses* props.
+
+    Note that we don't need ReplicatedEnvironment.class for Java 6 but we do
+    need ReplicatedEnvironment$State.class, so we must compile its enclosing
+    class (ReplicatedEnvironment) with Java 6.
+    -->
+    <property name="java6.classes"
+       value="com/sleepycat/bind/tuple/TupleInput.class,
+              com/sleepycat/bind/tuple/TupleOutput.class,
+              com/sleepycat/je/BinaryEqualityComparator.class,
+              com/sleepycat/je/DatabaseException.class,
+              com/sleepycat/je/EnvironmentFailureException.class,
+              com/sleepycat/je/RunRecoveryException.class,
+              com/sleepycat/je/log/Loggable.class,
+              com/sleepycat/je/rep/ReplicatedEnvironment.class,
+              com/sleepycat/je/rep/ReplicatedEnvironment$State.class,
+              com/sleepycat/je/rep/ReplicatedEnvironmentStats.class,
+              com/sleepycat/je/rep/impl/networkRestore/NetworkBackupStats.class,
+              com/sleepycat/je/utilint/CollectionUtils*.class,
+              com/sleepycat/je/utilint/DbLsn.class,
+              com/sleepycat/je/utilint/JVMSystemUtils.class,
+              com/sleepycat/je/utilint/PropUtil.class,
+              com/sleepycat/je/utilint/VLSN.class,
+              com/sleepycat/util/FastInputStream.class,
+              com/sleepycat/util/FastOutputStream.class,
+              com/sleepycat/util/PackedInteger.class,
+              com/sleepycat/util/UtfOps.class,
+              com/sleepycat/utilint/*.class
+              com/sleepycat/persist/EntityStore.class,
+              com/sleepycat/je/Transaction.class"/>
+
+    <!--
+    Compile the class files we require for Java 6 by deleting them and then
+    compiling as usual. Assumes sources were previously compiled for Java 7 by
+    compile-src.
+
+    A minor flaw in is that the Java 6 files are always recompiled, since they
+    are compiled first for the current version of Java and then deleted
+    explicitly each time this target is run. This is not considered a problem
+    because the number of files is not large and this doesn't happen when
+    -Djdk6.home= is not specified. This approach is necessary in order to
+    compile the minimum number of classes for Java 6.
+    -->
+    <target name="compile-java6" if="jdk6.home">
+        <delete dir="${destdir}" includes="${java6.classes}"/>
+        <ant antfile="ant/compile.xml" dir="." inheritall="false"
+             target="compile-java6">
+            <reference refid="class.path" torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+    <!--
+    Sources that are dependent on the base sources, and which should only be
+    compiled after the base sources. The idea is to compile the base/standalone
+    sources first to detect undesired dependences on rep, collections, persist.
+    -->
+    <property name="srcfiles.non-base"
+        value="com/sleepycat/je/rep/**/*.java,
+               com/sleepycat/asm/**/*.java,
+               com/sleepycat/collections/**/*.java,
+               com/sleepycat/persist/**/*.java"/>
+
+    <target name="compile-src" depends="init">
+        <!-- Compile the base/standalone sources. -->
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="exclude2" value="${srcfiles.non-base}"/>
+            <reference refid="class.path" torefid="compile.classpath"/>
+        </ant>
+        <!-- Compile the remainder/non-base sources. -->
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="class.path" torefid="compile.classpath"/>
+        </ant>
+        <!-- Recompile the Java 6 sources after all others.  -->
+        <antcall target="compile-java6"/>
+        <!-- Enhance the built-in persistent proxy classes. -->
+	<!-- ONEJAVASTART -->
+        <taskdef name="enhancer"
+                 classname="com.sleepycat.persist.model.ClassEnhancerTask">
+          <classpath refid="class.path"/>
+        </taskdef>
+        <enhancer verbose="off">
+          <fileset dir="${destdir}"
+                   includes="com/sleepycat/persist/impl/*Proxy.class"/>
+        </enhancer>
+	<!-- ONEJAVASTOP -->
+    </target>
+
+    <target name="compile-examples" depends="compile-src">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="srcdir" value="${example.srcdir}"/>
+            <property name="include" value="**/*.java"/>
+            <property name="exclude2" value="jca/**/*.java"/>
+            <reference refid="examples.classpath" torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+    <target name="compile-jmx" depends="compile-src, init">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="j2ee.classpath" torefid="compile.classpath"/>
+            <property name="include" value="com/sleepycat/je/jmx/**/*.java"/>
+            <property name="exclude2" value=""/>
+        </ant>
+    </target>
+
+    <target name="compile-jmxexamples" depends="compile-jmx">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="j2ee.classpath" torefid="compile.classpath"/>
+            <property name="srcdir" value="${example.srcdir}"/>
+            <property name="include" value="jmx/**/*.java"/>
+            <property name="exclude2" value=""/>
+        </ant>
+    </target>
+
+    <target name="compile-jca" depends="get-j2ee-jar, compile-src">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="j2ee.classpath" torefid="compile.classpath"/>
+            <property name="include" value="com/sleepycat/je/jca/**/*.java"/>
+            <property name="exclude1" value=""/>
+        </ant>
+    </target>
+
+    <target name="compile-jcaexamples" depends="compile-jca">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="j2ee.classpath" torefid="compile.classpath"/>
+            <property name="srcdir" value="${example.srcdir}"/>
+            <property name="include" value="jca/**/*.java"/>
+            <property name="exclude1" value=""/>
+        </ant>
+    </target>
+
+    <target name="compile-jconsoleplugin"
+            depends="get-jconsole-jar, compile-src">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="jconsole.classpath" torefid="compile.classpath"/>
+            <property name="include"
+                      value="com/sleepycat/je/jmx/plugin/*.java"/>
+            <property name="exclude3" value=""/>
+            <property name="jdk.source.version" value="1.6"/>
+            <property name="jdk.target.version" value="1.6"/>
+        </ant>
+    </target>
+
+    <target name="compile-rep-jconsoleplugin" depends="compile-jconsoleplugin">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <reference refid="jconsole.classpath" torefid="compile.classpath"/>
+            <property name="include"
+                      value="com/sleepycat/je/rep/jmx/plugin/*.java"/>
+            <property name="exclude4" value=""/>
+            <property name="jdk.source.version" value="1.6"/>
+            <property name="jdk.target.version" value="1.6"/>
+        </ant>
+    </target>
+
+    <!-- Compiles dist/CreateRELEASEFile.java for jar packaging. -->
+    <target name="compile-dist" depends="compile-src">
+        <javac srcdir="${dist.srcdir}"
+               destdir="${dist.destdir}"
+               includeantruntime="true"
+               source="${jdk.source.version}"
+               target="${jdk.target.version}">
+            <classpath refid="class.path"/>
+        </javac>
+    </target>
+
+
+    <!-- ============================================================ -->
+    <!-- Jars                                                         -->
+    <!-- ============================================================ -->
+    <target name="clean-jar">
+        <delete dir="${libdir}"/>
+    </target>
+
+    <!-- JE jar -->
+    <target name="jar" depends="clean-package, compile-src, je-version">
+        <jar jarfile="${jarfile}">
+	<fileset refid="jarclasses"/>
+        <manifest>
+            <attribute name="Main-Class"
+                       value="com.sleepycat.je.utilint.JarMain"/>
+            <attribute name="Premain-Class"
+                       value="com.sleepycat.persist.model.ClassEnhancer"/>
+            <attribute name="Implementation-Title"
+                       value="Berkeley DB Java Edition"/>
+            <attribute name="Implementation-Version"
+                       value="${version.result}"/>
+            <attribute name="Implementation-Vendor"
+                       value="Oracle"/>
+            <attribute name="Implementation-URL"
+                       value="http://www.oracle.com/"/>
+            <attribute name="Build-Date"
+                       value="${release.date}"/>
+            <attribute name="Build-Id"
+                       value="${release.id}"/>
+        </manifest>
+        </jar>
+    </target>
+
+    <!-- Test jar -->
+    <target name="testjar" depends="clean-package, compile, je-version">
+        <jar jarfile="${testjarfile}">
+	<fileset refid="jarclasses"/>
+        <fileset dir="${unittest.destdir}" includes="**/*.class"/>
+        <fileset dir="${unittest.dir}/standalone/classes" includes="**/*.class"/>
+        <manifest>
+            <attribute name="Main-Class"
+                       value="com.sleepycat.je.utilint.JarMain"/>
+            <attribute name="Premain-Class"
+                       value="com.sleepycat.persist.model.ClassEnhancer"/>
+            <attribute name="Implementation-Title"
+                       value="Berkeley DB Java Edition"/>
+            <attribute name="Implementation-Version"
+                       value="${version.result}"/>
+            <attribute name="Implementation-Vendor"
+                       value="Oracle"/>
+            <attribute name="Implementation-URL"
+                       value="http://www.oracle.com/"/>
+            <attribute name="Build-Date"
+                       value="${release.date}"/>
+            <attribute name="Build-Id"
+                       value="${release.id}"/>
+        </manifest>
+        </jar>
+    </target>
+
+    <!-- jca jar -->
+    <target name="jcajar" depends="compile-jca">
+        <jar jarfile="${libdir}/jejca.jar">
+            <fileset dir="${destdir}"
+                     includes="com/sleepycat/je/jca/ra/**"/>
+       </jar>
+    </target>
+
+    <target name="clean-jca" depends="init">
+         <delete>
+             <fileset dir="${destdir}"
+                      includes="**/jca/**/*.class,package"/>
+         </delete>
+         <delete dir="${dist.destdir}/**/jca"/>
+    </target>
+
+    <target name="jca" depends="jcajar, jar">
+       <jar destfile="${jcararfile}">
+	  <metainf dir="${srcdir}/com/sleepycat/je/jca/ra" includes="ra.xml"/>
+	  <fileset dir="${libdir}" includes="jejca.jar"/>
+	  <fileset dir="${libdir}" includes="je.jar"/>
+       </jar>
+    </target>
+
+    <!-- JCA examples jar -->
+    <target name="jca-examples" depends="compile-jcaexamples, jca">
+
+	<jar jarfile="${libdir}/jejca-example.jar">
+	   <metainf dir="${example.srcdir}/jca/simple"
+	            includes="ejb-jar.xml"/>
+	   <metainf dir="${example.jca.srcdir}"
+                    includes="${example.jca.descriptorname}"/>
+	   <fileset dir="${destdir}"
+	      includes="jca/simple/*"
+	      excludes="jca/simple/ExClient.class"
+	   />
+	</jar>
+    </target>
+
+    <!-- jmx jar -->
+    <target name="jmx" depends="compile-jmx, jar">
+        <jar jarfile="${libdir}/jejmx.jar">
+            <fileset dir="${destdir}"
+                     includes="com/sleepycat/je/jmx/**"/>
+        </jar>
+    </target>
+
+    <!-- jconsole plugin jar -->
+    <target name="jconsoleplugin"
+	    depends="compile-jconsoleplugin, je-version, jar">
+        <jar jarfile="${libdir}/JEJConsole.jar">
+            <metainf dir="${srcdir}/com/sleepycat/je/jmx/plugin"
+                     excludes="*.java"/>
+            <fileset dir="${destdir}"
+                     includes="com/sleepycat/je/EnvironmentStats.class,
+                               com/sleepycat/je/jmx/JEMonitor.class,
+                               com/sleepycat/je/jmx/plugin/*.class"/>
+            <manifest>
+              <attribute name="Implementation-Title"
+			 value="Berkeley DB Java Edition jconsole Plugin"/>
+              <attribute name="Implementation-Version"
+			 value="${version.result}"/>
+              <attribute name="Implementation-Vendor"
+			 value="Oracle"/>
+              <attribute name="Implementation-URL"
+			 value="http://www.oracle.com/"/>
+              <attribute name="Build-Date"
+                         value="${release.date}"/>
+              <attribute name="Build-Id"
+                         value="${release.id}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="repjconsoleplugin"
+	    depends="compile-rep-jconsoleplugin, je-version, jar">
+        <jar jarfile="${libdir}/RepJEJConsole.jar">
+            <metainf dir="${srcdir}/com/sleepycat/je/rep/jmx/plugin"
+                     excludes="*.java"/>
+            <fileset dir="${destdir}"
+                     includes="com/sleepycat/je/EnvironmentStats.class,
+                               com/sleepycat/je/jmx/JEMonitor.class,
+                               com/sleepycat/je/jmx/plugin/*.class,
+                               com/sleepycat/je/rep/ReplicatedEnvironmentStats.class,
+                               com/sleepycat/je/rep/jmx/RepJEMonitor.class
+                               com/sleepycat/je/rep/jmx/plugin/*.class,
+                               com/sleepycat/je/utilint/*Stat.class"/>
+            <manifest>
+              <attribute name="Implementation-Title"
+			 value="Berkeley DB Java Edition HA jconsole Plugin"/>
+              <attribute name="Implementation-Version"
+			 value="${version.result}"/>
+              <attribute name="Implementation-Vendor"
+			 value="Oracle"/>
+              <attribute name="Implementation-URL"
+			 value="http://www.oracle.com/"/>
+              <attribute name="Build-Date"
+                         value="${release.date}"/>
+              <attribute name="Build-Id"
+                         value="${release.id}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <!-- jmx examples jar -->
+    <target name="jmx-examples" depends="compile-jmxexamples, jmx">
+        <jar jarfile="${libdir}/jejmx-example.jar">
+	<fileset dir="${destdir}" includes="jmx/**"/>
+        </jar>
+    </target>
+
+    <!-- create hidingdoclet jar. -->
+    <target name="jar-hidingdoclet" depends="copy-doc-materials">
+        <delete dir="${doclet.classes.dir}"/>
+	<delete file="${doclet.jar}"/>
+
+	<mkdir dir="${doclet.classes.dir}"/>
+        <!-- Use the target version as the source version here since the
+             doclet needs to be compatible with the target version -->
+	<javac srcdir="${doclet.src.dir}"
+               destdir="${doclet.classes.dir}"
+               includeantruntime="true"
+               source="${jdk.target.version}"
+               target="${jdk.target.version}">
+            <include name="*.java"/>
+        </javac>
+
+	<jar jarfile="${doclet.jar}">
+            <fileset dir="${doclet.classes.dir}" includes="*.class"/>
+	</jar>
+    </target>
+
+    <target name="je-version" depends="compile-src, compute-hg-id">
+       <java fork="yes"
+             classname="com.sleepycat.je.util.DbDump"
+             outputproperty="version.result"
+             failonerror="true">
+	  <arg value="-V"/>
+          <classpath refid="class.path"/>
+          <classpath refid="clover.classpath"/>
+       </java>
+
+       <!-- Set release.id -->
+       <condition property="release.id"
+                  value="${hg.id}"
+                  else="unknown-revision">
+           <equals arg1="0" arg2="${hg.result}"/>
+       </condition>
+
+       <!-- Record the build time -->
+       <tstamp>
+           <format property="release.date"
+                   pattern="yyyy-MM-dd hh:mm:ss z"
+                   timezone="UTC"/>
+       </tstamp>
+    </target>
+
+    <target name="compute-hg-id" depends="hg-dir-check" if="hg-dir-exists">
+       <exec executable="hg"
+             failifexecutionfails="false"
+             outputproperty="hg.id"
+             resultproperty="hg.result"
+             logError="true">
+           <arg value="id"/>
+           <arg value="-i"/>
+       </exec>
+    </target>
+
+    <target name="hg-dir-check">
+       <available property="hg-dir-exists" file=".hg" type="dir"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Package .jar and other files into a .zip                     -->
+    <!-- ============================================================ -->
+    <target name="clean-package">
+        <delete dir="${doc.scratchdir}"/>
+        <mkdir dir="${libdir}"/>
+    </target>
+
+    <target name="require-jdk-versions">
+        <fail unless="jdk6.home" message="Must specify -Djdk6.home=..."/>
+        <fail unless="jdk8.home" message="Must specify -Djdk8.home=..."/>
+    </target>
+
+    <target name="release-jar" depends="require-jdk-versions,
+                                        update-version,
+                                        jar">
+        <property name="reljar" value="${basedir}/je-${release.version}.jar"/>
+        <copy file="${jarfile}" tofile="${reljar}"/>
+        <echo message="Release jar: ${reljar}"/>
+    </target>
+
+    <!--
+    TODO: The depends targets have to be executed in the order shown and this
+    is fragile. Namely, the jconsoleplugin target compiles plugin classes that
+    should not be included in je.jar. It works only because the jar is built by
+    the earlier jar target. We really should separate sources and classes for
+    different components (je, j2ee, jmx, jconsole) into different directories.
+    
+    Until this is fixed, always do clean immediately before package:
+      ant clean package
+    And after doing a package, do a clean before doing anything else.
+    -->
+    <target name="package" depends="require-jdk-versions,
+                                    update-version,
+                                    jar,
+                                    jconsoleplugin,
+                                    repjconsoleplugin,
+                                    javadoc,
+                                    docsbooks">
+
+        <description>Builds the distribution package.</description>
+
+	<!-- copy the README in, adding the current release number and date-->
+        <copy overwrite="true" file="${dist.srcdir}/README" todir="${basedir}">
+	   <filterset>
+	       <filter token="RELEASE_VERSION" value="${release.version}"/>
+	       <filter token="DATE" value="${release.date}"/>
+	   </filterset>
+        </copy>
+
+        <property name="pkg.version" value="je-${release.version}"/>
+
+        <move file="${jarfile}" tofile="${libdir}/${pkg.version}.jar"/>
+
+        <property name="pkg.build.includes" value="bin/**,lib/**,dist/build.properties"/>
+
+        <property name="pkg.build.excludes" value=""/>
+
+        <property name="pkg.base.includes" value="src/**,examples/**,test/**,docs/**,ant/**,regress/,build.xml,build-common.xml,ivy.xml,README,LICENSE,FindBugsExclude.xml"/>
+
+        <property name="pkg.base.excludes" value="test/rpcserver/**,test/experiments/**,test/examples/**,test/regress/*/**,test/**/MiniStress.java,test/**/AbortStress.java,dist/,**/jca/README.txt,examples/com/**,test/standalone/scalability/**,test/standalone/perf/**,test/standalone/dplperf/**"/>
+
+        <!--
+        Set permissions on files in the zip/tar archives so that example files
+        are read-write and all other files are read-only.
+        -->
+        <zip destfile="${basedir}/je-${release.version}.zip">
+             <zipfileset dir="${builddir}"
+                         prefix="${pkg.version}/"
+                         includes="${pkg.build.includes}"
+                         excludes="${pkg.build.excludes}"
+                         filemode="444" dirmode="775"/>
+             <zipfileset dir="${basedir}"
+                         prefix="${pkg.version}/"
+                         includes="${pkg.base.includes}"
+                         excludes="${pkg.base.excludes},examples/**"
+                         filemode="444" dirmode="775"/>
+             <zipfileset dir="${basedir}"
+                         prefix="${pkg.version}/"
+                         includes="examples/**"
+                         excludes="${pkg.base.excludes}"
+                         filemode="664" dirmode="775"/>
+        </zip>
+        <tar destfile="${basedir}/je-${release.version}.tar.gz"
+             compression="gzip" longfile="gnu">
+             <tarfileset dir="${builddir}"
+                         prefix="${pkg.version}/"
+                         includes="${pkg.build.includes}"
+                         excludes="${pkg.build.excludes}"
+                         filemode="444" dirmode="775"/>
+             <tarfileset dir="${basedir}"
+                         prefix="${pkg.version}/"
+                         includes="${pkg.base.includes}"
+                         excludes="${pkg.base.excludes},examples/**"
+                         filemode="444" dirmode="775"
+                         uid="100" username="je"
+                         gid="100" group="je"/>
+             <tarfileset dir="${basedir}"
+                         prefix="${pkg.version}/"
+                         includes="examples/**"
+                         excludes="${pkg.base.excludes}"
+                         filemode="664" dirmode="775"
+                         uid="100" username="je"
+                         gid="100" group="je"/>
+        </tar>
+
+        <antcall target="package-maven"/>
+
+    </target>
+
+    <!--
+    Create maven package by running build-m2.sh.
+
+    TODO: Convert build-m2.sh to ant. Also consider publishing to maven central
+    instead of, or in addition to, the oracle download site.
+
+    When running this as a top level target, first copy je-M.N.P.tar.gz to the
+    base directory. The version must match JEVersion.
+    -->
+    <target name="package-maven" depends="update-version">
+        <copy file="${basedir}/je-${release.version}.tar.gz"
+              todir="${maven.dir}"/>
+        <delete dir="${maven.dir}/maven"/>
+        <exec executable="${maven.dir}/build-m2.sh" dir="${maven.dir}"/>
+        <tar destfile="${basedir}/je-${release.version}_maven.tar.gz"
+             compression="gzip" longfile="gnu"
+             basedir="${maven.dir}" includes="maven/**"/>
+        <delete dir="${maven.dir}/maven"/>
+        <delete file="${maven.dir}/je-${release.version}.tar.gz"/>
+    </target>
+
+
+    <!-- ============================================================ -->
+    <!-- Testing                                                      -->
+    <!-- ============================================================ -->
+
+    <!-- ============================================================ -->
+    <!-- JUnit unit tests                                             -->
+    <!-- ============================================================ -->
+
+    <target name="init-unittest" depends="init">
+        <delete dir="${unittest.datadir}"/>
+        <delete dir="${unittest.reportsdir}"/>
+        <mkdir dir="${unittest.datadir}"/>
+        <mkdir dir="${unittest.reportsdir}"/>
+    </target>
+
+    <target name="clean-unittest" depends="init-unittest">
+        <delete dir="${unittest.destdir}"/>
+        <mkdir dir="${unittest.destdir}"/>
+        <delete dir="${unittest.envdirroot}"/>
+	<mkdir dir="${unittest.envdirroot}"/>
+        <delete dir="${unittest.failures}"/>
+	<mkdir dir="${unittest.failures}"/>
+        <delete dir="${unittest.testclassloader}"/>
+        <mkdir dir="${unittest.testclassloader}"/>
+        <delete dir="${unittest.testserialdir}"/>
+        <mkdir dir="${unittest.testserialdir}"/>
+        <delete dir="${unittest.testevolvedir}"/>
+        <mkdir dir="${unittest.testevolvedir}"/>
+	<delete dir="${unittest.serialtest.bdb}"/>
+	<delete dir="${unittest.serialtest.txn}"/>
+    </target>
+
+    <target name="compile-unittest" depends="compile-src, get-junit-jar">
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+        <property name="srcdir" value="${unittest.srcdir}"/>
+        <property name="destdir" value="${unittest.destdir}"/>
+        <reference refid="unittest.classpath" torefid="compile.classpath"/>
+      </ant>
+
+      <copy todir="${unittest.destdir}">
+        <fileset dir="${unittest.srcdir}"
+	         excludes="**/*.java,experiments/**,examples/**"/>
+      </copy>
+
+      <!-- for testing je.properties -->
+      <copy file="${unittest.destdir}/je.properties"
+            overwrite="true"
+            todir="${unittest.envdirroot}"/>
+      <!-- for testing je.properties -->
+      <copy file="${unittest.destdir}/com/sleepycat/je/je.properties"
+            overwrite="true"
+            todir="${unittest.extraenvdir}"/>
+      <!-- for testing rep.properties -->
+      <copy file="${unittest.destdir}/com/sleepycat/je/rep.properties"
+            overwrite="true"
+            tofile="${unittest.extraenvdir2}/je.properties"/>
+
+      <!-- Include a service provider resource file to add support for
+           the additional LocalAliasNameService DNS provider -->
+      <echo file="${unittest.destdir}/META-INF/services/sun.net.spi.nameservice.NameServiceDescriptor"
+            message="com.sleepycat.je.rep.utilint.LocalAliasNameService$Descriptor"/>
+
+      <!-- Compile LoadedClassImpl.java separately. -->
+      <property name="loadedclassimpl"
+                value="com/sleepycat/je/LoadedClassImpl.java"/>
+      <copy file="${unittest.srcdir}/${loadedclassimpl}.original"
+            tofile="${unittest.testclassloader}/${loadedclassimpl}"/>
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+          <property name="srcdir" value="${unittest.testclassloader}"/>
+          <property name="destdir" value="${unittest.testclassloader}"/>
+          <reference refid="unittest.classpath" torefid="compile.classpath"/>
+      </ant>
+
+      <!-- Compile original version of TestSerial class separately. -->
+      <property name="testserialpath"
+                value="com/sleepycat/collections/test/serial/TestSerial.java"/>
+      <copy file="${unittest.srcdir}/${testserialpath}.original"
+            tofile="${unittest.testserialdir}/${testserialpath}"/>
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+          <property name="srcdir" value="${unittest.testserialdir}"/>
+          <property name="destdir" value="${unittest.testserialdir}"/>
+          <reference refid="class.path" torefid="compile.classpath"/>
+      </ant>
+
+      <!-- Compile original version of EvolveClasses separately. -->
+      <property name="testevolvepath"
+                value="com/sleepycat/persist/test/EvolveClasses.java"/>
+      <copy file="${unittest.srcdir}/${testevolvepath}.original"
+            tofile="${unittest.testevolvedir}/${testevolvepath}"/>
+      <copy file=
+              "${unittest.srcdir}/com/sleepycat/persist/test/EvolveCase.java"
+            tofile=
+       "${unittest.testevolvedir}/com/sleepycat/persist/test/EvolveCase.java"/>
+      <copy file=
+        "${unittest.srcdir}/com/sleepycat/persist/test/PersistTestUtils.java"
+            tofile=
+ "${unittest.testevolvedir}/com/sleepycat/persist/test/PersistTestUtils.java"/>
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+          <property name="srcdir" value="${unittest.testevolvedir}"/>
+          <property name="destdir" value="${unittest.testevolvedir}"/>
+          <reference refid="unittest.classpath" torefid="compile.classpath"/>
+      </ant>
+
+      <!-- Compile rep/persist/test/AppImpl variants separately. -->
+      <antcall target="do-compile-dpl-upgrade">
+        <param name="v" value="0"/>
+      </antcall>
+      <antcall target="do-compile-dpl-upgrade">
+        <param name="v" value="1"/>
+      </antcall>
+    </target>
+
+    <!-- Copy AppImpl.java.${v} to dplUpgrade.${v} directory, compile it. -->
+    <target name="do-compile-dpl-upgrade">
+      <mkdir dir="${unittest.testevolvedir}/dplUpgrade.${v}"/>
+      <copy file="${unittest.srcdir}/com/sleepycat/je/rep/persist/test/AppImpl.java.${v}"
+          tofile="${unittest.testevolvedir}/dplUpgrade.${v}/com/sleepycat/je/rep/persist/test/AppImpl.java"/>
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+          <property name="srcdir"
+                    value="${unittest.testevolvedir}/dplUpgrade.${v}"/>
+          <property name="destdir"
+                    value="${unittest.testevolvedir}/dplUpgrade.${v}"/>
+          <property name="include" value=""/>
+          <reference refid="unittest.classpath" torefid="compile.classpath"/>
+      </ant>
+    </target>
+
+    <target name="compile-unittest-j2ee"
+            depends="compile, compile-j2ee, compile-jmxexamples">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="srcdir" value="${unittest.srcdir}"/>
+            <property name="destdir" value="${unittest.destdir}"/>
+            <property name="include" value="com/sleepycat/je/jmx/**/*.java"/>
+            <property name="exclude2" value=""/>
+            <reference refid="unittest-j2ee.classpath"
+	               torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+
+    <!--
+      Unit test targets:
+
+      Run all tests            ant test
+      Note: it would run base and replicated tests.
+
+      Run base tests           ant test -Dnorep=<any value>
+
+      Run replicated tests     ant test -Dreponly=<any value>
+
+      Run test cases           ant test <your choice of test filtering>
+      with a secure config              -Drepsecure=<any value>
+
+      Note: You can set these three properties with any value you want, but be
+            sure to assign a value to it.
+
+
+      Run one test case        ant test -Dtestcase=com.sleepycat.je.db.DbTest
+
+      Run one package          ant test -Dsuite=db
+      Note: Base and replicated tests may have the same directory name.
+            If don't want to run both base and rep tests together, please
+            specify the full path of the package, e.g:
+                 ant test -Dsuite=com/sleepycat/je/txn.
+            If running both tests, only need to specify the package name, e.g:
+                 ant test -Dsuite=txn
+
+
+      Run one test case        ant test -Dtestcase=com.sleepycat.je.db.DbTest
+      with a specific jar               -Dtestjar=je.jar
+
+      Run one test case        ant test -Dtestcase=com.sleepycat.je.db.DbTest
+      with specific methods             -Dtestcase.methods=testOne,testTwo
+
+      Run one package          ant test -Dsuite=db -Dtestjar=je.jar
+      with a specific jar
+
+      Run all tests with       ant test -Dtestjar=je.jar
+      a specific jar
+
+      Run replicated tests     ant test -Dreponly=<any value> -Dtestjar=je.jar
+      with a specific jar
+
+      Run no replicated tests  ant test -Dnorep=<any value> -Dtestjar=je.jar
+      with a specific jar
+     -->
+
+    <target name="test-j2ee"
+            depends="compile-unittest-j2ee, test"/>
+
+    <path id="testserial-classpath">
+      <pathelement location="${unittest.testserialdir}"/>
+    </path>
+
+    <path id="testevolve-classpath">
+      <pathelement location="${unittest.testevolvedir}"/>
+    </path>
+
+    <!--
+         The property socketlistener is used to enable remote debugging for
+         unit tests. For example,  ant test -Dsocketlistener=1 will let you
+         attach a debugger to a unit test run. This functionality is disabled
+	 by default.
+     -->
+    <property name="socketdebugparamvalue"
+        value="-Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -Xdebug"/>
+    <condition property="socketdebugparam" value="${socketdebugparamvalue}">
+        <isset property="socketlistener"/>
+    </condition>
+    <condition property="socketdebugparam" value="">
+        <not>
+            <isset property="socketlistener"/>
+        </not>
+    </condition>
+
+    <target name="copy-secure-replication-properties" if="use-secure-props">
+      <!-- for testing with secure.properties -->
+      <echo>Using secure property configuration</echo>
+      <copy file="${unittest.srcdir}/com/sleepycat/je/rep/secure.properties"
+            overwrite="true"
+            tofile="${unittest.envdirroot}/je.properties"/>
+      <!-- modify the copy to account for sandbox path -->
+      <replace file="${unittest.envdirroot}/je.properties"
+               token="SSLDIR" value="${unittest.destdir}/ssl"/>
+    </target>
+
+    <target name="testprops">
+      <!-- Evaluate properties to determine which tests to run. -->
+      <condition property="alltests">
+        <not>
+          <or>
+            <isset property="suite"/>
+            <isset property="testcase"/>
+            <isset property="reponly"/>
+            <isset property="norep"/>
+          </or>
+        </not>
+      </condition>
+      <condition property="testserial">
+        <or>
+          <isset property="alltests"/>
+          <isset property="norep"/>
+          <contains string="${suite}" substring="serial"/>
+          <contains string="${suite}" substring="collections"/>
+          <equals arg1="${testcase}" arg2=
+           "com.sleepycat.collections.test.serial.StoredClassCatalogTest"/>
+        </or>
+      </condition>
+      <condition property="testevolve">
+        <or>
+          <isset property="alltests"/>
+          <isset property="norep"/>
+          <contains string="${suite}" substring="persist"/>
+          <equals arg1="${testcase}"
+                  arg2="com.sleepycat.persist.test.EvolveTest"/>
+        </or>
+      </condition>
+      <condition property="testpersist">
+        <or>
+          <isset property="alltests"/>
+          <isset property="norep"/>
+          <contains string="${suite}" substring="persist"/>
+        </or>
+      </condition>
+      <condition property="param-rep">
+        <and>
+          <isset property="reponly"/>
+	  <not>
+            <isset property="norep"/>
+	  </not>
+         </and>
+      </condition>
+      <condition property="use-secure-props">
+	<isset property="repsecure"/>
+      </condition>
+      <condition property="param-base">
+        <and>
+          <isset property="norep"/>
+          <not>
+            <isset property="reponly"/>
+          </not>
+        </and>
+      </condition>
+      <condition property="testcase-all-methods">
+        <and>
+          <isset property="testcase"/>
+          <not>
+            <isset property="testcase.methods"/>
+          </not>
+        </and>
+      </condition>
+      <condition property="testcase-specific-methods">
+        <and>
+          <isset property="testcase"/>
+          <isset property="testcase.methods"/>
+        </and>
+      </condition>
+    </target>
+
+    <!-- test target dependencies that rely on the settings from testprops -->
+    <target name="propdepends"
+            depends="copy-secure-replication-properties">
+    </target>
+
+    <target name="test"
+            depends="jar, compile-unittest, init-unittest, testprops, propdepends">
+
+      <!-- Performs initialization needed before StoredClassCatalogTest. -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run testserial initialization"/>
+        <param name="param-if" value="testserial"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="testserial-classpath"/>
+        <param name="param-testcase" value=
+         "com.sleepycat.collections.test.serial.StoredClassCatalogTestInit"/>
+      </antcall>
+
+      <!-- Performs initialization needed before persist evolve tests. -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run testevolve initialization"/>
+        <param name="param-if" value="testevolve"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="testevolve-classpath"/>
+        <param name="param-testcase"
+               value="com.sleepycat.persist.test.EvolveTestInit"/>
+      </antcall>
+
+      <!-- Run all unit tests. -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run all unit tests"/>
+        <param name="param-if" value="alltests"/>
+        <param name="param-jvmarg" value="${socketdebugparam}"/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes" value="**/*Test.class"/>
+      </antcall>
+
+      <!-- Run base API unit tests.  -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run base API unit tests"/>
+        <param name="param-if" value="param-base"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes" value="**/*Test.class"/>
+        <param name="param-excludes" value="**/rep/**/*Test.class"/>
+      </antcall>
+
+      <!-- Run a test suite.  -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run a test suite: ${suite}"/>
+        <param name="param-if" value="suite"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes" value="**/${suite}/*Test.class"/>
+      </antcall>
+
+      <!-- Run a single test case.  -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run a test case: ${testcase}"/>
+        <param name="param-if" value="testcase-all-methods"/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-testcase" value="${testcase}"/>
+        <param name="param-jvmarg" value="${socketdebugparam}"/>
+      </antcall>
+
+      <!-- Run specific methods for a single test case. -->
+      <antcall target="do-junit">
+        <param name="param-msg"
+               value="Run methods: ${testcase.methods} for test case:
+${testcase}"/>
+        <param name="param-if" value="testcase-specific-methods"/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-testcase-specific-methods" value="${testcase}"/>
+        <param name="param-testcase-methods" value="${testcase.methods}"/>
+        <param name="param-jvmarg" value="${socketdebugparam}"/>
+      </antcall>
+
+      <!-- Run the persist test variants. -->
+      <antcall target="test-persist-enhance-javaagent"/>
+      <antcall target="test-persist-enhance-task"/>
+      <antcall target="test-persist-enhance-main"/>
+
+      <!-- Run the replication unit tests. -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run replication unit tests only"/>
+        <param name="param-if" value="param-rep"/>
+        <param name="param-jvmarg" value="${socketdebugparam}"/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes" value="**/rep/**/*Test.class"/>
+      </antcall>
+
+      <antcall target="gen-report"/>
+    </target>
+
+    <!-- Generate test reports -->
+    <target name="gen-report">
+        <junitreport todir="${unittest.datadir}">
+            <fileset dir="${unittest.datadir}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${unittest.reportsdir}"/>
+        </junitreport>
+    </target>
+
+    <!-- Run the persist tests with -javaagent to enhance classes as they are
+         loaded.  In this, and the following two tests with enhanced classes,
+         set the expectEnhanced system property to cause the test to fail if
+         classes are not enhanced.  -->
+    <target name="test-persist-enhance-javaagent" if="testpersist">
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run persist tests with -javaagent"/>
+        <param name="param-if" value="testpersist"/>
+        <param name="param-sysprop-key" value="expectEnhanced"/>
+        <param name="param-sysprop-value" value="true"/>
+        <param name="param-jvmarg"
+               value="-javaagent:${jarfile}=enhance:-v,com.sleepycat.persist"/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes"
+               value="com/sleepycat/persist/**/*Test.class"/>
+      </antcall>
+    </target>
+
+    <!-- Enhance persist test classes by rewriting the class files with the
+         enhancer ant task, and run the persist tests again. -->
+    <property name="enhance-task.tmpdir" value="${builddir}/enhance.task"/>
+    <path id="enhanced-task.classpath">
+      <pathelement location="${enhance-task.tmpdir}"/>
+    </path>
+    <target name="test-persist-enhance-task" if="testpersist">
+      <delete dir="${enhance-task.tmpdir}"/>
+      <mkdir dir="${enhance-task.tmpdir}"/>
+      <copy todir="${enhance-task.tmpdir}">
+        <fileset dir="${unittest.destdir}"
+                 includes="com/sleepycat/persist/**/*.class"/>
+      </copy>
+      <enhancer verbose="on">
+        <fileset dir="${enhance-task.tmpdir}"/>
+      </enhancer>
+      <antcall target="do-junit">
+        <param name="param-msg"
+               value="Run persist tests with ClassEnhancer ant task"/>
+        <param name="param-if" value="testpersist"/>
+        <param name="param-sysprop-key" value="expectEnhanced"/>
+        <param name="param-sysprop-value" value="true"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="enhanced-task.classpath"/>
+        <param name="param-includes"
+               value="com/sleepycat/persist/**/*Test.class"/>
+      </antcall>
+    </target>
+
+    <!-- Same as above but use the ClassEnhancer main program. -->
+    <property name="enhance-main.tmpdir" value="${builddir}/enhance.main"/>
+    <path id="enhanced-main.classpath">
+      <pathelement location="${enhance-main.tmpdir}"/>
+    </path>
+    <path id="enhanced-main.classpath">
+      <pathelement location="${enhance-main.tmpdir}"/>
+      <path refid="class.path"/>
+      <path refid="clover.classpath"/>
+    </path>
+    <target name="test-persist-enhance-main" if="testpersist">
+      <delete dir="${enhance-main.tmpdir}"/>
+      <mkdir dir="${enhance-main.tmpdir}"/>
+      <copy todir="${enhance-main.tmpdir}">
+        <fileset dir="${unittest.destdir}"
+                 includes="com/sleepycat/persist/**/*.class"/>
+      </copy>
+      <java fork="yes" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.persist.model.ClassEnhancer">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-v ${enhance-main.tmpdir}"/>
+        <classpath refid="enhanced-main.classpath"/>
+      </java>
+      <antcall target="do-junit">
+        <param name="param-msg"
+               value="Run persist tests with ClassEnhancer main program"/>
+        <param name="param-if" value="testpersist"/>
+        <param name="param-sysprop-key" value="expectEnhanced"/>
+        <param name="param-sysprop-value" value="true"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="enhanced-main.classpath"/>
+        <param name="param-includes"
+               value="com/sleepycat/persist/**/*Test.class"/>
+      </antcall>
+    </target>
+
+    <!-- Called via antcall above to run the junit task.
+     Specify one of these params:
+      param-includes: path of class files to run a batchtest
+      param-testcase: class name that to run a single test
+      param-testcase-specific-methods: class name to run specific methods
+     Required params:
+      param-msg: message printed to identify this test run
+      param-if: variable name that must be set to run tests
+      param-jvmarg: value of additional jvmarg, may be empty
+      param-classpath: refid of classpath to insert, may be empty.classpath
+     Optional params:
+      param-sysprop-key: key of additional sysproperty
+      param-sysprop-value: value of additional sysproperty
+      param-testcase-methods: methods for param-testcase-specific-methods
+      -->
+    <property name="timeout" value="1800000"/>
+    <target name="do-junit" if="${param-if}">
+      <echo message="${param-msg}"/>
+      <echo message="Using GC params: ${jvm.gc}"/>
+      <condition property="useisolationLevel"
+                 value="serializable"
+                 else="${isolationLevel}">
+        <isset property="runclovertestisolation"/>
+      </condition>
+      <junit printsummary="false"
+             errorProperty="unittest.failed"
+             failureProperty="unittest.failed"
+             haltOnFailure="false"
+             timeout="${timeout}"
+             showoutput="${unittest.showoutput}"
+             jvm="${jvm}"
+             fork="yes">
+        <jvmarg value="-ea"/>
+	<!--
+        <jvmarg value="-d64"/>
+	-->
+        <jvmarg value="-Xmx256M"/>
+        <jvmarg line="${jvm.gc}"/>
+        <jvmarg line="${zing.jvm.options}"/>
+        <jvmarg line="${param-jvmarg}"/>
+        <classpath refid="${param-classpath}"/>
+        <classpath refid="unittest.classpath"/>
+        <classpath refid="clover.classpath"/>
+        <sysproperty key="JE_TEST" value="true"/>
+        <sysproperty key="test.je.env.verifierSchedule"
+                     value="${test.je.env.verifierSchedule}"/>
+        <sysproperty key="testdestdir" value="${unittest.destdir}"/>
+        <sysproperty key="testenvdirroot" value="${unittest.envdirroot}"/>
+        <sysproperty key="failurecopydir" value="${unittest.failures}"/>
+        <sysproperty key="copylimit" value="${unittest.copylimit}"/>
+        <sysproperty key="testclassloader" value="${unittest.testclassloader}"/>
+        <sysproperty key="testevolvedir" value="${unittest.testevolvedir}"/>
+        <sysproperty key="txnnosync" value="true"/>
+	<sysproperty key="isolationLevel" value="${useisolationLevel}"/>
+	<sysproperty key="offHeapCacheSize" value="${offHeapCacheSize}"/>
+	<sysproperty key="setErrorListener" value="true"/>
+        <sysproperty key="longtest" value="${longtest}"/>
+        <sysproperty key="${param-sysprop-key}"
+                     value="${param-sysprop-value}"/>
+        <sysproperty key="java.util.logging.config.file"
+            value="${logging.config.file}"/>
+
+        <!-- Add our own DNS provider after the default one, for use by
+             tests that want to try host names that become
+             unregistered.  InetAddress consults service providers in turn and,
+             for both name and address lookups, uses the value returned from
+             the first provider that does not throw UnknownHostException. -->
+        <sysproperty key="sun.net.spi.nameservice.provider.1"
+                     value="default"/>
+        <sysproperty key="sun.net.spi.nameservice.provider.2"
+                     value="dns,localalias"/>
+
+        <syspropertyset>
+          <propertyref prefix="test."/>
+          <propertyref prefix="je."/>
+        </syspropertyset>
+        <formatter type="plain" usefile="false"/>
+        <formatter type="xml"/>
+        <test todir="${unittest.datadir}"
+              if="param-testcase"
+              name="${param-testcase}"/>
+        <test todir="${unittest.datadir}"
+              if="param-testcase-specific-methods"
+              name="${param-testcase-specific-methods}"
+              methods="${param-testcase-methods}"/>
+        <batchtest todir="${unittest.datadir}"
+                   if="param-includes">
+          <fileset dir="${unittest.destdir}"
+	           includes="${param-includes}"
+                   excludes="${param-excludes}"/>
+        </batchtest>
+      </junit>
+      <fail message="UnitTests failed.Check log and/or reports.">
+        <condition>
+          <and>
+            <istrue value="${unittest.failed}"/>
+	    <isfalse value="${clover.ignorefailure}"/>
+	  </and>
+	</condition>
+      </fail>
+    </target>
+
+    <!-- Runs XxxTestMain test programs and other misc non-JUnit test. -->
+    <target name="misctest" depends="compile-unittest, init-unittest">
+
+      <antcall target="do-testmain">
+        <param name="cls" value="je.test.SecondarySplitTestMain"/>
+      </antcall>
+
+      <!-- Special case JUnit test that only failed when run separately. -->
+      <junit printsummary="false"
+             showoutput="${unittest.showoutput}"
+             haltOnFailure="true"
+             jvm="${jvm}"
+             fork="yes">
+        <jvmarg value="-ea"/>
+        <jvmarg value="-Xmx256M"/>
+        <classpath refid="unittest-j2ee.classpath"/>
+        <classpath refid="clover.classpath"/>
+        <sysproperty key="testdestdir" value="${unittest.destdir}"/>
+        <sysproperty key="testenvdirroot" value="${unittest.envdirroot}"/>
+        <test name="com.sleepycat.je.dbi.SR12641"/>
+      </junit>
+
+    </target>
+
+    <target name="do-testmain">
+      <echo message="Running: ${cls}"/>
+      <java fork="yes" failonerror="true" jvm="${jvm}"
+            classname="com.sleepycat.${cls}">
+        <jvmarg value="-Xmx256M"/>
+        <jvmarg line="${jvmargs}"/>
+        <sysproperty key="testdestdir" value="${unittest.destdir}"/>
+        <sysproperty key="testenvdirroot" value="${unittest.envdirroot}"/>
+        <classpath refid="unittest-j2ee.classpath"/>
+        <classpath refid="clover.classpath"/>
+      </java>
+    </target>
+
+    <!-- logversiondata is run at the end of each major release.  After running
+         add the je-x.y.z.* files that were generated to CVS.  Be sure to use
+         -kb to add the .jdb file.  Then add a test_x_y_z() method to
+         com/sleepycat/je/logversion/LogEntryVersionTest.java.
+    -->
+    <target name="logversiondata" depends="compile-unittest">
+      <java fork="yes" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.je.logversion.MakeLogEntryVersionData">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="${unittest.envdirroot}"/>
+        <classpath refid="unittest.classpath"/>
+      </java>
+      <copy todir="test/com/sleepycat/je/logversion">
+        <fileset dir="${unittest.envdirroot}">
+          <include name="je-*.jdb"/>
+          <include name="je-*.txt"/>
+        </fileset>
+      </copy>
+    </target>
+
+    <!-- The serializecompatibility task is used to generate the inputs for the
+         unit tests which verify the correctness of the Java serial version id.
+         This task should be run at the end of each major release. It creates a
+         directory named
+         test/com/sleepycat/je/serializecompatibility/<jeVersion> populated
+         with files which hold the serialized output of JE classes which support
+         serialization. After running this task, check the directory and its
+         contents into source control, and add a test_x_y_z() method in
+         test/com/sleepycat/je/serializecompatibility/SerializeReadObjects.java.
+    -->
+    <target name="serializecompatibility" depends="compile-unittest">
+        <java fork="yes" jvm="${jvm}" failonerror="true"
+            classname=
+                "com.sleepycat.je.serializecompatibility.SerializeWriteObjects">
+            <sysproperty key="testdestdir" value="${unittest.destdir}"/>
+            <sysproperty key="testenvdirroot" value="${unittest.envdirroot}"/>
+            <jvmarg line="${jvmargs}"/>
+            <arg line="test/com/sleepycat/je/serializecompatibility"/>
+            <classpath refid="unittest.classpath"/>
+        </java>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Test CLI utils -->
+    <!-- ============================================================ -->
+
+    <target name="testcli" depends="compile-src, compile-examples">
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <echo>Running je.SimpleExample to insert some data</echo>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="je.SimpleExample">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="tmp insert 100"/>
+        <classpath refid="class.path"/>
+      </java>
+      <echo>Running DbVerifyLog</echo>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.je.util.DbVerifyLog">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+      <echo>Running DbDump</echo>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.je.util.DbDump">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-f ./dump.out -h tmp -s simpleDb"/>
+        <classpath refid="class.path"/>
+      </java>
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <echo>Running DbLoad</echo>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.je.util.DbLoad">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-f ./dump.out -h tmp -s simpleDb"/>
+        <classpath refid="class.path"/>
+      </java>
+      <echo>Running DbDump</echo>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="com.sleepycat.je.util.DbDump">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp -r"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <!-- ========= Standalone test targets delegated to internal.xml ==========
+
+    Standalone tests are run by passing the testcase property as the name of
+    the target in internal.xml.  Other parameters for each target are passed
+    using the args property, for example:
+
+      ant -Dtestcase=MemoryStress -Dargs=-dups standalone
+
+    See the individual standalone targets in ant/internal.xml for details.
+    ======================================================================= -->
+    <target name="standalone" depends="jar, compile-unittest">
+	<antcall target="do-internal">
+	   <param name="target" value="compile"/>
+        </antcall>
+	<antcall target="do-internal">
+	   <param name="target" value="standalone"/>
+        </antcall>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Internal Use Only: Test examples -->
+    <!-- ============================================================ -->
+
+    <!-- testex runs all examples, but does not include testex-access because
+         it is interactive.  Does not test JCA examples.
+    -->
+    <target name="testex"
+        depends="testex-simple, testex-binding, testex-secondary,
+        testex-sequence, testex-tomany, testex-measureinsertsize,
+        testex-persist-person, testex-persist-dpldump,
+        testex-persist-customkeyorder, testex-persist-eventexample,
+        testex-persist-eventexampledpl, testex-persist-sqlapp,
+        testex-hello, testex-ship-basic, testex-ship-index, testex-ship-entity,
+        testex-ship-tuple, testex-ship-sentity, testex-ship-marshal,
+        testex-ship-factory, testex-je-gettingStarted, testex-je-txn,
+        testex-persist-gettingStarted, testex-persist-txn"/>
+
+    <target name="init-testex" depends="compile-examples">
+        <delete dir="${builddir}/tmp"/>
+        <mkdir dir="${builddir}/tmp"/>
+    </target>
+
+    <target name="run-testex">
+        <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="${test.class}">
+            <jvmarg line="${jvmargs}"/>
+            <arg line="${test.args}"/>
+            <classpath refid="class.path"/>
+        </java>
+    </target>
+
+    <target name="testex-simple">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SimpleExample"/>
+            <param name="test.args" value="tmp insert 5"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SimpleExample"/>
+            <param name="test.args" value="tmp retrieve 5"/>
+        </antcall>
+    </target>
+
+    <target name="testex-binding">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.BindingExample"/>
+            <param name="test.args" value="tmp insert 5"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.BindingExample"/>
+            <param name="test.args" value="tmp retrieve 5"/>
+        </antcall>
+    </target>
+
+    <target name="testex-secondary">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SecondaryExample"/>
+            <param name="test.args" value="tmp insert 5"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SecondaryExample"/>
+            <param name="test.args" value="tmp retrieve 5"/>
+        </antcall>
+    </target>
+
+    <target name="testex-sequence">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SequenceExample"/>
+            <param name="test.args" value="tmp"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.SequenceExample"/>
+            <param name="test.args" value="tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-tomany">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.ToManyExample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-measureinsertsize">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.MeasureInsertSize"/>
+            <param name="test.args"
+                value="-h tmp -records 100 -key 10 -data 100"/>
+        </antcall>
+      <echo>MeasureInsertSize ran OK</echo>
+    </target>
+
+    <target name="testex-dynamiccachemode">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.DynamicCacheMode"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-access">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.access.AccessExample"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-person">
+        <antcall target="init-testex"/>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="persist.PersonExample">
+        <jvmarg value="-ea"/>
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <!--
+    Before running this example, first run another DPL example that writes to
+    the tmp directory, such as testex-persist-person.  init-testex is not used
+    here, in order to use the tmp directory from a previous run.
+    -->
+    <target name="testex-persist-dpldump">
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.DplDump"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-customkeyorder">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.CustomKeyOrderExample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-eventexample">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.EventExample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-eventexampledpl">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.EventExampleDPL"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-sqlapp">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.sqlapp.SQLApp"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-hello">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class"
+                value="collections.hello.HelloDatabaseWorld"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-basic">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.basic.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-index">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.index.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-entity">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.entity.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-tuple">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.tuple.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-sentity">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.sentity.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-marshal">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.marshal.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-ship-factory">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="collections.ship.factory.Sample"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <!-- Test GSG examples -->
+    <target name="testex-je-gettingStarted" depends="compile-examples">
+        <antcall target="init-testex"/>
+        <copy todir="${builddir}">
+            <fileset dir="${example.srcdir}/je/gettingStarted">
+                <include name="*.txt"/>
+                <exclude name="*.java"/>
+            </fileset>
+        </copy>
+        <antcall target="run-testex">
+            <param name="test.class"
+                value="je.gettingStarted.ExampleDatabasePut"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class"
+                value="je.gettingStarted.ExampleInventoryRead"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+        <delete file="${builddir}/inventory.txt"/>
+        <delete file="${builddir}/vendors.txt"/>
+    </target>
+
+    <target name="testex-je-txn">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="je.txn.TxnGuide"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <target name="testex-persist-gettingStarted" depends="compile-examples">
+        <antcall target="init-testex"/>
+        <copy todir="${builddir}">
+            <fileset dir="${example.srcdir}/persist/gettingStarted">
+                <include name="*.txt"/>
+                <exclude name="*.java"/>
+            </fileset>
+        </copy>
+        <antcall target="run-testex">
+            <param name="test.class"
+                value="persist.gettingStarted.ExampleDatabasePut"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+        <antcall target="run-testex">
+            <param name="test.class"
+                value="persist.gettingStarted.ExampleInventoryRead"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+        <delete file="${builddir}/inventory.txt"/>
+        <delete file="${builddir}/vendors.txt"/>
+    </target>
+
+    <target name="testex-persist-txn">
+        <antcall target="init-testex"/>
+        <antcall target="run-testex">
+            <param name="test.class" value="persist.txn.TxnGuideDPL"/>
+            <param name="test.args" value="-h tmp"/>
+        </antcall>
+    </target>
+
+    <!-- testex-jejca runs all JCA examples.
+    -->
+    <target name="testex-jejca"
+        depends="testex-jejcasimple"/>
+
+    <target name="testex-jejcasimple" depends="compile-jcaexamples">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}" failonerror="true"
+            classname="jca.simple.SimpleClient">
+        <jvmarg line="${jvmargs}"/>
+        <classpath refid="jca.classpath"/>
+	<arg value="${key}"/>
+	<arg value="${data}"/>
+      </java>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Javadocs for the public api for distribution                 -->
+    <!-- ============================================================ -->
+
+    <path id="dist.classpath">
+        <path refid="class.path"/>
+	<pathelement location="${dist.destdir}"/>
+    </path>
+
+    <!-- Create an up to date property file for the build -->
+    <target name="update-version" depends="compile-src, compile-dist">
+       <java fork="yes" jvm="${jvm}" failonerror="true"
+             classname="CreateRELEASEFile"
+	     classpathref="dist.classpath">
+          <jvmarg line="${jvmargs}"/>
+	  <arg value="${release.propertyfile}"/>
+       </java>
+
+       <!-- read it in -->
+       <property file="${release.propertyfile}"/>
+    </target>
+
+    <target name="clean-doc" depends="init">
+        <delete dir="${doc.dir}"/>
+    </target>
+
+    <target name="javadoc" depends="clean-doc, update-version">
+
+        <!-- set the time -->
+        <tstamp>
+	   <format property="release.date" pattern="MMMMMMMM dd, yyyy"/>
+	</tstamp>
+
+	<!-- Copy the main page, images and release notes, to the
+             docs directory, putting in the release version where
+	     appropriate -->
+        <copy overwrite="true" todir="${doc.dir}">
+	   <filterset>
+	       <filter token="RELEASE_VERSION" value="${release.version}"/>
+	       <filter token="RELEASE_NUMERIC_VERSION"
+	               value="${release.numeric.versionc.version}"/>
+	       <filter token="DATE" value="${release.date}"/>
+	   </filterset>
+	   <fileset dir="${docsrc.dir}">
+               <include name="*.html"/>
+               <include name="*.css"/>
+               <exclude name="style.css"/>
+           </fileset>
+        </copy>
+        <copy todir="${doc.dir}/images">
+	    <fileset dir="${docsrc.dir}/images"/>
+	</copy>
+        <copy todir="${doc.dir}/sleepycat">
+	    <fileset dir="${docsrc.dir}/sleepycat"/>
+	</copy>
+        <copy todir="${doc.dir}/jconsole">
+	    <fileset dir="${docsrc.dir}/jconsole"/>
+	</copy>
+        <copy file="LICENSE" tofile="${doc.dir}/LICENSE.txt"/>
+
+	<antcall target="javadoc-src"/>
+	<antcall target="javadoc-examples"/>
+    </target>
+
+    <available file="${docsrc.dir}" type="dir" property="UserOrMember"/>
+
+    <target name="copy-doc-materials" if="UserOrMember" depends="init">
+        <copy overwrite="true" todir="${doclet.src.dir}">
+            <fileset dir="${docsrc.dir}/doclet"/>
+	</copy>
+    </target>
+
+    <target name="javadoc-src"
+            depends="get-j2ee-jar, copy-doc-materials, jar-hidingdoclet">
+        <delete dir="${doc.javadir}"/>
+        <mkdir dir="${doc.javadir}"/>
+        <!-- Run javadoc on public API -->
+	<echo>Javadoc public api</echo>
+        <javadoc sourcepath="${srcdir}"
+                 destdir="${doc.javadir}"
+		 version="true"
+                 nodeprecated="false"
+		 protected="true"
+                 source="${jdk.source.version}"
+		 use="true"
+                 failonerror="true"
+		 docletpath="docs/HidingDoclet.jar"
+		 stylesheetfile="${javadoc.css}"
+		 windowtitle="Oracle - Berkeley DB Java Edition API">
+	  <classpath refid="j2ee.classpath"/>
+	  <classpath path="${ant.library.dir}/ant.jar"/>
+	  <arg value="-author"/>
+	  <doclet name="HidingDoclet"/>
+          <group title="Berkeley DB Java Edition Packages">
+              <package name="com.sleepycat.je*"/>
+              <package name="com.sleepycat.je.util"/>
+              <package name="com.sleepycat.je.jmx"/>
+              <package name="com.sleepycat.je.jca.ra"/>
+              <package name="com.sleepycat.je.rep*"/>
+              <!--
+              <package name="com.sleepycat.je.trigger"/>
+              -->
+	  </group>
+          <group title="Berkeley DB Direct Persistence Layer (DPL) Packages">
+              <package name="com.sleepycat.persist"/>
+              <package name="com.sleepycat.persist.model"/>
+              <package name="com.sleepycat.persist.evolve"/>
+              <package name="com.sleepycat.persist.raw"/>
+	  </group>
+          <group title="Berkeley DB Bind and Collections Packages">
+              <package name="com.sleepycat.bind*"/>
+              <package name="com.sleepycat.collections*"/>
+              <package name="com.sleepycat.util*"/>
+	  </group>
+	  <header><![CDATA[<b>Berkeley DB Java Edition</b><br><font size=\"-1\"> version ${release.version}</font>]]>
+	  </header>
+	  <bottom><![CDATA[<font size=1>Copyright (c) 2002, 2017 Oracle and/or its affiliates.  All rights reserved.</font>]]> </bottom>
+          <package name="com.sleepycat.je"/>
+          <package name="com.sleepycat.je.jmx"/>
+          <!-- We'd like to include the com.sleepycat.je.jca.ra package
+               and use the @hidden tag, but the doclet seems to have some
+               problems there. -->
+          <fileset dir="${srcdir}">
+	        <include name="com/sleepycat/je/jca/ra/JEConnection.java"/>
+                <include
+                    name="com/sleepycat/je/jca/ra/JEConnectionFactory.java"/>
+	        <include name="com/sleepycat/je/jca/ra/JEException.java"/>
+          </fileset>
+          <package name="com.sleepycat.je.rep"/>
+          <package name="com.sleepycat.je.rep.arbiter"/>
+          <package name="com.sleepycat.je.rep.monitor"/>
+          <package name="com.sleepycat.je.rep.util"/>
+          <!--
+          <package name="com.sleepycat.je.trigger"/>
+          -->
+          <package name="com.sleepycat.je.util"/>
+          <package name="com.sleepycat.collections"/>
+          <package name="com.sleepycat.bind.*"/>
+          <package name="com.sleepycat.persist"/>
+          <package name="com.sleepycat.persist.model"/>
+          <package name="com.sleepycat.persist.evolve"/>
+          <package name="com.sleepycat.persist.raw"/>
+          <package name="com.sleepycat.util"/>
+          <link href="${java.apidoc}"/>
+          <arg value="-J-Dhttp.proxyHost=${proxy.host}"/>
+          <arg value="-J-Dhttp.proxyPort=${proxy.port}"/>
+        </javadoc>
+        <!-- Copy the standard Java CSS style sheet -->
+        <copy tofile="${doc.javadir}/standard-stylesheet.css">
+          <javaresource
+            name="com/sun/tools/doclets/internal/toolkit/resources/stylesheet.css"/>
+        </copy>
+    </target>
+
+    <target name="javadoc-examples" depends="copy-doc-materials">
+        <delete dir="${doc.examplesdir}"/>
+        <mkdir dir="${doc.examplesdir}"/>
+	<echo>Javadoc examples</echo>
+        <javadoc sourcepath="${srcdir}:${example.srcdir}"
+                 destdir="${doc.examplesdir}"
+                 nodeprecated="false"
+		 access="public"
+                 source="${jdk.source.version}"
+		 stylesheetfile="${javadoc.css}"
+		 windowtitle="Oracle - Berkeley DB Java Edition Examples">
+	  <classpath refid="j2ee.classpath"/>
+	  <header><![CDATA[<b>Berkeley DB Java Edition Examples</b><br><font size=\"-1\"> version ${release.version}</font>]]>
+	  </header>
+	  <bottom><![CDATA[<font size=1>Copyright (c) 2002, 2017 Oracle and/or its affiliates.  All rights reserved.</font>]]> </bottom>
+          <package name="je.rep.*"/>
+          <!--
+          <package name="je.*"/>
+          <package name="persist.*"/>
+          <package name="jmx.*"/>
+          <package name="collections.*"/>
+          <package name="jca.*"/>
+          -->
+          <link href="../java"/>
+          <link href="${java.apidoc}"/>
+          <arg value="-J-Dhttp.proxyHost=${proxy.host}"/>
+          <arg value="-J-Dhttp.proxyPort=${proxy.port}"/>
+          <!-- Permit missing javadoc entries for examples -->
+          <arg value="-Xdoclint:all,-missing"/>
+        </javadoc>
+        <!-- Copy the standard Java CSS style sheet -->
+        <copy tofile="${doc.examplesdir}/standard-stylesheet.css">
+          <javaresource
+            name="com/sun/tools/doclets/internal/toolkit/resources/stylesheet.css"/>
+        </copy>
+    </target>
+
+    <target name="internal-javadoc" depends="">
+        <delete dir="${doc.internaljavadir}"/>
+        <mkdir dir="${doc.internaljavadir}"/>
+        <javadoc sourcepath="${srcdir}"
+                 destdir="${doc.internaljavadir}"
+                 version="true"
+                 nodeprecated="false"
+                 protected="true"
+                 source="${jdk.source.version}"
+                 use="true"
+                 stylesheetfile="${javadoc.css}"
+                 windowtitle="Oracle - BDB JE Internal APIs">
+          <classpath refid="j2ee.classpath"/>
+          <classpath path="${ant.library.dir}/ant.jar"/>
+          <arg value="-author"/>
+          <arg value="-Xdoclint:all,-missing"/>
+          <group title="JE Standalone">
+              <package name="com.sleepycat.je*"/>
+              <package name="com.sleepycat.je.util"/>
+              <package name="com.sleepycat.je.jmx"/>
+              <package name="com.sleepycat.je.jca.ra"/>
+	  </group>
+          <group title="JE HA / Replication">
+              <package name="com.sleepycat.je.rep*"/>
+	  </group>
+          <group title="Shared by JE, BDB, NoSQL DB">
+              <package name="com.sleepycat*"/>
+	  </group>
+          <header><![CDATA[<b>Berkeley DB Java Edition</b><br><font size=\"-1\"> version ${release.version}</font>]]>
+          </header>
+          <bottom><![CDATA[<font size=1>Copyright (c) 2002, 2017 Oracle and/or its affiliates.  All rights reserved.</font>]]> </bottom>
+          <link href="${java.apidoc}"/>
+          <arg value="-J-Dhttp.proxyHost=${proxy.host}"/>
+          <arg value="-J-Dhttp.proxyPort=${proxy.port}"/>
+        </javadoc>
+        <copy tofile="${doc.internaljavadir}/standard-stylesheet.css">
+          <javaresource
+            name="com/sun/tools/doclets/internal/toolkit/resources/stylesheet.css"/>
+        </copy>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Internal Use Only: build all the GSG documents.              -->
+    <!-- For info on docbook build tools (xsltproc, FOP, etc), see:   -->
+    <!--   https://sleepycat.oracle.com/trac/wiki/DocBuildTools       -->
+    <!-- ============================================================ -->
+
+    <!-- The xsltproc executable, which is normally be installed and
+         available with this absolute path -->
+    <property name="xsltproc" value="/usr/bin/xsltproc"/>
+
+    <target name="docsbooks">
+
+      <fail unless="docsbooksdir">
+        Need to set the docsbooksdir property to the directory containing
+        the docs_books Mercurial repository cloned from
+        ssh://soc//a/hgroot/docs_books
+      </fail>
+
+      <fail unless="fopdir">
+        Need to set the fopdir property to the directory containing the
+        installation of Apache FOP (Formatting Objects Processor)
+        installed from soc:/b/htdocs/documentation/sleepycat-fop095.zip.
+        Make sure to update the font-base entry in the
+        conf/sleepycat-fop.conf file in that directory to match its
+        current location.
+      </fail>
+
+      <antcall target="book">
+          <param name="args" value="-t JE_GSG -h -x"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_GSG -p"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_REP -h"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_REP -p"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_COLLECTIONS -h"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_COLLECTIONS -p"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_TXN -h"/>
+      </antcall>
+      <antcall target="book">
+          <param name="args" value="-t JE_TXN -p"/>
+      </antcall>
+    </target>
+
+    <!-- Build one version of a single book. -->
+    <target name="book">
+      <exec executable="./buildBooks.py"
+            dir="${docsbooksdir}/tools/buildBooks">
+        <env key="DOCS_REPOSITORY" value="${docsbooksdir}"/>
+        <env key="DOCS_OUTPUT_DIR" value="${doc.scratchdir}"/>
+        <env key="DOCS_TARGET_REPOSITORY" value="${doc.dir}"/>
+        <env key="DOCS_PDF_BUILDER" value="${fopdir}/fop"/>
+        <env key="DOCS_PARSER" value="${xsltproc}"/>
+        <env key="DOCS_ERROR_FILE" value="${doc.scratchdir}/doc-errors.one"/>
+        <arg line=" ${args}"/>
+      </exec>
+      <!-- Accumulate output/errors in doc-errors.txt. -->
+      <concat destfile="${doc.scratchdir}/doc-errors.txt" append="true">
+          <filelist dir="${doc.scratchdir}" files="doc-errors.one"/>
+      </concat>
+      <delete file="${doc.scratchdir}/doc-errors.one"/>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Copy this JE build binaries to a directory in installdestdir -->
+    <!-- ============================================================ -->
+
+    <target name="install">
+      <description>Install JE into destdir</description>
+      <condition property="isWindows">
+         <os family="windows"/>
+      </condition>
+      <property file="dist/build.properties"/>
+      <echo message="Installing JE into ${installdestdir}"/>
+      <fail message="Install manually on Windows" if="isWindows"/>
+      <property name="installdir"
+             value="${installdestdir}/JE.${release.major}.${release.minor}"/>
+      <mkdir dir="${installdir}"/>
+      <mkdir dir="${installdir}/docs"/>
+      <mkdir dir="${installdir}/bin"/>
+      <mkdir dir="${installdir}/lib"/>
+      <copy todir="${installdir}/docs">
+         <fileset dir="docs">
+	   <include name="**/*"/>
+	 </fileset>
+      </copy>
+      <copy todir="${installdir}/lib">
+	 <fileset dir="lib"/>
+      </copy>
+      <copy todir="${installdir}/bin">
+	 <fileset dir="bin"/>
+      </copy>
+    </target>
+
+    <!-- ============================================================ -->
+    <!-- Clover, code coverage. To run with clover                    -->
+    <!--        set the clover.libdir property above.                 -->
+    <!--        make sure the clover.jar and clover.license are in    -->
+    <!--           the ant/lib directory                              -->
+    <!--        change inheritall=true above for the compile-src      -->
+    <!--           target above.                                      -->
+    <!--           and inheritall=false in ant/internal.xml to        -->
+    <!--               inheritall=true                                -->
+    <!--                                                              -->
+    <!--  To run single test and generate report,we should type       -->
+    <!--           ant clover.singletestdone                          -->
+    <!--  and default single test is for no parameters, if you want   -->
+    <!--  to change to other test, you can change the second parameter-->
+    <!--  of the depends attribute of "clover.singletestdone" target   -->
+    <!--                                                              -->
+    <!--  To run all the tests and generate  report,we should type    -->
+    <!--           ant clover.alltestsdone                            -->
+    <!-- ============================================================ -->
+    <target name="init-clover">
+      <delete dir="${clover.tmpdir}"/>
+      <mkdir dir="${clover.tmpdir}"/>
+    </target>
+
+    <target name="clean-clover" depends="init-clover">
+      <delete dir="${clover.tmpdir}"/>
+      <mkdir dir="${clover.tmpdir}"/>
+    </target>
+
+    <target name="clover.setup">
+      <antcall target="clean"/>
+      <antcall target="compile"/>
+      <antcall target="clean-src"/>
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <antcall target="compile-src"/>
+    </target>
+
+    <target name="clover.runtest">
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <antcall target="test"/>
+    </target>
+
+    <target name="clover.runtest.Isolation">
+      <property name="runclovertestisolation" value="true"/>
+      <antcall target="clover.runtest"/>
+    </target>
+
+    <target name="clover.alltestsrun"
+            depends="clover.setup, clover.runtest, clover.runtest.Isolation">
+    </target>
+
+    <target name="clover.swing" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-view/>
+    </target>
+
+    <target name="clover.log" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-log/>
+    </target>
+
+    <target name="clover.pdf" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-report>
+      	<current outfile="jecoverage.pdf">
+      	  <format type="pdf"/>
+        </current>
+      </clover-report>
+    </target>
+
+    <target name="clover.alltestsdone" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <clover-report>
+        <current outfile="cloverage.xml">
+          <fileset refid="clover.excludeclasses"/>
+          <format type="xml" />
+        </current>
+      </clover-report>
+      <clover-report>
+        <current outfile="clover_html">
+          <fileset refid="clover.excludeclasses"/>
+          <format type="html"/>
+        </current>
+      </clover-report>
+    </target>
+
+    <target name="clover.singletestdone"
+            depends="clover.setup, clover.runtest">
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <clover-report>
+        <current outfile="cloverage.xml">
+          <fileset refid="clover.excludeclasses"/>
+          <format type="xml" />
+        </current>
+      </clover-report>
+      <clover-report>
+        <current outfile="clover_html">
+          <fileset refid="clover.excludeclasses"/>
+          <format type="html"/>
+        </current>
+      </clover-report>
+    </target>
+
+</project>

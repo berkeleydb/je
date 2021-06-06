@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 3. Transaction Basics</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition Transaction Processing" />
+    <link rel="prev" href="enabletxn.html" title="Chapter 2. Enabling Transactions" />
+    <link rel="next" href="nodurabletxn.html" title="Non-Durable Transactions" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 3. Transaction Basics</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="enabletxn.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="nodurabletxn.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="usingtxns"></a>Chapter 3. Transaction Basics</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="usingtxns.html#commitresults">Committing a Transaction</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="nodurabletxn.html">Non-Durable Transactions</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="abortresults.html">Aborting a Transaction</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="autocommit.html">Auto Commit</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="txncursor.html">Transactional Cursors</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="txncursor.html#dplcursors">Using Transactional DPL Cursors</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="txnindices.html">Secondary Indices with Transaction Applications</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="maxtxns.html">Configuring the Transaction Subsystem</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        Once you have enabled transactions for your environment and your databases,
+        you can use them to protect your database operations. You do this by
+        acquiring a transaction handle and then using that handle for any
+        database operation that you want to participate in that transaction.
+     </p>
+      <p>
+        You obtain a transaction handle using the
+        
+        
+        <span><code class="methodname">Environment.beginTransaction()</code> method.</span>
+        
+        
+     </p>
+      <p>
+        Once you have completed all of the operations that you want to include
+        in the transaction, you must commit the transaction using the 
+        
+        
+        <span><code class="methodname">Transaction.commit()</code> method.</span>
+        
+        
+        
+    </p>
+      <p>
+        If, for any reason, you want to abandon the transaction, you abort
+        it using 
+        
+        
+        <span><code class="methodname">Transaction.abort()</code>.</span>
+        
+        
+
+        
+    </p>
+      <p>
+        Any transaction handle that has been committed or aborted can no longer
+        be used by your application.
+    </p>
+      <p>
+        Finally, you must make sure that all transaction handles are either
+        committed or aborted before closing your databases and environment.
+    </p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+            If you only want to transaction protect a single database write operation, you can use auto commit to 
+            perform the transaction administration. When you use auto commit, you do not need an explicit transaction
+            handle. See <a class="xref" href="autocommit.html" title="Auto Commit">Auto Commit</a> for more information.
+        </p>
+      </div>
+      <p>
+        For example, the following example opens a transactional-enabled environment and
+        store, obtains a transaction handle, and then performs a write
+        operation under its protection. In the event of any failure in the
+        write operation, the transaction is aborted and the store is left in a
+        state as if no operations had ever been attempted in the first place.
+
+    </p>
+      <pre class="programlisting">package persist.txn;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.StoreConfig;
+
+import java.io.File;
+
+...
+
+Environment myEnv = null;
+EntityStore store = null;
+
+// Our convenience data accessor class, used for easy access to 
+// EntityClass indexes.
+DataAccessor da;
+
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+    StoreConfig storeConfig = new StoreConfig();
+    storeConfig.setTransactional(true);
+
+    EntityStore store = new EntityStore(myEnv, 
+                             "EntityStore", storeConfig);
+
+    da = new DataAccessor(store);
+
+    // Assume that Inventory is an entity class.
+    Inventory theInventory = new Inventory();
+    theInventory.setItemName("Waffles");
+    theInventory.setItemSku("waf23rbni");
+
+    Transaction txn = myEnv.beginTransaction(null, null);
+
+    try {
+        // Put the object to the store using the transaction handle.
+        da.inventoryBySku.put(txn, theInventory);
+
+        // Commit the transaction. The data is now safely written to the
+        // store.
+        txn.commit();
+    // If there is a problem, abort the transaction
+    } catch (Exception e) {
+        if (txn != null) {
+            txn.abort();
+            txn = null;
+        }
+    }
+
+} catch (DatabaseException de) {
+    // Exception handling goes here
+} </pre>
+      <p>
+        The same thing can be done with the base API; the
+        database in use is left unchanged if the write operation fails:
+    </p>
+      <pre class="programlisting">package je.txn;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+
+import java.io.File;
+
+...
+
+Database myDatabase = null;
+Environment myEnv = null;
+try {
+    EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+    myEnvConfig.setTransactional(true);
+    myEnv = new Environment(new File("/my/env/home"),
+                              myEnvConfig);
+
+    // Open the database. Create it if it does not already exist.
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setTransactional(true);
+    myDatabase = myEnv.openDatabase(null,
+                                    "sampleDatabase",
+                                    dbConfig);
+
+    String keyString = "thekey";
+    String dataString = "thedata";
+    DatabaseEntry key = 
+        new DatabaseEntry(keyString.getBytes("UTF-8"));
+    DatabaseEntry data = 
+        new DatabaseEntry(dataString.getBytes("UTF-8"));
+
+    Transaction txn = myEnv.beginTransaction(null, null);
+        
+    try {
+        myDatabase.put(txn, key, data);
+        txn.commit();
+    } catch (Exception e) {
+        if (txn != null) {
+            txn.abort();
+            txn = null;
+        }
+    }
+
+} catch (DatabaseException de) {
+    // Exception handling goes here
+} </pre>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="commitresults"></a>Committing a Transaction</h2>
+            </div>
+          </div>
+        </div>
+        <p>
+            In order to fully understand what is happening when you commit
+            a transaction, you must first understand a little about what
+            JE is doing with 
+            
+            
+
+            <span>
+                its log files.
+            </span>
+
+            Logging causes all database <span>or
+                    store</span> write operations to be identified in
+
+            
+
+            <span>
+                log files (remember that in JE, your log files <span class="emphasis"><em>are</em></span>
+                your database files; there is no difference between the two).
+                Enough information is written to restore your entire BTree
+            </span>
+                    
+            in the event of a system or application failure, so by performing
+            logging, JE ensures the integrity of your data. 
+        </p>
+        <p>
+                Remember that all write activity made to your database or
+                store is
+            identified in JE's logs as the writes are performed by your
+            application. However, JE maintains logs in memory.
+            Eventually this information is written to disk, but especially
+            in the case of a transactional application this data may be
+            held in memory until the transaction is committed, or
+            JE runs out of buffer space for the logging information.
+        </p>
+        <p>
+            When you commit a transaction, the following occurs:
+        </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                    A commit record is written to the log. This
+                    indicates that the modifications made by the
+                    transaction are now permanent. By default, this write is performed synchronously to disk so the
+                    commit record arrives in the log files before any other actions are taken.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Any log information held in memory is (by default)
+                    synchronously written to disk. Note that this requirement can be
+                    relaxed, depending on the type of commit you perform.
+                    See <a class="xref" href="nodurabletxn.html" title="Non-Durable Transactions">Non-Durable Transactions</a> for
+                    more information. 
+                    
+                </p>
+              <p>
+                    Note that a transaction commit only writes the BTree's leaf nodes to JE's log files. All other
+                    internal BTree structures are left unwritten.
+                </p>
+            </li>
+            <li>
+              <p>
+                    All locks held by the transaction are released. This means
+                    that read operations performed by other transactions or
+                    threads of control can now see the modifications without
+                    resorting to uncommitted reads (see <a class="xref" href="isolation.html#dirtyreads" title="Reading Uncommitted Data">Reading Uncommitted Data</a> for more information).
+                </p>
+            </li>
+          </ul>
+        </div>
+        <p>
+            To commit a transaction, you simply call
+            
+            
+            <span><code class="methodname">Transaction.commit()</code>.</span>
+            
+            
+        </p>
+        <p>
+            Remember that transaction commit causes only the BTree leaf nodes to be written to JE's log files. Any
+            other modifications made to the the BTree as a result of the transaction's activities are not written to the
+            log file. This means that over time JE's normal recovery time can greatly increase (remember that JE always runs
+            normal recovery when it opens an environment). 
+        </p>
+        <p>
+            For this reason, JE by default runs the checkpointer thread. This background thread runs
+            a checkpoint on a periodic interval so as to ensure that the amount of data that needs to be
+            recovered upon environment open is minimized. In addition, you can also run a checkpoint manually.
+            For more information, see <a class="xref" href="chkpoint.html" title="Checkpoints">Checkpoints</a>.
+        </p>
+        <p>
+                Note that once you have committed a transaction, the transaction
+                handle that you used for the transaction is no longer valid. To
+                perform database activities under the control of a new
+                transaction, you must obtain a fresh transaction handle.
+              </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="enabletxn.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="nodurabletxn.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 2. Enabling Transactions </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Non-Durable Transactions</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

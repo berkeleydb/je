@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Chapter 4. Utilities</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="prev" href="runtransaction.html" title="Example Run Transaction Class" />
+    <link rel="next" href="logfile-restore.html" title="Restoring Log Files" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 4. Utilities</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="runtransaction.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="logfile-restore.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="utilities"></a>Chapter 4. Utilities</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="utilities.html#groupadmin">Administering the Replication Group</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="utilities.html#listmembers">Listing Group Members</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="utilities.html#locate-master">Locating the Current Master</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="utilities.html#node-addremove">Adding and Removing Nodes from the Group</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="logfile-restore.html">Restoring Log Files</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="logfile-restore.html#logfilereclaim">Reclaiming Log Files</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="logfile-restore.html#repdiskthresh">Suspending Writes Due to Disk Thresholds</a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="dbbackup.html">Backing up a Replicated Application</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="enablerep.html">Converting Existing Environments for Replication</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+        This chapter discusses the APIs that you use to administer and
+        manage your replication group.
+    </p>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="groupadmin"></a>Administering the Replication Group</h2>
+            </div>
+          </div>
+        </div>
+        <div class="toc">
+          <dl>
+            <dt>
+              <span class="sect2">
+                <a href="utilities.html#listmembers">Listing Group Members</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="utilities.html#locate-master">Locating the Current Master</a>
+              </span>
+            </dt>
+            <dt>
+              <span class="sect2">
+                <a href="utilities.html#node-addremove">Adding and Removing Nodes from the Group</a>
+              </span>
+            </dt>
+          </dl>
+        </div>
+        <p>
+            There are a series of administrative activities that an
+            application might want to take relative to a replication group.
+            These activities can be performed by electable or secondary nodes in the
+            replication group, or by applications that do not have access to
+            a replicated environment (in other words, utilities designed to
+            help administer and monitor the group). All of these functions
+            can be accessed using the <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html" target="_top">ReplicationGroupAdmin</a> class.
+        </p>
+        <p>
+            You can use the <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html" target="_top">ReplicationGroupAdmin</a> class to:
+        </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                    List replication group members.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Locate the current Master.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Remove electable nodes from the replication group.
+                </p>
+            </li>
+          </ol>
+        </div>
+        <p>
+            You instantiate an instance of the <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html" target="_top">ReplicationGroupAdmin</a>
+            class by providing it with the name of the replication group
+            that you want to administer, as well as a <a class="ulink" href="http://java.sun.com/j2se/1.5/docs/api/java/util/Set.html" target="_top">Set</a> of
+            <a class="ulink" href="http://java.sun.com/j2se/1.5/docs/api/java/net/InetSocketAddress.html" target="_top">InetSocketAddress</a> objects. The <a class="ulink" href="http://java.sun.com/j2se/1.5/docs/api/java/net/InetSocketAddress.html" target="_top">InetSocketAddress</a> objects
+            are used as a list of helper hosts that the application can use
+            to perform administrative functions. For example:
+        </p>
+        <pre class="programlisting">...
+
+    Set&lt;InetSocketAddress&gt; helpers =
+        new HashSet&lt;InetSocketAddress&gt;();
+    InetSocketAddress helper1 =
+        new InetSocketAddress("node1.example.com", 1550);
+    InetSocketAddress helper2 =
+        new InetSocketAddress("node2.example.com", 1550);
+
+    helpers.add(helper1);
+    helpers.add(helper2);
+
+    ReplicationGroupAdmin rga =
+        new ReplicationGroupAdmin("test_rep_group", helpers);   </pre>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="listmembers"></a>Listing Group Members</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                 To list all the members of a replication group, use the
+                 <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#getGroup()" target="_top">ReplicationGroupAdmin.getGroup()</a> method. This returns an
+                 instance of <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html" target="_top">ReplicationGroup</a>. You then can then:
+            </p>
+          <div class="orderedlist">
+            <ol type="1">
+              <li>
+                <p>
+                        use the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html#getNodes()" target="_top">ReplicationGroup.getNodes()</a> method to locate
+                        all the nodes in the replication group.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        use the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html#getElectableNodes()" target="_top">ReplicationGroup.getElectableNodes()</a> method to locate all
+                        the electable nodes in the replication group. 
+                    </p>
+              </li>
+              <li>
+                <p>
+                        use the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html#getSecondaryNodes()" target="_top">ReplicationGroup.getSecondaryNodes()</a>
+                        method to locate all the secondary nodes in the
+                        replication group.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        use <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html#getMonitorNodes()" target="_top">ReplicationGroup.getMonitorNodes()</a> to locate all the
+                        monitor nodes that currently belong to the replication
+                        group. 
+                    </p>
+              </li>
+            </ol>
+          </div>
+          <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+            <h3 class="title">Note</h3>
+            <p>
+                    In order to obtain a <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationGroup.html" target="_top">ReplicationGroup</a> object,
+                    the process must be able to discover the current
+                    Master. This means that the helper nodes you provide
+                    when you instantiate the <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html" target="_top">ReplicationGroupAdmin</a> class
+                    must be reachable and able to identify the current
+                    Master. If they cannot, then these methods throw an 
+                    <a class="ulink" href="../java/com/sleepycat/je/rep/UnknownMasterException.html" target="_top">UnknownMasterException</a>.
+                </p>
+          </div>
+          <p>
+                All of these methods return a set of <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationNode.html" target="_top">ReplicationNode</a> objects, which 
+                you can then use to query for node information, such as its
+                name, the <a class="ulink" href="http://java.sun.com/j2se/1.5/docs/api/java/net/InetSocketAddress.html" target="_top">InetSocketAddress</a> where the node is located,
+                and the node's type.
+            </p>
+          <p>
+                For example:
+            </p>
+          <pre class="programlisting">...
+
+    Set&lt;InetSocketAddress&gt; helpers =
+        new HashSet&lt;InetSocketAddress&gt;();
+    InetSocketAddress helper1 =
+        new InetSocketAddress("node1.example.com", 1550);
+    InetSocketAddress helper2 =
+        new InetSocketAddress("node2.example.com", 1550);
+
+    helpers.add(helper1);
+    helpers.add(helper2);
+
+    ReplicationGroupAdmin rga =
+        new ReplicationGroupAdmin("test_rep_group", helpers); 
+
+    try {
+        ReplicationGroup rg = rga.getGroup();
+        for (ReplicationNode rn : rg.getElectableNodes()) {
+            // Do something with the replication node.
+        }
+    } catch (UnknownMasterException ume) {
+        // Can't find a master
+    }   </pre>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="locate-master"></a>Locating the Current Master</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                You can use the <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html" target="_top">ReplicationGroupAdmin</a> class to locate the
+                current Master in the replication group. This information
+                is available using the
+                <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#getMasterNodeName()" target="_top">ReplicationGroupAdmin.getMasterNodeName()</a> and 
+                <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#getMasterSocket()" target="_top">ReplicationGroupAdmin.getMasterSocket()</a> methods.
+            </p>
+          <p>
+                <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#getMasterNodeName()" target="_top">ReplicationGroupAdmin.getMasterNodeName()</a> returns a string
+                that holds the node name associated with the Master.
+            </p>
+          <p>
+                <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#getMasterSocket()" target="_top">ReplicationGroupAdmin.getMasterSocket()</a> returns an
+                <a class="ulink" href="http://java.sun.com/j2se/1.5/docs/api/java/net/InetSocketAddress.html" target="_top">InetSocketAddress</a> class object that represents the host
+                and port where the Master can currently be found.
+            </p>
+          <p>
+                Both methods will throw an <a class="ulink" href="../java/com/sleepycat/je/rep/UnknownMasterException.html" target="_top">UnknownMasterException</a> if the
+                helper nodes are not able to identify the current Master.
+            </p>
+          <p>
+                For example:
+            </p>
+          <pre class="programlisting">import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.sleepycat.je.rep.UnknownMasterException;
+import com.sleepycat.je.rep.util.ReplicationGroupAdmin;
+
+...
+
+    Set&lt;InetSocketAddress&gt; helpers =
+        new HashSet&lt;InetSocketAddress&gt;();
+    InetSocketAddress helper1 =
+        new InetSocketAddress("node1.example.com", 1550);
+    InetSocketAddress helper2 =
+        new InetSocketAddress("node2.example.com", 1550);
+
+    helpers.add(helper1);
+    helpers.add(helper2);
+
+    ReplicationGroupAdmin rga =
+        new ReplicationGroupAdmin("test_rep_group", helpers); 
+
+    try {
+        InetSocketAddress master = rga.getMasterSocket();
+        System.out.println("Master is on host " + 
+                    master.getHostName() + " at port " + 
+                    master.getPort()); 
+        }
+    } catch (UnknownMasterException ume) {
+        // Can't find a master
+    }   </pre>
+        </div>
+        <div class="sect2" lang="en" xml:lang="en">
+          <div class="titlepage">
+            <div>
+              <div>
+                <h3 class="title"><a id="node-addremove"></a>Adding and Removing Nodes from the Group</h3>
+              </div>
+            </div>
+          </div>
+          <p>
+                In order to add nodes to a replication group, you simply
+                start up a node and identify at least one helper node that
+                can identify the current Master to the new node. After the
+                new node has been populated with a current enough copy of
+                the data contained on the Master, the new node is
+                automatically a member of the replication group.
+            </p>
+          <p>
+                An electable node's status as a member of the group is persistent.
+                That is, it is a member of the group regardless of whether
+                it is running, and whether other nodes in the group can
+                reach it over the network. This means that for the purposes
+                of elections and message acknowledgements, the node counts
+                toward the total number of nodes that must respond and/or
+                participate in an event.
+            </p>
+          <p>
+                If, for example, you are using a durability guarantee that
+                requires all electable nodes in the replication group to acknowledge
+                a transaction commit on the Master, and if a node is down
+                or otherwise unavailable for some reason, then the commit
+                cannot complete on the Master because it will not receive
+                acknowledgements from all the electable nodes in the replication
+                group.
+            </p>
+          <p>
+                Similarly, elections for Masters require a bare majority of
+                electable nodes to participate in the election. If so many nodes are
+                shutdown or unavailable due to a network partition event
+                that a bare majority of electable nodes cannot be found to hold the
+                election, then your replication group can perform no write
+                activities. This situation persists until at least enough
+                nodes come back online to represent a bare majority of the
+                electable nodes belonging to the replication group.
+            </p>
+          <p>
+                For this reason, if you have an electable node that you intend to
+                shutdown for a long time, then you should remove that node
+                from the replication group. You do this using the
+                <a class="ulink" href="../java/com/sleepycat/je/rep/util/ReplicationGroupAdmin.html#removeMember(java.lang.String)" target="_top">ReplicationGroupAdmin.removeMember()</a> method. Note the
+                following rules when using this method:
+            </p>
+          <div class="itemizedlist">
+            <ul type="disc">
+              <li>
+                <p>
+                        For best results, shutdown the node before removing
+                        it.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        You use the node's name (not the host/port pair) to identify the node
+                        you want to remove from the group. If the node name
+                        that you specify is unknown to the replication
+                        group, a <a class="ulink" href="../java/com/sleepycat/je/rep/MemberNotFoundException.html" target="_top">MemberNotFoundException</a> is thrown. If
+                        it names a secondary node, an
+                        <a class="ulink" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/IllegalArgumentException.html" target="_top">IllegalArgumentException</a> is thrown.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        Once removed, the electable node can no longer connect to the
+                        Master, nor can it participate in elections. If
+                        you want to reconnect the node to the Master (that
+                        is, you want to add it back to the replication group), you
+                        will have to do so using a different node name than
+                        the node was using when it was removed from the
+                        group.
+                    </p>
+              </li>
+              <li>
+                <p>
+                        An active Master cannot be removed from the group. To
+                        remove the active Master, either shut it down or wait
+                        until it transitions to the Replica state.
+                        If you attempt to remove an active Master, a
+                        <a class="ulink" href="../java/com/sleepycat/je/rep/MasterStateException.html" target="_top">MasterStateException</a> is thrown.
+                    </p>
+              </li>
+            </ul>
+          </div>
+          <p>
+                For example:
+            </p>
+          <pre class="programlisting">...
+
+    Set&lt;InetSocketAddress&gt; helpers =
+        new HashSet&lt;InetSocketAddress&gt;();
+    InetSocketAddress helper1 =
+        new InetSocketAddress("node1.example.com", 1550);
+    InetSocketAddress helper2 =
+        new InetSocketAddress("node2.example.com", 1550);
+
+    helpers.add(helper1);
+    helpers.add(helper2);
+
+    ReplicationGroupAdmin rga =
+        new ReplicationGroupAdmin("test_rep_group", helpers); 
+
+    try {
+        rga.removeMember("NODE3");
+    } catch (MemberNotFoundException mnfe) {
+        // Specified a node name that is not known to the
+        // replication group.
+    } catch (MasterStateException mse) {
+        // Tried to remove an active Master
+    }   </pre>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="runtransaction.html">Prev</a> </td>
+          <td width="20%" align="center"> </td>
+          <td width="40%" align="right"> <a accesskey="n" href="logfile-restore.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Example Run Transaction Class </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Restoring Log Files</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

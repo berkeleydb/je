@@ -1,0 +1,42 @@
+This series test contains five projects in Jenkins
+    je_dbsim_abortstress
+    je_dbsim_duplicate
+    je_dbsim_dwstress
+    je_dbsim_embedded_abort
+    je_dbsim_recovery
+
+Jenkins Machine: slc04ark
+Emails: adam.qian@oracle.com, mark.hayes@oracle.com, dwayne.chung@oracle.com, dave.rubin@oracle.com, sam.haradhvala@oracle.com, linda.q.lee@oracle.com, tim.blackman@oracle.com, nosql_eng_cn_grp@oracle.com, markos.zaharioudakis@oracle.com, junyi.xie@oracle.com
+
+je_dbsim_abortstress:
+    Test Machine: slc04aro
+    Current Duration: 18hours
+    Issued Time: 00:00 UTC Every Sunday
+   
+     
+je_dbsim_duplicate:
+    Test Machine: slc04aro
+    Current Duration: 34hours
+    Issued Time: 01:00 UTC Every Monday
+    
+    
+je_dbsim_dwstress:
+    Test Machine: slc04aro
+    Current Duration: 20minutes
+    Issued Time: 02:00 UTC Every Wednesday
+    
+    
+je_dbsim_embedded_abort:
+    Test Machine: slc04aro
+    Current Duration: 27minutes
+    Issued Time: 04:00 UTC Every Wednesday
+   
+ 
+je_dbsim_recovery:
+    Test Machine: slc04aro
+    Current Duration: 34hours
+    Issued Time: 12:00 UTC Every Friday
+    
+Example Usage:
+    scp /scratch/jenkins/bin/je_dbsim.sh tests@slc04aro:/scratch/tests/
+    ssh -l tests slc04aro "bash /scratch/tests/je_dbsim.sh -t je_dbsim_duplicate -j 8 -R ${je_repo} -b ${je_branch} -r ${je_version}" 

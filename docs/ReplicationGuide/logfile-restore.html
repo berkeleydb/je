@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Restoring Log Files</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB, Java Edition High Availability Applications" />
+    <link rel="up" href="utilities.html" title="Chapter 4. Utilities" />
+    <link rel="prev" href="utilities.html" title="Chapter 4. Utilities" />
+    <link rel="next" href="dbbackup.html" title="Backing up a Replicated Application" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Restoring Log Files</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="utilities.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 4. Utilities</th>
+          <td width="20%" align="right"> <a accesskey="n" href="dbbackup.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="logfile-restore"></a>Restoring Log Files</h2>
+          </div>
+        </div>
+      </div>
+      <div class="toc">
+        <dl>
+          <dt>
+            <span class="sect2">
+              <a href="logfile-restore.html#logfilereclaim">Reclaiming Log Files</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect2">
+              <a href="logfile-restore.html#repdiskthresh">Suspending Writes Due to Disk Thresholds</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+            During normal operations, the nodes in a replication group
+            communicate with one another to ensure that the JE cleaner
+            does not reclaim log files still needed by the group. The tail
+            end of the replication stream may still be needed by a lagging
+            Replica in order to make it current with the Master, and so the
+            replication group tries to make sure the trailing log files needed to
+            bring lagging Replicas up-to-date are not reclaimed.
+        </p>
+      <p>
+            However, if a node is unavailable for a long enough period
+            of time, then log files needed to bring it up to date might
+            have been reclaimed by the cleaner. 
+            For information on how and when log files are reclaimed in 
+            a replicated environment, see 
+            <a class="xref" href="logfile-restore.html#logfilereclaim" title="Reclaiming Log Files">Reclaiming Log Files</a>.
+        </p>
+      <p>
+            Once log files have been reclaimed by a cleaner, then the
+            Replica can no longer be brought up to date using the normal
+            replication stream. Your application code will know this has
+            happened when the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicatedEnvironment.html" target="_top">ReplicatedEnvironment</a> constructor throws
+            an <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientLogException.html" target="_top">InsufficientLogException</a>.
+        </p>
+      <p>
+            When your code catches an <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientLogException.html" target="_top">InsufficientLogException</a>, then you
+            must bring the Replica up-to-date using a mechanism other than
+            the normal replication stream. You do this using the
+            <a class="ulink" href="../java/com/sleepycat/je/rep/NetworkRestore.html" target="_top">NetworkRestore</a> class. A call to <a class="ulink" href="../java/com/sleepycat/je/rep/NetworkRestore.html#execute(com.sleepycate.je.rep.InsufficientLogException,com.sleepycat.je.rep.NetworkRestoreConfig)" target="_top">NetworkRestore.execute()</a>
+            causes the Replica to copy the missing log files from a member
+            of the replication group who owns the files and seems to be the
+            least busy. Once the Replica has obtained the log files that it
+            requires, it automatically re-establishes its replication stream 
+            with the Master so that the Master can finish bringing the
+            Replica up-to-date.
+        </p>
+      <p>
+            For example:
+        </p>
+      <pre class="programlisting"> ...
+  try {
+     node = new ReplicatedEnvironment(envDir, repConfig, envConfig);
+ } catch (InsufficientLogException insufficientLogEx) {
+
+     NetworkRestore restore = new NetworkRestore();
+     NetworkRestoreConfig config = new NetworkRestoreConfig();
+     config.setRetainLogFiles(false); // delete obsolete log files.
+
+     // Use the members returned by insufficientLogEx.getLogProviders() 
+     // to select the desired subset of members and pass the resulting 
+     // list as the argument to config.setLogProviders(), if the 
+     // default selection of providers is not suitable.
+
+     restore.execute(insufficientLogEx, config);
+
+     // retry
+     node = new ReplicatedEnvironment(envDir, repConfig, envConfig);
+ } ...  </pre>
+      <p>
+            Note that the replication group does not maintain information
+            about the log files needed by secondary nodes.  Instead, the
+            system retains a set of log files beyond those required for a
+            network restore based on the <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#NETWORK_RESTORE_OVERHEAD" target="_top">NETWORK_RESTORE_OVERHEAD</a> property,
+            which you can manage using <a class="ulink" href="../java/com/sleepycat/je/rep/ReplicationConfig.html#setConfigParam(java.lang.String,java.lang.String)" target="_top">ReplicationConfig.setConfigParam()</a>.
+            The default value is 10, which means that the system uses the
+            estimate of 10 percent for the additional amount of data that
+            performing a network restore needs to send over the network as
+            compared to using the same log files to perform replication.  In
+            this case, the system saves files containing an additional 10
+            percent of log data beyond the amount needed for a network
+            restore.
+        </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="logfilereclaim"></a>Reclaiming Log Files</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                Ordinarily JE's cleaner thread reclaims log files as soon as possible
+                so as to minimize the amount of disk space used by the database. Log files
+                are reclaimed as records are deleted, and log files are subsequently compacted.
+            </p>
+        <p>
+                However, various database activities might cause log files
+                to be temporarily reserved or protected temporarily. A
+                <span class="emphasis"><em>reserved file</em></span> is a file that JE
+                can delete but has yet done so.  A 
+                <span class="emphasis"><em>protected file</em></span> is a file that should
+                be deleted, but JE cannot do so due to some database
+                activity, such as a backup.
+            </p>
+        <p>
+                For replicated environments, JE hangs on to log files as long
+                as possible in case they are needed to bring a replica up to date. Log
+                files that have been cleaned but then saved due because of replication
+                are in a <span class="emphasis"><em>reserved</em></span> state. All such files are
+                retained until the disk usage thresholds as defined by <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#MAX_DISK" target="_top">EnvironmentConfig.MAX_DISK</a>
+                and <a class="ulink" href="../java/com/sleepycat/je/EnvironmentConfig.html#FREE_DISK" target="_top">EnvironmentConfig.FREE_DISK</a> are exceeded. At that point, JE deletes reserved
+                log files.
+            </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="repdiskthresh"></a>Suspending Writes Due to Disk Thresholds</h3>
+            </div>
+          </div>
+        </div>
+        <p>
+                In the previous section, we mentioned that JE reserves 
+                cleaned log files until disk threshold limits are encountered,
+                at which time log files are reclaimed (deleted).
+            </p>
+        <p>
+                Be aware that if reclaiming log files does not allow JE
+                to meet its disk usage threshold limits, then writes are
+                disabled for one or more nodes in the replication group.
+            </p>
+        <p>
+                If the threshold limits cannot be met on the Master, then
+                write operations will throw <a class="ulink" href="../java/com/sleepycat/je/DiskLimitException.html" target="_top">DiskLimitException</a> just as
+                they would for a non-replicated environment. 
+            </p>
+        <p>
+                If the threshold limit cannot be met on a replica, then
+                writes are disabled only on that replica. In this case, the
+                Master might see <a class="ulink" href="../java/com/sleepycat/je/rep/InsufficientAcksException.html" target="_top">InsufficientAcksException</a> thrown in
+                response to a write — if your application's
+                durability guarantee cannot be met due to the replica being
+                unable to perform writes.
+            </p>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="utilities.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="utilities.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="dbbackup.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 4. Utilities </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Backing up a Replicated Application</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

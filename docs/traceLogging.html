@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Berkeley DB Java Edition Trace Logging</title>
+</head>
+<body>
+
+<p align=center>
+<img src="images/Oracle_BerkeleyDB_small.png" alt="Oracle">
+</p>
+
+<h3>Trace logging in Berkeley DB Java Edition</h3>
+JE uses the <code><a
+href="http://download.oracle.com/javase/6/docs/api/java/util/logging/package-summary.html">java.util.logging</a></code>
+package to log operations and trace
+messages. This information can be particularly useful when running a
+replicated JE High Availability application in order to monitor your
+application's activities. 
+<p>
+The default output lists replication node start up and shutdown
+operations. Initial configuration problems should show up
+during the startup operation. You are strongly advised to run your
+production application with this level of logging.
+<p>
+Note that an application java.util.logging.Handler may be specified for
+each environment through EnvironmentConfig.setLoggingHandler();
+<p>
+See the <a href="GettingStartedGuide/managelogging.html">Logging</a>
+section in <a href="GettingStartedGuide/administration.html">
+    Chapter 12, Administering Berkeley DB Java Edition Applications
+</a> in the <a href="GettingStartedGuide/index.html">Getting Started Guide</a> for
+details on logging configuration and locations. 
+<h4>Example of logging output</h4>
+
+The first column is the date in &lt;year&gt;-&lt;month&gt;-&lt;day&gt;
+format.  Times are given in the UTC timezone.<br><br>
+The default information when a master node (Node 1) comes up:
+<pre>
+2009-09-17 17:36:22:421 UTC INFO [Node 1]  Started ServiceDispatcher. HostPort=localhost:5500
+2009-09-17 17:36:22:521 UTC INFO [Node 1]  Refreshed 0 monitors.
+2009-09-17 17:36:22:529 UTC INFO [Node 1]  Current group size: 0
+2009-09-17 17:36:22:530 UTC INFO [Node 1]  New node Node 1(-1) unknown to rep group
+2009-09-17 17:36:22:537 UTC INFO [Node 1]  Nascent group. Node 1 is master by virtue of being the first node.
+2009-09-17 17:36:22:571 UTC INFO [Node 1]  Successfully added node: Node 1(1) HostPort=localhost:5500 [ELECTABLE]
+2009-09-17 17:36:22:572 UTC INFO [Node 1]  Refreshed 0 monitors.
+2009-09-17 17:36:22:580 UTC INFO [Node 1]  Node Node 1 started
+2009-09-17 17:36:22:593 UTC INFO [Node 1]  Feeder manager accepting requests.
+</pre>
+
+The master's perspective when a replica (Node 2) wants to be added, then subsequently joins and syncs up.
+<pre>
+2009-09-17 17:36:22:676 UTC INFO [Node 1]  Feeder accepted connection from java.nio.channels.SocketChannel[connected local=/127.0.0.1:5500 remote=/127.0.0.1:59415]
+2009-09-17 17:36:22:710 UTC INFO [Node 1]  Feeder-replica handshake start
+2009-09-17 17:36:22:729 UTC INFO [Node 1]  Successfully added node: Node 2(2) HostPort=localhost:5501 [ELECTABLE]
+2009-09-17 17:36:22:730 UTC INFO [Node 1]  Refreshed 0 monitors.
+2009-09-17 17:36:22:732 UTC INFO [Node 1]  Feeder-replica Node 2 handshake completed.
+2009-09-17 17:36:22:735 UTC INFO [Node 1]  Feeder-replica Node 2 syncup started. Feeder range: first=1 last=14 sync=14 txnEnd=14
+2009-09-17 17:36:22:747 UTC INFO [Node 1]  Feeder-replica Node 2 start stream at VLSN: 1
+2009-09-17 17:36:22:748 UTC INFO [Node 1]  Feeder-replica Node 2 syncup ended. Elapsed time: 13ms
+2009-09-17 17:36:22:750 UTC INFO [Node 1]  Feeder output thread for replica Node 2 started at VLSN: 1 Master at: 14 VLSN delta: 13 Socket: (Node 2(2))java.nio.channels.SocketChannel[connected local=/127.0.0.1:5500 remote=/127.0.0.1:59415]
+</pre>
+A replica (Node 5) comes up. We can tell who the master (Node 1) is:
+<pre>
+2009-09-17 17:36:23:179 UTC INFO [Node 5]  Started ServiceDispatcher. HostPort=localhost:5504
+2009-09-17 17:36:23:181 UTC INFO [Node 5]  Refreshed 0 monitors.
+2009-09-17 17:36:23:182 UTC INFO [Node 5]  Current group size: 0
+2009-09-17 17:36:23:182 UTC INFO [Node 5]  New node Node 5(-1) unknown to rep group
+2009-09-17 17:36:23:186 UTC INFO [Node 5]  New node Node 5 located master: Node 1(1)
+2009-09-17 17:36:23:188 UTC INFO [Node 5]  Node Node 5 started
+2009-09-17 17:36:23:188 UTC INFO [Node 5]  Replica loop started with master: Node 1(1)
+2009-09-17 17:36:23:192 UTC INFO [Node 5]  Replica-feeder handshake start
+2009-09-17 17:36:23:274 UTC INFO [Node 5]  Replica-feeder Node 1 handshake completed.
+2009-09-17 17:36:23:274 UTC INFO [Node 5]  Replica-feeder Node 1 syncup started. Replica range: first=-1 last=-1 sync=-1 txnEnd=-1
+2009-09-17 17:36:23:275 UTC INFO [Node 5]  Replica-feeder Node 1 start stream at VLSN: 1
+2009-09-17 17:36:23:276 UTC INFO [Node 5]  Replica-feeder Node 1 syncup ended. Elapsed time: 2ms
+2009-09-17 17:36:23:280 UTC INFO [Node 5]  Replica initialization completed. Replica VLSN: -1  Heartbeat master commit VLSN: 29 VLSN delta: 30
+</pre>
+A master node (node 1)  is shutting down and is closing connections to its replicas. (Nodes 2, 3, 4, 5)
+<pre>
+2009-09-17 17:36:39:502 UTC INFO [Node 1]  Shutting down node Node 1(1)
+2009-09-17 17:36:39:502 UTC INFO [Node 1]  Elections shutdown initiated
+2009-09-17 17:36:39:504 UTC INFO [Node 1]  Elections shutdown completed
+2009-09-17 17:36:39:504 UTC INFO [Node 1]  Feeder manager soft shutdown.
+2009-09-17 17:36:39:505 UTC INFO [Node 1]  Shutting down feeder for replica Node 4 write time:  214ms Avg write time: 19us
+2009-09-17 17:36:40:502 UTC INFO [Node 1]  Feeder output for replica Node 4 shutdown. feeder VLSN: 11,126 currentCommitVLSN: 11,025
+2009-09-17 17:36:40:503 UTC INFO [Node 1]  Thread[Feeder Output for Node 4,5,] has exited.
+2009-09-17 17:36:40:503 UTC INFO [Node 1]  Thread[Feeder Input for Node 4,5,] has exited.
+2009-09-17 17:36:40:504 UTC INFO [Node 1]  Shutting down feeder for replica Node 2 write time:  212ms Avg write time: 19us
+2009-09-17 17:36:41:503 UTC INFO [Node 1]  Feeder output for replica Node 2 shutdown. feeder VLSN: 11,126 currentCommitVLSN: 11,025
+2009-09-17 17:36:41:504 UTC INFO [Node 1]  Thread[Feeder Output for Node 2,5,] has exited.
+2009-09-17 17:36:41:504 UTC INFO [Node 1]  Thread[Feeder Input for Node 2,5,] has exited.
+2009-09-17 17:36:41:504 UTC INFO [Node 1]  Shutting down feeder for replica Node 3 write time:  230ms Avg write time: 20us
+2009-09-17 17:36:42:504 UTC INFO [Node 1]  Feeder output for replica Node 3 shutdown. feeder VLSN: 11,126 currentCommitVLSN: 11,025
+2009-09-17 17:36:42:504 UTC INFO [Node 1]  Thread[Feeder Output for Node 3,5,] has exited.
+2009-09-17 17:36:42:505 UTC INFO [Node 1]  Thread[Feeder Input for Node 3,5,] has exited.
+2009-09-17 17:36:42:505 UTC INFO [Node 1]  Shutting down feeder for replica Node 5 write time:  219ms Avg write time: 19us
+2009-09-17 17:36:43:502 UTC INFO [Node 1]  Feeder output for replica Node 5 shutdown. feeder VLSN: 11,126 currentCommitVLSN: 11,025
+2009-09-17 17:36:43:503 UTC INFO [Node 1]  Thread[Feeder Output for Node 5,5,] has exited.
+2009-09-17 17:36:43:503 UTC INFO [Node 1]  Thread[Feeder Input for Node 5,5,] has exited.
+2009-09-17 17:36:43:503 UTC INFO [Node 1]  Feeder manager exited. CurrentCommit VLSN: 11,025
+2009-09-17 17:36:43:503 UTC INFO [Node 1]  RepNode main thread shutting down. 
+2009-09-17 17:36:43:504 UTC INFO [Node 1]  RepNode main thread: DETACHED Node 1(1) exited.
+2009-09-17 17:36:43:504 UTC INFO [Node 1]  ServiceDispatcher shutdown starting. HostPort=localhost:5500 Registered services: []
+2009-09-17 17:36:43:505 UTC INFO [Node 1]  ServiceDispatcher shutdown completed. HostPort=localhost:5500
+2009-09-17 17:36:43:505 UTC INFO [Node 1]  Node 1(1) shutdown completed.
+</pre>
+</body>
+</html>

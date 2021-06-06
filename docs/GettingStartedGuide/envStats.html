@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Environment Statistics</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.73.2" />
+    <link rel="start" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="env.html" title="Chapter 2. Database Environments" />
+    <link rel="prev" href="EnvProps.html" title="Environment Properties" />
+    <link rel="next" href="dbenvUsageExample.html" title="Database Environment Management Example" />
+  </head>
+  <body>
+    <div xmlns="" class="navheader">
+      <div class="libver">
+        <p>Library Version 12.2.7.5</p>
+      </div>
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Environment Statistics</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="EnvProps.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 2. Database Environments</th>
+          <td width="20%" align="right"> <a accesskey="n" href="dbenvUsageExample.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="envStats"></a>Environment Statistics</h2>
+          </div>
+        </div>
+      </div>
+      <p>
+        JE offers a wealth of information that you can examine regarding your environment's operations. The majority
+        of this information involves numbers relevant only to the JE developer and as such a description of those
+        statistics is beyond the scope of this manual.
+    </p>
+      <p>
+        However, one statistic that is very important (especially for
+        long-running applications) is 
+        <code class="methodname">EnvironmentStats.getNCacheMiss()</code>. 
+        This statistic returns the total number of
+        requests for database objects that were not serviceable from the cache. 
+        This number is important to the
+        application administrator who is attempting to determine the proper size for the in-memory cache.
+
+        See <a class="xref" href="cachesize.html" title="Sizing the Cache">Sizing the Cache</a> for details.
+    </p>
+      <p>
+        To obtain this statistic from your environment, call <code class="methodname">Environment.getStats()</code> to return
+        an <code class="classname">EnvironmentStats</code> object. You can then call the 
+		<code class="methodname">EnvironmentStats.getNCacheMiss()</code> method. For example:
+    </p>
+      <a id="je_env5"></a>
+      <pre class="programlisting">import com.sleepycat.je.Environment;
+
+...
+
+long cacheMisses = myEnv.getStats(null).getNCacheMiss();
+
+...  
+</pre>
+      <p>
+    Note that <code class="methodname">Environment.getStats()</code> can only obtain statistics from your application's
+    process.  In order for the application administrator to obtain this statistic, you must either 
+    use JMX to retrieve the statistic
+    (see <a class="xref" href="jmx.html" title="JConsole and JMX Support">JConsole and JMX Support</a>)
+    or you must print it for examination (for example, log the value once a minute).
+</p>
+      <p>
+    Remember that what is really important for cache sizing is the change in this value over time, and not the actual value
+    itself. So you might consider offering a delta from one examination of this statistic to the next (a delta of 0 is
+    desired while large deltas are an indication that the cache is too small).
+</p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="EnvProps.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="env.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="dbenvUsageExample.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Environment Properties </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Database Environment Management Example</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
